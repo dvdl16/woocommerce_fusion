@@ -56,15 +56,15 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.get.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEquals(mock_api.get.call_args.args[0], 'orders')
+		self.assertEqual(mock_api.get.call_args.args[0], 'orders')
 
 		# Verify that the list of orders have been retrieved
-		self.assertEquals(len(orders), nr_of_orders)
+		self.assertEqual(len(orders), nr_of_orders)
 		
 		# Verify that a 'name' attribute has been created with value of 'id'
 		for order in orders:
 			self.assertTrue('name' in order)
-			self.assertEquals(order['name'], order['id'])
+			self.assertEqual(order['name'], order['id'])
 
 
 	# @patch.object(WooCommerceOrder, 'get_additional_order_attributes')
@@ -125,7 +125,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.get.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEquals(mock_api.get.call_args.args[0], f'orders/{order_id}')
+		self.assertEqual(mock_api.get.call_args.args[0], f'orders/{order_id}')
 
 	def test_db_insert_makes_post_call(self, mock_init_api):
 		"""
@@ -162,11 +162,11 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.post.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEquals(mock_api.post.call_args.args[0], 'orders')
+		self.assertEqual(mock_api.post.call_args.args[0], 'orders')
 
 		# Verify that an attribute is passed to the API
 		self.assertTrue('customer_note' in mock_api.post.call_args.kwargs['data'])
-		self.assertEquals(mock_api.post.call_args.kwargs['data']['customer_note'], "Hello World")
+		self.assertEqual(mock_api.post.call_args.kwargs['data']['customer_note'], "Hello World")
 
 	def test_db_insert_with_failed_post_call_throws_error(self, mock_init_api):
 		"""
@@ -240,11 +240,11 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.put.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEquals(mock_api.put.call_args.args[0], f'orders/{order_id}')
+		self.assertEqual(mock_api.put.call_args.args[0], f'orders/{order_id}')
 
 		# Verify that an attribute is passed to the API
 		self.assertTrue('customer_note' in mock_api.put.call_args.kwargs['data'])
-		self.assertEquals(mock_api.put.call_args.kwargs['data']['customer_note'], "Hello World")
+		self.assertEqual(mock_api.put.call_args.kwargs['data']['customer_note'], "Hello World")
 
 
 	def test_get_additional_order_attributes_makes_api_get(self, mock_init_api):
@@ -273,7 +273,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.get.assert_called_once()
 
 		# Verify that the shipment-trackings endpoint is called
-		self.assertEquals(mock_api.get.call_args.args[0], f'orders/{order_id}/shipment-trackings')
+		self.assertEqual(mock_api.get.call_args.args[0], f'orders/{order_id}/shipment-trackings')
 
 
 	def test_update_shipment_tracking_makes_api_post_when_shipment_trackings_changes(self, mock_init_api):
@@ -305,7 +305,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api.post.assert_called_once()
 
 		# Verify that the shipment-trackings endpoint is called
-		self.assertEquals(mock_api.post.call_args.args[0], f'orders/{order_id}/shipment-trackings/')
+		self.assertEqual(mock_api.post.call_args.args[0], f'orders/{order_id}/shipment-trackings/')
 
 
 	def test_update_shipment_tracking_does_not_make_api_post_when_shipment_trackings_is_unchanged(self, mock_init_api):
