@@ -201,7 +201,8 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Verify that the Exception is a Validation Error
 		self.assertEqual('ValidationError', context.exception.__class__.__name__)
 
-	def test_db_update_makes_put_call(self, mock_init_api):
+	@patch('woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order.WooCommerceOrder.update_shipment_tracking')
+	def test_db_update_makes_put_call(self, mock_update_shipment_tracking, mock_init_api):
 		"""
 		Test that db_update makes a PUT call to the WooCommerce API
 		"""
@@ -273,6 +274,67 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Verify that the shipment-trackings endpoint is called
 		self.assertEquals(mock_api.get.call_args.args[0], f'orders/{order_id}/shipment-trackings')
+
+
+	def test_update_shipment_tracking_makes_api_post_when_shipment_trackings_changes(self, mock_init_api):
+		"""
+		Test that the update_shipment_tracking method makes an API POST call
+		"""
+		order_id = 1
+		# Setup mock API
+		mock_api = Mock()
+		mock_init_api.return_value = mock_api
+
+		# Define the mock response from the post method
+		mock_post_response = Mock()
+		mock_post_response.status_code = 201
+
+		# Set the mock response to be returned when post is called on the mock API
+		mock_api.post.return_value = mock_post_response
+
+		# Patch out the __init__ method and set the required fields
+		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
+			woocommerce_order = WooCommerceOrder()
+			woocommerce_order.init_api()
+			woocommerce_order.name = 1
+			woocommerce_order.shipment_trackings = json.dumps([{'foo': 'bar'}])
+			woocommerce_order._doc_before_save = frappe._dict({'shipment_trackings': json.dumps([{'foo': 'baz'}])})
+			woocommerce_order.update_shipment_tracking()
+
+		# Check that the API was called
+		mock_api.post.assert_called_once()
+
+		# Verify that the shipment-trackings endpoint is called
+		self.assertEquals(mock_api.post.call_args.args[0], f'orders/{order_id}/shipment-trackings/')
+
+
+	def test_update_shipment_tracking_does_not_make_api_post_when_shipment_trackings_is_unchanged(self, mock_init_api):
+		"""
+		Test that the update_shipment_tracking method does not make an API POST call when
+		shipment_trackings is unchanged
+		"""
+		# Setup mock API
+		mock_api = Mock()
+		mock_init_api.return_value = mock_api
+
+		# Define the mock response from the post method
+		mock_post_response = Mock()
+		mock_post_response.status_code = 201
+
+		# Set the mock response to be returned when post is called on the mock API
+		mock_api.post.return_value = mock_post_response
+
+		# Patch out the __init__ method and set the required fields
+		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
+			woocommerce_order = WooCommerceOrder()
+			woocommerce_order.init_api()
+			woocommerce_order.name = 1
+			woocommerce_order.shipment_trackings = json.dumps([{'foo': 'bar'}])
+			woocommerce_order._doc_before_save = frappe._dict({'shipment_trackings': json.dumps([{'foo': 'bar'}])})
+			woocommerce_order.update_shipment_tracking()
+
+		# Check that the API was not called
+		mock_api.post.assert_not_called()
 
 
 

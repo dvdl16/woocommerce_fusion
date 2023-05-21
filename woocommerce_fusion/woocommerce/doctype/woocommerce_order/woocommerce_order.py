@@ -78,6 +78,9 @@ class WooCommerceOrder(Document):
 		response = self.wcapi.put(f"orders/{self.name}", data=cleaned_order)
 		if not response or response.status_code != 200:
 			frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
+		
+		self.update_shipment_tracking()
+
 
 	def to_dict(self):
 		"""
@@ -129,6 +132,36 @@ class WooCommerceOrder(Document):
 				order['shipment_trackings'] = self.wcapi.get(f"orders/{self.name}/shipment-trackings").json()
 
 		return order
+	
+	def update_shipment_tracking(self):
+		"""
+		Handle fields from "Advanced Shipment Tracking" WooCommerce Plugin
+		Replace the current shipment_trackings with shipment_tracking.
+
+		See https://docs.zorem.com/docs/ast-free/add-tracking-to-orders/shipment-tracking-api/#shipment-tracking-properties
+		"""
+		if self.woocommerce_additional_settings:
+			if self.woocommerce_additional_settings.wc_plugin_advanced_shipment_tracking:
+
+				# Verify if the 'shipment_trackings' field changed
+				if self.shipment_trackings != self._doc_before_save.shipment_trackings:
+					# Parse JSON
+					new_shipment_tracking = json.loads(self.shipment_trackings)
+
+					# Remove the tracking_id key-value pair
+					for item in new_shipment_tracking:
+						if 'tracking_id' in item:
+							item.pop('tracking_id')
+
+					# Only the first shipment_tracking will be used
+					tracking_info = new_shipment_tracking[0]
+					tracking_info['replace_tracking'] = 1
+
+					# Make the API Call
+					response = self.wcapi.post(f"orders/{self.name}/shipment-trackings/", data=tracking_info)
+					if not response or response.status_code != 201:
+						frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
+
 
 
 	@staticmethod
