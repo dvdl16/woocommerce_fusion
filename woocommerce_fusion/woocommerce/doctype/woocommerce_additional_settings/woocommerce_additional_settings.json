@@ -1,0 +1,44 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-05-21 17:39:46.890201",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "wc_plugin_advanced_shipment_tracking"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "If you are using the 'Advanced Shipment Tracking for WooCommerce' plugin\n\nhttps://wordpress.org/plugins/woo-advanced-shipment-tracking/",
+   "fieldname": "wc_plugin_advanced_shipment_tracking",
+   "fieldtype": "Check",
+   "label": "Enable integration with \"Advanced Shipment Tracking\" WooCommerce Plugin"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2023-05-21 17:39:46.890201",
+ "modified_by": "Administrator",
+ "module": "WooCommerce",
+ "name": "WooCommerce Additional Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

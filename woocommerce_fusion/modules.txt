@@ -1,1 +1,2 @@
 WooCommerce Fusion
+WooCommerce
