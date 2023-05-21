@@ -172,8 +172,22 @@ class WooCommerceOrder(Document):
 		# Initialise the WC API
 		wcapi = _init_api()
 
+		# Map Frappe query parameters to WooCommerce query parameters
+		params = {}
+		if args:
+			if 'page_length' in args and args['page_length']:
+				params['per_page'] = min(int(args['page_length']), 100)
+			if 'start' in args and args['start']:
+				params['offset'] = int(args['start'])
+			if 'filters' in args and args['filters']:
+				updated_params = get_wc_parameters_from_filters(args['filters'])
+				params.update(updated_params)
+
 		# Get WooCommerce Orders
-		orders = wcapi.get("orders").json()
+		response = wcapi.get("orders", params=params)
+		if not response or response.status_code != 200:
+			frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
+		orders = response.json()
 
 		# Frappe requires a 'name' attribute on each Document
 		for order in orders:
@@ -183,7 +197,19 @@ class WooCommerceOrder(Document):
 
 	@staticmethod
 	def get_count(args):
-		pass
+		"""
+		Returns count of WooCommerce Orders (List view and Report view)
+		"""
+		# Initialise the WC API
+		wcapi = _init_api()
+
+		# Get WooCommerce Orders
+		response = wcapi.get("orders")
+		if not response or response.status_code != 200:
+			frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
+		
+		if 'x-wp-total' in response.headers:
+			return response.headers['x-wp-total']
 
 	@staticmethod
 	def get_stats(args):
@@ -235,3 +261,35 @@ def _init_api():
 
 def get_woocommerce_additional_settings():
 	return frappe.get_doc("WooCommerce Additional Settings")
+
+def get_wc_parameters_from_filters(filters):
+	"""
+	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
+	"""
+	supported_filter_fields = ['date_created', 'date_modified']
+
+	params = {}
+
+	for filter in filters:
+		if filter[1] not in supported_filter_fields:
+			frappe.throw(f"Unsupported filter for field: {filter[1]}")
+		if filter[1] == 'date_created' and filter[2] == '<':
+			# e.g. ['WooCommerce Order', 'date_created', '<', '2023-01-01']
+			params['before'] = filter[3]
+			continue
+		if filter[1] == 'date_created' and filter[2] == '>':
+			# e.g. ['WooCommerce Order', 'date_created', '>', '2023-01-01']
+			params['after'] = filter[3]
+			continue
+		if filter[1] == 'date_modified' and filter[2] == '<':
+			# e.g. ['WooCommerce Order', 'date_modified', '<', '2023-01-01']
+			params['modified_before'] = filter[3]
+			continue
+		if filter[1] == 'date_modified' and filter[2] == '>':
+			# e.g. ['WooCommerce Order', 'date_modified', '>', '2023-01-01']
+			params['modified_after'] = filter[3]
+			continue
+		frappe.throw(f"Unsupported filter '{filter[2]}' for field {filter[1]}")
+	
+	return params
+
