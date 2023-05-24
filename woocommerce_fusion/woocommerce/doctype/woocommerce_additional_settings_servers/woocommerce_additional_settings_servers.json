@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-05-24 18:44:01.886547",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_sync",
+  "wc_plugin_advanced_shipment_tracking",
+  "section_break",
+  "woocommerce_server_url",
+  "secret",
+  "column_break_7nm4k",
+  "api_consumer_key",
+  "api_consumer_secret"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enable_sync",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enable Sync"
+  },
+  {
+   "fieldname": "section_break",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "woocommerce_server_url",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Woocommerce Server URL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "secret",
+   "fieldtype": "Code",
+   "label": "Secret",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_7nm4k",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "api_consumer_key",
+   "fieldtype": "Data",
+   "label": "API consumer key",
+   "reqd": 1
+  },
+  {
+   "fieldname": "api_consumer_secret",
+   "fieldtype": "Data",
+   "label": "API consumer secret",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "wc_plugin_advanced_shipment_tracking",
+   "fieldtype": "Check",
+   "label": "Enable integration with \"Advanced Shipment Tracking\" WooCommerce Plugin"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-05-24 20:05:10.217116",
+ "modified_by": "Administrator",
+ "module": "WooCommerce",
+ "name": "WooCommerce Additional Settings Servers",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -4,11 +4,12 @@
 from unittest.mock import Mock, patch
 from copy import deepcopy
 import json
+from urllib.parse import urlparse
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import WooCommerceOrder
+from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import WC_ORDER_DELIMITER, WooCommerceAPI, WooCommerceOrder
 
 
 @patch('woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order._init_api')
@@ -17,31 +18,31 @@ class TestWooCommerceOrder(FrappeTestCase):
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
-	def setUp(self):
-		# Turn on flag for "Advanced Shipment Tracking" WooCommerce Plugin
-		frappe.set_value(
-			"WooCommerce Additional Settings",
-			"WooCommerce Additional Settings",
-			"wc_plugin_advanced_shipment_tracking",
-			1
-		)
-
 	def test_get_list_returns_orders_with_name_attribute(self, mock_init_api):
 		"""
 		Test that get_list returns a list of Orders, each with a 'name' attribute
 		"""
 		nr_of_orders = 3
+		woocommerce_server_url = "site1.example.com"
 		
 		# Create mock API object
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the get method
 		mock_get_response = Mock()
+		mock_get_response.status_code = 200
 		mock_get_response.json.return_value = wc_response_for_list_of_orders(nr_of_orders)
 
 		# Set the mock response to be returned when get is called on the mock API
-		mock_api.get.return_value = mock_get_response
+		mock_api_list[0].api.get.return_value = mock_get_response
 
 		# Call the method to be tested
 		woocommerce_order = frappe.get_doc({
@@ -53,18 +54,19 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_init_api.assert_called_once()
 
 		# Check that the API was called
-		mock_api.get.assert_called_once()
+		mock_api_list[0].api.get.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEqual(mock_api.get.call_args.args[0], 'orders')
+		self.assertEqual(mock_api_list[0].api.get.call_args.args[0], 'orders')
 
 		# Verify that the list of orders have been retrieved
 		self.assertEqual(len(orders), nr_of_orders)
 		
-		# Verify that a 'name' attribute has been created with value of 'id'
+		# Verify that a 'name' attribute has been created with value of '[domain]~[id]'
 		for order in orders:
 			self.assertTrue('name' in order)
-			self.assertEqual(order['name'], order['id'])
+			expected_name = urlparse(woocommerce_server_url).netloc + WC_ORDER_DELIMITER + str(order['id'])
+			self.assertEqual(order['name'], expected_name)
 
 
 	# @patch.object(WooCommerceOrder, 'get_additional_order_attributes')
@@ -73,17 +75,24 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that load_from_db returns an Order
 		"""
 		order_id = 1
+		woocommerce_server_url = "site1.example.com"
 
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the get method
 		mock_get_response = Mock()
 		mock_get_response.json.return_value = deepcopy(dummy_wc_order)
 
 		# Set the mock response to be returned when get is called on the mock API
-		mock_api.get.return_value = mock_get_response
+		mock_api_list[0].api.get.return_value = mock_get_response
 
 		# Patch out the __init__ method
 		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
@@ -100,7 +109,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Instantiate the class
 					woocommerce_order = WooCommerceOrder()
 					woocommerce_order.doctype = "WooCommerce Order"
-					woocommerce_order.name = order_id
+					woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
 
 					# Call load_from_db
 					woocommerce_order.load_from_db()
@@ -111,7 +120,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Check that all order fields are valid
 					for key, value in mocked_super_call.call_args.args[0].items():
 						# Test that Lists and Dicts are in JSON format, except for meta fieds
-						meta_data_fields = ['modified']
+						meta_data_fields = ['modified', 'woocommerce_server_url']
 						if key not in meta_data_fields:
 							if isinstance(dummy_wc_order[key], dict) or isinstance(dummy_wc_order[key], list):
 								self.assertEqual(json.loads(value), dummy_wc_order[key])
@@ -122,25 +131,31 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_init_api.assert_called_once()
 
 		# Check that the API was called
-		mock_api.get.assert_called_once()
+		mock_api_list[0].api.get.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEqual(mock_api.get.call_args.args[0], f'orders/{order_id}')
+		self.assertEqual(mock_api_list[0].api.get.call_args.args[0], f'orders/{order_id}')
 
 	def test_db_insert_makes_post_call(self, mock_init_api):
 		"""
 		Test that db_insert makes a POST call to the WooCommerce API
 		"""
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url="site1.example.com",
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the post method
 		mock_post_response = Mock()
 		mock_post_response.status_code = 201
 
 		# Set the mock response to be returned when POST is called on the mock API
-		mock_api.post.return_value = mock_post_response
+		mock_api_list[0].api.post.return_value = mock_post_response
 
 		# Prepare the mock order data by dumping lists and dicts to json
 		mock_order_data = deepcopy(dummy_wc_order)
@@ -153,35 +168,42 @@ class TestWooCommerceOrder(FrappeTestCase):
 			'doctype': 'WooCommerce Order'
 		})
 		woocommerce_order.customer_note = "Hello World"
+		woocommerce_order.woocommerce_server_url="site1.example.com"
 		woocommerce_order.db_insert()
 
 		# Check that the API was initialised
 		mock_init_api.assert_called_once()
 
 		# Check that the API was called
-		mock_api.post.assert_called_once()
+		mock_api_list[0].api.post.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEqual(mock_api.post.call_args.args[0], 'orders')
+		self.assertEqual(mock_api_list[0].api.post.call_args.args[0], 'orders')
 
 		# Verify that an attribute is passed to the API
-		self.assertTrue('customer_note' in mock_api.post.call_args.kwargs['data'])
-		self.assertEqual(mock_api.post.call_args.kwargs['data']['customer_note'], "Hello World")
+		self.assertTrue('customer_note' in mock_api_list[0].api.post.call_args.kwargs['data'])
+		self.assertEqual(mock_api_list[0].api.post.call_args.kwargs['data']['customer_note'], "Hello World")
 
 	def test_db_insert_with_failed_post_call_throws_error(self, mock_init_api):
 		"""
 		Test that db_insert with a failed POST call throws an error
 		"""
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url="site1.example.com",
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the post method
 		mock_post_response = Mock()
 		mock_post_response.status_code = 400
 
 		# Set the mock response to be returned when POST is called on the mock API
-		mock_api.post.return_value = mock_post_response
+		mock_api_list[0].api.post.return_value = mock_post_response
 
 		# Prepare the mock order data by dumping lists and dicts to json
 		mock_order_data = deepcopy(dummy_wc_order)
@@ -193,6 +215,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		woocommerce_order = frappe.get_doc({
 			'doctype': 'WooCommerce Order'
 		})
+		woocommerce_order.woocommerce_server_url="site1.example.com"
 		
 		# Verify that an Exception is thrown
 		with self.assertRaises(Exception) as context:
@@ -207,17 +230,24 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that db_update makes a PUT call to the WooCommerce API
 		"""
 		order_id = 1
+		woocommerce_server_url = "site1.example.com"
 
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the put method
 		mock_put_response = Mock()
 		mock_put_response.status_code = 200
 
 		# Set the mock response to be returned when PUT is called on the mock API
-		mock_api.put.return_value = mock_put_response
+		mock_api_list[0].api.put.return_value = mock_put_response
 
 		# Prepare the mock order data by dumping lists and dicts to json
 		mock_order_data = deepcopy(dummy_wc_order)
@@ -229,7 +259,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		woocommerce_order = frappe.get_doc({
 			'doctype': 'WooCommerce Order'
 		})
-		woocommerce_order.name = order_id
+		woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
 		woocommerce_order.customer_note = "Hello World"
 		woocommerce_order.db_update()
 
@@ -237,14 +267,14 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_init_api.assert_called_once()
 
 		# Check that the API was called
-		mock_api.put.assert_called_once()
+		mock_api_list[0].api.put.assert_called_once()
 
 		# Verify that the orders endpoint is called
-		self.assertEqual(mock_api.put.call_args.args[0], f'orders/{order_id}')
+		self.assertEqual(mock_api_list[0].api.put.call_args.args[0], f'orders/{order_id}')
 
 		# Verify that an attribute is passed to the API
-		self.assertTrue('customer_note' in mock_api.put.call_args.kwargs['data'])
-		self.assertEqual(mock_api.put.call_args.kwargs['data']['customer_note'], "Hello World")
+		self.assertTrue('customer_note' in mock_api_list[0].api.put.call_args.kwargs['data'])
+		self.assertEqual(mock_api_list[0].api.put.call_args.kwargs['data']['customer_note'], "Hello World")
 
 
 	def test_get_additional_order_attributes_makes_api_get(self, mock_init_api):
@@ -252,28 +282,36 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that the get_additional_order_attributes method makes an API call
 		"""
 		order_id = 1
+		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the get method
 		mock_get_response = Mock()
 		mock_get_response.json.return_value = None
 
 		# Set the mock response to be returned when get is called on the mock API
-		mock_api.get.return_value = mock_get_response
+		mock_api_list[0].api.get.return_value = mock_get_response
 
 		# Patch out the __init__ method and set the required fields
 		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
 			woocommerce_order = WooCommerceOrder()
-			woocommerce_order.name = 1
+			woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
+			woocommerce_order.current_wc_api = mock_api_list[0]
 			woocommerce_order.get_additional_order_attributes({})
 
 		# Check that the API was called
-		mock_api.get.assert_called_once()
+		mock_api_list[0].api.get.assert_called_once()
 
 		# Verify that the shipment-trackings endpoint is called
-		self.assertEqual(mock_api.get.call_args.args[0], f'orders/{order_id}/shipment-trackings')
+		self.assertEqual(mock_api_list[0].api.get.call_args.args[0], f'orders/{order_id}/shipment-trackings')
 
 
 	def test_update_shipment_tracking_makes_api_post_when_shipment_trackings_changes(self, mock_init_api):
@@ -281,31 +319,38 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that the update_shipment_tracking method makes an API POST call
 		"""
 		order_id = 1
+		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the post method
 		mock_post_response = Mock()
 		mock_post_response.status_code = 201
 
 		# Set the mock response to be returned when post is called on the mock API
-		mock_api.post.return_value = mock_post_response
+		mock_api_list[0].api.post.return_value = mock_post_response
 
 		# Patch out the __init__ method and set the required fields
 		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
 			woocommerce_order = WooCommerceOrder()
 			woocommerce_order.init_api()
-			woocommerce_order.name = 1
+			woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
 			woocommerce_order.shipment_trackings = json.dumps([{'foo': 'bar'}])
 			woocommerce_order._doc_before_save = frappe._dict({'shipment_trackings': json.dumps([{'foo': 'baz'}])})
 			woocommerce_order.update_shipment_tracking()
 
 		# Check that the API was called
-		mock_api.post.assert_called_once()
+		mock_api_list[0].api.post.assert_called_once()
 
 		# Verify that the shipment-trackings endpoint is called
-		self.assertEqual(mock_api.post.call_args.args[0], f'orders/{order_id}/shipment-trackings/')
+		self.assertEqual(mock_api_list[0].api.post.call_args.args[0], f'orders/{order_id}/shipment-trackings/')
 
 
 	def test_update_shipment_tracking_does_not_make_api_post_when_shipment_trackings_is_unchanged(self, mock_init_api):
@@ -313,28 +358,36 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that the update_shipment_tracking method does not make an API POST call when
 		shipment_trackings is unchanged
 		"""
+		order_id = 1
+		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
-		mock_api = Mock()
-		mock_init_api.return_value = mock_api
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url=woocommerce_server_url,
+				wc_plugin_advanced_shipment_tracking=1
+			)
+		]
+		mock_init_api.return_value = mock_api_list
 
 		# Define the mock response from the post method
 		mock_post_response = Mock()
 		mock_post_response.status_code = 201
 
 		# Set the mock response to be returned when post is called on the mock API
-		mock_api.post.return_value = mock_post_response
+		mock_api_list[0].api.post.return_value = mock_post_response
 
 		# Patch out the __init__ method and set the required fields
 		with patch.object(WooCommerceOrder, "__init__", return_value=None) as mock_init:
 			woocommerce_order = WooCommerceOrder()
 			woocommerce_order.init_api()
-			woocommerce_order.name = 1
+			woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
 			woocommerce_order.shipment_trackings = json.dumps([{'foo': 'bar'}])
 			woocommerce_order._doc_before_save = frappe._dict({'shipment_trackings': json.dumps([{'foo': 'bar'}])})
 			woocommerce_order.update_shipment_tracking()
 
 		# Check that the API was not called
-		mock_api.post.assert_not_called()
+		mock_api_list[0].api.post.assert_not_called()
 
 
 

@@ -6,6 +6,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "woocommerce_server_url",
   "id",
   "parent_id",
   "number",
@@ -356,12 +357,19 @@
    "fieldtype": "JSON",
    "label": "Shipment Trackings",
    "read_only": 1
+  },
+  {
+   "fieldname": "woocommerce_server_url",
+   "fieldtype": "Data",
+   "label": "WooCommerce Server URL",
+   "read_only": 1,
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2023-05-21 17:55:28.391693",
+ "modified": "2023-05-24 21:05:26.836917",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Order",

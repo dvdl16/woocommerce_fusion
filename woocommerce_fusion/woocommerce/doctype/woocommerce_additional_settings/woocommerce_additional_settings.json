@@ -7,21 +7,28 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "wc_plugin_advanced_shipment_tracking"
+  "servers",
+  "wc_last_sync_date"
  ],
  "fields": [
   {
-   "default": "0",
-   "description": "If you are using the 'Advanced Shipment Tracking for WooCommerce' plugin\n\nhttps://wordpress.org/plugins/woo-advanced-shipment-tracking/",
-   "fieldname": "wc_plugin_advanced_shipment_tracking",
-   "fieldtype": "Check",
-   "label": "Enable integration with \"Advanced Shipment Tracking\" WooCommerce Plugin"
+   "fieldname": "wc_last_sync_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Last Syncronisation Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "servers",
+   "fieldtype": "Table",
+   "label": "Servers",
+   "options": "WooCommerce Additional Settings Servers"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-05-21 17:39:46.890201",
+ "modified": "2023-05-24 18:45:20.296825",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",
