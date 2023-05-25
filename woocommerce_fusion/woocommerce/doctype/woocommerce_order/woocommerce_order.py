@@ -16,10 +16,10 @@ WC_ORDER_DELIMITER = '~'
 
 @dataclass
 class WooCommerceAPI:
-    """Class for keeping track of a WooCommerce site."""
-    api: API
-    woocommerce_server_url: str
-    wc_plugin_advanced_shipment_tracking: bool
+	"""Class for keeping track of a WooCommerce site."""
+	api: API
+	woocommerce_server_url: str
+	wc_plugin_advanced_shipment_tracking: bool = False
 
 
 class WooCommerceOrder(Document):
@@ -222,52 +222,88 @@ class WooCommerceOrder(Document):
 	@staticmethod
 	def get_list(args):
 		"""
-		Returns List of WooCommerce Orders (List view and Report view)
-		"""
-		all_orders = []
+		Returns List of WooCommerce Orders (List view and Report view).
 
+		First make a single API call for each API in the list and check if its total record count
+		falls within the required range. If not, we adjust the offset for the next API and
+		continue to the next one. Otherwise, we start retrieving the required records.
+		"""
 		# Initialise the WC API
 		wc_api_list = _init_api()
-		nr_of_wc_servers = len(wc_api_list)
-		if nr_of_wc_servers > 0:
+
+		if len(wc_api_list) > 0:
+			wc_records_per_page_limit = 100
+
 			# Map Frappe query parameters to WooCommerce query parameters
 			params = {}
-			if args:
-				# Adjust query parameters if there are multiple WC servers
-				per_page = min(int(args['page_length']), 100)
-				per_page = floor(per_page/nr_of_wc_servers)
-				offset = int(args['start'])
-				offset = floor(offset/nr_of_wc_servers)
+			per_page = min(int(args['page_length']), wc_records_per_page_limit) \
+				if args and 'page_length' in args else wc_records_per_page_limit
+			offset = int(args['start']) if args and 'start' in args else 0
+			params['per_page'] = min(per_page + offset, wc_records_per_page_limit)
 
-				if 'page_length' in args and args['page_length']:
-					params['per_page'] = per_page
-				if 'start' in args and args['start']:
-					params['offset'] = offset
-				if 'filters' in args and args['filters']:
-					updated_params = get_wc_parameters_from_filters(args['filters'])
-					params.update(updated_params)
+			# Map Frappe filters to WooCommerce parameters
+			if 'filters' in args and args['filters']:
+				updated_params = get_wc_parameters_from_filters(args['filters'])
+				params.update(updated_params)
 
-			for wc_server in wc_api_list:
+			# Initialse required variables
+			all_results = []
+			total_processed = 0
+
+			for wc_server in wc_api_list:	
+				current_offset = 0
+
 				# Get WooCommerce Orders
+				params['offset'] = current_offset
 				response = wc_server.api.get("orders", params=params)
 				if not response or response.status_code != 200:
 					frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
-				orders = response.json()
-
-				# Frappe requires a 'name' attribute on each Document. Set this to a combinbation
-				# of the WC server domain and the Order ID, e.g. www.mysite.com~69
-				# Also add the server URL to the order.
-				for order in orders:
-					order['name'] = "{domain}{delimiter}{order_id}".format(
-						domain=urlparse(wc_server.woocommerce_server_url).netloc,
-						delimiter=WC_ORDER_DELIMITER,
-						order_id=str(order['id']))
-					order['woocommerce_server_url'] = wc_server.woocommerce_server_url
 				
-				# Append to the list of all orders
-				all_orders.extend(orders)
+				# Store the count of total orders in this API
+				count_of_total_records_in_api = int(response.headers['x-wp-total'])
 
-		return all_orders
+				# Skip this API if all its records fall before the required offset
+				if count_of_total_records_in_api <= offset - total_processed:
+					total_processed += count_of_total_records_in_api
+					continue
+
+				# Parse the response
+				results = response.json()
+
+				# If we're still here, it means that this API has some records in the required range
+				while True:
+					if len(all_results) >= per_page:
+						return all_results
+
+					# Adjust indices based on remaining offset and records to collect
+					start = max(0, offset - total_processed)
+					end = min(len(results), per_page - len(all_results) + start)
+
+					# Add frappe fields to orders
+					for order in results[start:end]:
+						order['name'] = "{domain}{delimiter}{order_id}".format(
+							domain=urlparse(wc_server.woocommerce_server_url).netloc,
+							delimiter=WC_ORDER_DELIMITER,
+							order_id=str(order['id']))
+						order['woocommerce_server_url'] = wc_server.woocommerce_server_url
+
+					all_results.extend(results[start:end])
+					total_processed += len(results)
+					
+					# Check if there are no more records available or required
+					if len(results) < per_page:
+						break
+
+					current_offset += params['per_page']
+					
+					# Get WooCommerce Orders
+					params['offset'] = current_offset
+					response = wc_server.api.get("orders", params=params)
+					if not response or response.status_code != 200:
+						frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
+					results = response.json()
+
+			return all_results
 
 	@staticmethod
 	def get_count(args) -> int:

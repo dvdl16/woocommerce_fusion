@@ -40,6 +40,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_get_response = Mock()
 		mock_get_response.status_code = 200
 		mock_get_response.json.return_value = wc_response_for_list_of_orders(nr_of_orders)
+		mock_get_response.headers = {'x-wp-total': nr_of_orders}
 
 		# Set the mock response to be returned when get is called on the mock API
 		mock_api_list[0].api.get.return_value = mock_get_response
@@ -68,8 +69,119 @@ class TestWooCommerceOrder(FrappeTestCase):
 			expected_name = urlparse(woocommerce_server_url).netloc + WC_ORDER_DELIMITER + str(order['id'])
 			self.assertEqual(order['name'], expected_name)
 
+	def test_get_list_pagination_works(self, mock_init_api):
+		"""
+		Test that get_list's pagination works as expected
+		"""
+		
+		# Create mock API object list with 3 WooCommerce servers/API's
+		mock_api_list = [
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url="site1.example.com"
+			),
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url="site2.example.com"
+			),
+			WooCommerceAPI(
+				api=Mock(),
+				woocommerce_server_url="site3.example.com"
+			)
+		]
 
-	# @patch.object(WooCommerceOrder, 'get_additional_order_attributes')
+		mock_init_api.return_value = mock_api_list
+
+		# Define the mock response from the get method
+		order_counts = [10, 20, 30]
+		for x, woocommerce_api in enumerate(mock_api_list):
+			mock_get_response = Mock()
+			mock_get_response.status_code = 200
+			nr_of_orders = order_counts[x]
+			mock_get_response.json.return_value = \
+				wc_response_for_list_of_orders(nr_of_orders, woocommerce_api.woocommerce_server_url)
+			mock_get_response.headers = {'x-wp-total': nr_of_orders}
+
+			# Set the mock response to be returned when get is called on the mock API
+			woocommerce_api.api.get.return_value = mock_get_response
+
+
+		# Parameterize this test for different combinations of 'page_length' and 'start' arguments
+		test_parameters = [
+			frappe._dict({
+				'args': {
+					'page_length': 10,
+					'start': 0
+				},
+				'expected_order_counts': (10, 0, 0) # expect 10 orders from API 1, and 0 from API 2 and API3
+			}),
+			frappe._dict({
+				'args': {
+					'page_length': 10,
+					'start': 10
+				},
+				'expected_order_counts': (0, 10, 0)
+			}),
+			frappe._dict({
+				'args': {
+					'page_length': 10,
+					'start': 30
+				},
+				'expected_order_counts': (0, 0, 10)
+			}),
+			frappe._dict({
+				'args': {
+					'page_length': 20,
+					'start': 5
+				},
+				'expected_order_counts': (5, 15, 0)
+			}),
+			frappe._dict({
+				'args': {
+					'page_length': 5,
+					'start': 40
+				},
+				'expected_order_counts': (0, 0, 5)
+			}),
+			frappe._dict({
+				'args': {
+					'page_length': 60,
+					'start': 0
+				},
+				'expected_order_counts': (10, 20, 30)
+			})
+		]
+		for param in test_parameters:
+			with self.subTest(param=param):
+				# Call the method to be tested
+				woocommerce_order = frappe.get_doc({
+					'doctype': 'WooCommerce Order'
+				})
+
+				orders = woocommerce_order.get_list(param.args)
+
+				# Verify that the list of orders have been retrieved
+				self.assertEqual(len(orders), param.args['page_length'])
+				
+				# Verify that the orders were combined correctly from the API's
+				order_counts_for_api1 = len([
+					order for order in orders if order['_links']['site'] == mock_api_list[0].woocommerce_server_url
+				])
+				order_counts_for_api2 = len([
+					order for order in orders if order['_links']['site'] == mock_api_list[1].woocommerce_server_url
+				])
+				order_counts_for_api3 = len([
+					order for order in orders if order['_links']['site'] == mock_api_list[2].woocommerce_server_url
+				])
+				self.assertEqual(
+					(
+						order_counts_for_api1,
+						order_counts_for_api2,
+						order_counts_for_api3
+					),
+					param.expected_order_counts
+				)
+
 	def test_load_from_db_initialises_doctype_with_all_values(self, mock_init_api):
 		"""
 		Test that load_from_db returns an Order
@@ -391,17 +503,21 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 
 
-def wc_response_for_list_of_orders(nr_of_orders=5):
+def wc_response_for_list_of_orders(nr_of_orders=5, site="example.com"):
 	"""
 	Generate a dummy list of orders as if it was returned from the WooCommerce API
 	"""
-	return [deepcopy(dummy_wc_order) for i in range(nr_of_orders)]
+	return [dict(dummy_wc_order,
+		**{
+			'_links': {'site': site}
+		}) for i in range(nr_of_orders)]
+
+	
 
 
 dummy_wc_order = \
 	{
-		'_links': {'collection': [{'href': 'https://wootest.mysite.com/wp-json/wc/v3/orders'}],
-					'self': [{'href': 'https://wootest.mysite.com/wp-json/wc/v3/orders/15'}]},
+		'_links': {'site': 'https://wootest.mysite.com/wp-json/wc/v3/orders'},
 		'billing': {'address_1': '',
 					'address_2': '',
 					'city': '',
