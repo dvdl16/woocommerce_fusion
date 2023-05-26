@@ -13,7 +13,7 @@
  "fields": [
   {
    "fieldname": "wc_last_sync_date",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "in_list_view": 1,
    "label": "Last Syncronisation Date",
    "reqd": 1
@@ -28,7 +28,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-05-24 18:45:20.296825",
+ "modified": "2023-05-26 06:52:38.429772",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",

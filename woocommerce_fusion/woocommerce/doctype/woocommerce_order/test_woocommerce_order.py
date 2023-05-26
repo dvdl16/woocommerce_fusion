@@ -9,7 +9,13 @@ from urllib.parse import urlparse
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import WC_ORDER_DELIMITER, WooCommerceAPI, WooCommerceOrder
+from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
+	WC_ORDER_DELIMITER,
+	WooCommerceAPI,
+	WooCommerceOrder,
+	generate_woocommerce_order_name_from_domain_and_id,
+	get_domain_and_id_from_woocommerce_order_name
+)
 
 
 @patch('woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order._init_api')
@@ -232,7 +238,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Check that all order fields are valid
 					for key, value in mocked_super_call.call_args.args[0].items():
 						# Test that Lists and Dicts are in JSON format, except for meta fieds
-						meta_data_fields = ['modified', 'woocommerce_server_url']
+						meta_data_fields = ['modified', 'woocommerce_site']
 						if key not in meta_data_fields:
 							if isinstance(dummy_wc_order[key], dict) or isinstance(dummy_wc_order[key], list):
 								self.assertEqual(json.loads(value), dummy_wc_order[key])
@@ -501,6 +507,28 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Check that the API was not called
 		mock_api_list[0].api.post.assert_not_called()
 
+
+	def test_generate_woocommerce_order_name_from_domain_and_id(self, mock_init_api):
+		"""
+		Test that generate_woocommerce_order_name_from_domain_and_id function performs as expected
+		"""
+		domain = "site1.example.com"
+		order_id = 4
+		delimiter = '|'
+		result = generate_woocommerce_order_name_from_domain_and_id(domain, order_id, delimiter)
+		self.assertEqual(result, "site1.example.com|4")
+
+
+
+	def test_get_domain_and_id_from_woocommerce_order_name(self, mock_init_api):
+		"""
+		Test that get_domain_and_id_from_woocommerce_order_name function performs as expected
+		"""
+		delimiter = '$'
+		name = "site2.example.com$3"
+		domain, order_id = get_domain_and_id_from_woocommerce_order_name(name, delimiter)
+		self.assertEqual(domain, "site2.example.com")
+		self.assertEqual(order_id, 3)
 
 
 def wc_response_for_list_of_orders(nr_of_orders=5, site="example.com"):

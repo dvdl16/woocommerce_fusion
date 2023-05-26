@@ -3,8 +3,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import List, Optional
-from math import floor
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 from woocommerce import API
@@ -13,6 +12,22 @@ import frappe
 from frappe.model.document import Document
 
 WC_ORDER_DELIMITER = '~'
+
+WC_ORDER_STATUS_MAPPING = {
+	"Pending Payment": "pending",
+	"On hold": "on-hold",
+	"Failed": "failed",
+	"Cancelled": "cancelled",
+	"Processing": "processing",
+	"Refunded": "refunded",
+	"Shipped": "completed",
+	"Ready for Pickup": "ready-pickup",
+	"Picked up": "pickup",
+	"Delivered": "delivered",
+	"Processing LP": "processing-lp",
+	"Draft": "checkout-draft",
+}
+WC_ORDER_STATUS_MAPPING_REVERSE = {v: k for k, v in WC_ORDER_STATUS_MAPPING.items()}
 
 @dataclass
 class WooCommerceAPI:
@@ -64,7 +79,7 @@ class WooCommerceOrder(Document):
 			self.init_api()
 
 		# Parse the server domain and order_id from the Document name
-		wc_server_domain, order_id = self.name.split(WC_ORDER_DELIMITER)
+		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
 
 		# Select the relevant WooCommerce server
 		self.current_wc_api = next((
@@ -85,7 +100,8 @@ class WooCommerceOrder(Document):
 		order['modified'] = order['date_modified']
 
 		# Define woocommerce_server_url
-		order['woocommerce_server_url'] = self.current_wc_api.woocommerce_server_url
+		server_domain = parse_domain_from_url(self.current_wc_api.woocommerce_server_url)
+		order['woocommerce_site'] = server_domain
 
 		# Make sure that all JSON fields are dumped as JSON when returned from the WooCommerce API
 		order_with_serialized_subdata = self.serialize_attributes_of_type_dict_or_list(order)
@@ -109,7 +125,7 @@ class WooCommerceOrder(Document):
 		cleaned_order = self.clean_up_order(order_with_deserialized_subdata)
 
 		# Parse the server domain and order_id from the Document name
-		wc_server_domain, order_id = self.name.split(WC_ORDER_DELIMITER)
+		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
 
 		# Select the relevant WooCommerce server
 		self.current_wc_api = next((
@@ -170,7 +186,7 @@ class WooCommerceOrder(Document):
 			# If the "Advanced Shipment Tracking" WooCommerce Plugin is enabled, make an additional
 			# API call to get the tracking information 
 			if self.current_wc_api.wc_plugin_advanced_shipment_tracking:
-				wc_server_domain, order_id = self.name.split(WC_ORDER_DELIMITER)
+				wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
 				order['shipment_trackings'] = self.current_wc_api.api.get(f"orders/{order_id}/shipment-trackings").json()
 
 		return order
@@ -187,7 +203,7 @@ class WooCommerceOrder(Document):
 			self.init_api()
 
 		# Parse the server domain and order_id from the Document name
-		wc_server_domain, order_id = self.name.split(WC_ORDER_DELIMITER)
+		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
 
 		# Select the relevant WooCommerce server
 		self.current_wc_api = next((
@@ -281,11 +297,12 @@ class WooCommerceOrder(Document):
 
 					# Add frappe fields to orders
 					for order in results[start:end]:
-						order['name'] = "{domain}{delimiter}{order_id}".format(
-							domain=urlparse(wc_server.woocommerce_server_url).netloc,
-							delimiter=WC_ORDER_DELIMITER,
-							order_id=str(order['id']))
-						order['woocommerce_server_url'] = wc_server.woocommerce_server_url
+						server_domain = parse_domain_from_url(wc_server.woocommerce_server_url)
+						order['name'] = generate_woocommerce_order_name_from_domain_and_id(
+							domain=server_domain,
+							order_id=order['id']
+						)
+						order['woocommerce_site'] = server_domain
 
 					all_results.extend(results[start:end])
 					total_processed += len(results)
@@ -373,7 +390,8 @@ def _init_api() -> List[WooCommerceAPI]:
 			api=API(url=server.woocommerce_server_url,
 					consumer_key=server.api_consumer_key,
 					consumer_secret=server.api_consumer_secret,
-					version="wc/v3"),
+					version="wc/v3",
+					timeout=40),
 			woocommerce_server_url=server.woocommerce_server_url,
 			wc_plugin_advanced_shipment_tracking=server.wc_plugin_advanced_shipment_tracking
 		) for server in woocommerce_additional_settings.servers if server.enable_sync == 1
@@ -384,11 +402,39 @@ def _init_api() -> List[WooCommerceAPI]:
 def get_woocommerce_additional_settings():
 	return frappe.get_doc("WooCommerce Additional Settings")
 
+def generate_woocommerce_order_name_from_domain_and_id(
+		domain: str,
+		order_id: int,
+		delimiter:str = WC_ORDER_DELIMITER
+	) -> str:
+	"""
+	Generate a name for a woocommerce_order, based on domain and order_id.
+
+	E.g. "site1.example.com~11"
+	"""
+	return "{domain}{delimiter}{order_id}".format(
+		domain=domain,
+		delimiter=delimiter,
+		order_id=str(order_id)
+	)
+
+def get_domain_and_id_from_woocommerce_order_name(
+		name: str,
+		delimiter:str = WC_ORDER_DELIMITER
+	) -> Tuple[str, int]:
+	"""
+	Get domain and order_id from woocommerce_order name
+
+	E.g. "site1.example.com~11" returns "site1.example.com" and 11
+	"""
+	domain, order_id = name.split(delimiter)
+	return domain, int(order_id)
+
 def get_wc_parameters_from_filters(filters):
 	"""
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	"""
-	supported_filter_fields = ['date_created', 'date_modified']
+	supported_filter_fields = ['date_created', 'date_modified', 'name']
 
 	params = {}
 
@@ -411,7 +457,14 @@ def get_wc_parameters_from_filters(filters):
 			# e.g. ['WooCommerce Order', 'date_modified', '>', '2023-01-01']
 			params['modified_after'] = filter[3]
 			continue
-		frappe.throw(f"Unsupported filter '{filter[2]}' for field {filter[1]}")
+		if filter[1] == 'name' and filter[2] == '=':
+			# e.g. ['WooCommerce Order', 'name', '=', '11']
+			# params['include'] = [filter[3]]
+			params['include'] = [13]
+			continue
+		frappe.throw(f"Unsupported filter '{filter[2]}' for field '{filter[1]}'")
 	
 	return params
 
+def parse_domain_from_url(url: str):
+	return urlparse(url).netloc

@@ -29,8 +29,8 @@ app_license = "GNU GPLv3"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_js = {"Sales Order" : "public/js/selling/sales_order.js"}
+doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -94,9 +94,10 @@ app_license = "GNU GPLv3"
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-#	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	"Woocommerce Settings":
+		"woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings"
+}
 
 # Document Events
 # ---------------
@@ -139,9 +140,10 @@ app_license = "GNU GPLv3"
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "woocommerce_fusion.event.get_events"
-# }
+override_whitelisted_methods = {
+	"erpnext.erpnext_integrations.connectors.woocommerce_connection.order":
+		"woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection.custom_order"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
