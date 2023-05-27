@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from woocommerce import API
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 
 WC_ORDER_DELIMITER = '~'
@@ -65,7 +66,10 @@ class WooCommerceOrder(Document):
 
 		order_data = self.to_dict()
 
-		response = self.current_wc_api.api.post("orders", data=order_data)
+		try:
+			response = self.current_wc_api.api.post("orders", data=order_data)
+		except Exception as err:
+			log_and_raise_error(err)
 		if not response or response.status_code != 201:
 			frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 
@@ -89,7 +93,10 @@ class WooCommerceOrder(Document):
 		)
 
 		# Get WooCommerce Order
-		order = self.current_wc_api.api.get(f"orders/{order_id}").json()
+		try:
+			order = self.current_wc_api.api.get(f"orders/{order_id}").json()
+		except Exception as err:
+			log_and_raise_error(err)
 
 		order = self.get_additional_order_attributes(order)
 		
@@ -135,7 +142,10 @@ class WooCommerceOrder(Document):
 		)
 
 		# Make API call
-		response = self.current_wc_api.api.put(f"orders/{order_id}", data=cleaned_order)
+		try:
+			response = self.current_wc_api.api.put(f"orders/{order_id}", data=cleaned_order)
+		except Exception as err:
+			log_and_raise_error(err)
 		if not response or response.status_code != 200:
 			frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 		
@@ -187,7 +197,10 @@ class WooCommerceOrder(Document):
 			# API call to get the tracking information 
 			if self.current_wc_api.wc_plugin_advanced_shipment_tracking:
 				wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
-				order['shipment_trackings'] = self.current_wc_api.api.get(f"orders/{order_id}/shipment-trackings").json()
+				try:
+					order['shipment_trackings'] = self.current_wc_api.api.get(f"orders/{order_id}/shipment-trackings").json()
+				except Exception as err:
+					log_and_raise_error(err)
 
 		return order
 	
@@ -229,7 +242,10 @@ class WooCommerceOrder(Document):
 				tracking_info['replace_tracking'] = 1
 
 				# Make the API Call
-				response = self.current_wc_api.api.post(f"orders/{order_id}/shipment-trackings/", data=tracking_info)
+				try:
+					response = self.current_wc_api.api.post(f"orders/{order_id}/shipment-trackings/", data=tracking_info)
+				except Exception as err:
+					log_and_raise_error(err)
 				if not response or response.status_code != 201:
 					frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 
@@ -271,7 +287,10 @@ class WooCommerceOrder(Document):
 
 				# Get WooCommerce Orders
 				params['offset'] = current_offset
-				response = wc_server.api.get("orders", params=params)
+				try:
+					response = wc_server.api.get("orders", params=params)
+				except Exception as err:
+					log_and_raise_error(err)
 				if not response or response.status_code != 200:
 					frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 				
@@ -315,7 +334,10 @@ class WooCommerceOrder(Document):
 					
 					# Get WooCommerce Orders
 					params['offset'] = current_offset
-					response = wc_server.api.get("orders", params=params)
+					try:
+						response = wc_server.api.get("orders", params=params)
+					except Exception as err:
+						log_and_raise_error(err)
 					if not response or response.status_code != 200:
 						frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 					results = response.json()
@@ -333,7 +355,10 @@ class WooCommerceOrder(Document):
 
 		for wc_server in wc_api_list:
 			# Get WooCommerce Orders
-			response = wc_server.api.get("orders")
+			try:
+				response = wc_server.api.get("orders")
+			except Exception as err:
+				log_and_raise_error(err)
 			if not response or response.status_code != 200:
 				frappe.throw(f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}")
 		
@@ -468,3 +493,15 @@ def get_wc_parameters_from_filters(filters):
 
 def parse_domain_from_url(url: str):
 	return urlparse(url).netloc
+
+
+def log_and_raise_error(err):
+	"""
+	Create an "Error Log" and raise error
+	"""
+	log = frappe.log_error("WooCommerce Error")
+	log_link = frappe.utils.get_link_to_form("Error Log", log.name)
+	frappe.throw(
+		msg=_("Something went wrong while connecting to WooCommerce. See Error Log {0}").format(log_link), title=_("WooCommerce Error")
+	)
+	raise err
