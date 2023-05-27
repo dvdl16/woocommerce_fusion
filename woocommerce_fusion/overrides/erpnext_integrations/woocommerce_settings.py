@@ -31,5 +31,10 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 								"\nPicked up\nDelivered\nProcessing LP\nDraft\n",
 						allow_on_submit=1
 					),
+					("Sales Order"): dict(
+						fieldname="woocommerce_shipment_tracking_html",
+						label="",
+						fieldtype="HTML"
+					),
 				}
 			)
