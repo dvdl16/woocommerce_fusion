@@ -73,9 +73,12 @@ jobs:
       - name: Install
         working-directory: /home/runner/frappe-bench
         run: |
-          bench get-app woocommerce_fusion $GITHUB_WORKSPACE
+          set -e
+          bench get-app erpnext
+          bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
+          bench --site test_site install-app erpnext
           bench --site test_site install-app woocommerce_fusion
           bench build
         env:
@@ -85,6 +88,15 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app woocommerce_fusion
+          bench --site test_site run-tests --app woocommerce_fusion --coverage
+          # bench --site test_site run-ui-tests woocommerce_fusion --headless
         env:
           TYPE: server
+
+      - name: Upload coverage data
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # fail_ci_if_error: true
+          files: /home/runner/frappe-bench/sites/coverage.xml
+          verbose: true
