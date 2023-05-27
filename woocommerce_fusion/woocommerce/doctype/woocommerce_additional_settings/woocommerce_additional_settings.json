@@ -8,7 +8,8 @@
  "engine": "InnoDB",
  "field_order": [
   "servers",
-  "wc_last_sync_date"
+  "wc_last_sync_date",
+  "warehouses"
  ],
  "fields": [
   {
@@ -23,12 +24,18 @@
    "fieldtype": "Table",
    "label": "Servers",
    "options": "WooCommerce Additional Settings Servers"
+  },
+  {
+   "fieldname": "warehouses",
+   "fieldtype": "Table",
+   "label": "Warehouses",
+   "options": "WooCommerce Additional Settings Warehouse"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-05-26 06:52:38.429772",
+ "modified": "2023-05-27 12:25:50.099398",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",

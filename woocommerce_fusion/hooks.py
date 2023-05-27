@@ -29,7 +29,10 @@ app_license = "GNU GPLv3"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Sales Order" : "public/js/selling/sales_order.js"}
+doctype_js = {
+	"Sales Order" : "public/js/selling/sales_order.js",
+	"Item": "public/js/stock/item.js"
+}
 doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -110,6 +113,24 @@ override_doctype_class = {
 #		"on_trash": "method"
 #	}
 # }
+doc_events = {
+	"Stock Entry": {
+		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+	},
+	"Stock Reconciliation": {
+		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+	},
+	"Sales Invoice": {
+		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+	},
+	"Delivery Note": {
+		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+	}
+}
 
 # Scheduled Tasks
 # ---------------

@@ -36,5 +36,11 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 						label="",
 						fieldtype="HTML"
 					),
+					("Item"): dict(
+						fieldname="woocommerce_servers",
+						label="",
+						fieldtype="Table",
+						options="Item WooCommerce Server"
+					),
 				}
 			)
