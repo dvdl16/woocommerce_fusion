@@ -54,7 +54,10 @@ def update_stock_levels_on_woocommerce_site(item_code):
 					if woocommerce_site in server.woocommerce_server_url
 					and server.enable_sync
 				), None)
-			
+
+			if not wc_server:
+				continue
+
 			wc_api = API(
 				url=wc_server.woocommerce_server_url,
 				consumer_key=wc_server.api_consumer_key,
