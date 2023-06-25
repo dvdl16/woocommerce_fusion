@@ -393,7 +393,7 @@ class WooCommerceOrder(Document):
 		"""
 		Returns a list of fields that have been defined with type "JSON"
 		"""
-		fields = frappe.get_list(
+		fields = frappe.db.get_all(
 			"DocField",
 			{
 				"parent": "WooCommerce Order",
