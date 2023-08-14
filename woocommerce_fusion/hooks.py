@@ -150,7 +150,7 @@ doc_events = {
 # Testing
 # -------
 
-# before_tests = "woocommerce_fusion.install.before_tests"
+before_tests = "woocommerce_fusion.setup.utils.before_tests"
 
 # Overriding Methods
 # ------------------------------
