@@ -1,5 +1,7 @@
 ## WooCommerce Fusion
 
+![CI workflow](https://github.com/dvdl16/woocommerce_fusion/actions/workflows/ci.yml/badge.svg?branch=version-14)
+
 WooCommerce connector for ERPNext v14+
 
 #### License
