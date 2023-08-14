@@ -75,7 +75,7 @@ jobs:
         run: |
           set -e
           bench get-app erpnext
-          bench get-app --overwrite fssc_22000 "${GITHUB_WORKSPACE}"
+          bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext

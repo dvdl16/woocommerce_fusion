@@ -1,5 +1,5 @@
 [project]
-name = "fssc_22000"
+name = "woocommerce_fusion"
 authors = [
     { name = "Dirk van der Laarse", email = "dirk@laarse.co.za"}
 ]
