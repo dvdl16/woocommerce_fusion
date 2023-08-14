@@ -76,11 +76,10 @@ jobs:
           set -e
           bench get-app erpnext
           bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
-          bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app woocommerce_fusion
-          bench setup requirements
+          bench setup requirements --dev
           bench build
         env:
           CI: 'Yes'
