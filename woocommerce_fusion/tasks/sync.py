@@ -1,25 +1,22 @@
 import frappe
 from frappe.utils import get_datetime, now
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order \
-	import (
-		generate_woocommerce_order_name_from_domain_and_id,
-		WC_ORDER_STATUS_MAPPING,
-		WC_ORDER_STATUS_MAPPING_REVERSE
-	)
 from woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection import (
 	custom_create_sales_order,
 	link_customer_and_address,
-	link_items
+	link_items,
 )
+from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
+	WC_ORDER_STATUS_MAPPING,
+	WC_ORDER_STATUS_MAPPING_REVERSE,
+	generate_woocommerce_order_name_from_domain_and_id,
+)
+
 
 @frappe.whitelist()
 def sync_sales_orders(
-		sales_order_name=None,
-		date_time_from=None,
-		date_time_to=None,
-		update_sync_date_in_settings=False
-	):
+	sales_order_name=None, date_time_from=None, date_time_to=None, update_sync_date_in_settings=False
+):
 	"""
 	Syncronise Sales Orders between ERPNext and WooCommerce
 	"""
@@ -28,7 +25,7 @@ def sync_sales_orders(
 		woocommerce_settings = frappe.get_doc("Woocommerce Settings")
 
 		# Fetch WooCommerce Additional Settings
-		woocommerce_additional_settings = frappe.get_single('WooCommerce Additional Settings')
+		woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
 
 		wc_order_list = []
 
@@ -44,30 +41,32 @@ def sync_sales_orders(
 
 		# Get list of Sales Orders
 		sales_orders = frappe.get_all(
-			'Sales Order',
+			"Sales Order",
 			filters={
-				'woocommerce_id': ['in', [order['id'] for order in wc_order_list]],
-				'woocommerce_site': ['in', [order['woocommerce_site'] for order in wc_order_list]]
+				"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
+				"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
 			},
-			fields=['name', 'woocommerce_id', 'woocommerce_site', 'modified']
+			fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
 		)
 
 		# Create a dictionary for quick access
 		sales_orders_dict = {
-			generate_woocommerce_order_name_from_domain_and_id(
-				so.woocommerce_site,
-				so.woocommerce_id
-			): so for so in sales_orders
+			generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_site, so.woocommerce_id): so
+			for so in sales_orders
 		}
 
 		# Loop through each order
 		for order in wc_order_list:
-			if order['name'] in sales_orders_dict:
+			if order["name"] in sales_orders_dict:
 				# If the Sales Order exists and it has been updated after last_updated, update it
-				if get_datetime(order['date_modified']) > get_datetime(sales_orders_dict[order['name']].modified):
-					update_sales_order(order, sales_orders_dict[order['name']].name)
-				if get_datetime(order['date_modified']) < get_datetime(sales_orders_dict[order['name']].modified):
-					update_woocommerce_order(order, sales_orders_dict[order['name']].name)
+				if get_datetime(order["date_modified"]) > get_datetime(
+					sales_orders_dict[order["name"]].modified
+				):
+					update_sales_order(order, sales_orders_dict[order["name"]].name)
+				if get_datetime(order["date_modified"]) < get_datetime(
+					sales_orders_dict[order["name"]].modified
+				):
+					update_woocommerce_order(order, sales_orders_dict[order["name"]].name)
 			else:
 				# If the Sales Order does not exist, create it
 				create_sales_order(order, woocommerce_settings)
@@ -87,12 +86,7 @@ def get_list_of_wc_orders_from_sales_order(sales_order_name):
 		domain=sales_order.woocommerce_site,
 		order_id=sales_order.woocommerce_id,
 	)
-	wc_order = frappe.get_doc(
-		{
-			'doctype': 'WooCommerce Order',
-			'name': wc_order_name
-		}
-	)
+	wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
 	wc_order.load_from_db()
 	return [wc_order.__dict__]
 
@@ -107,22 +101,19 @@ def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
 	new_results = True
 	start = 0
 	filters = []
-	filters.append(['WooCommerce Order', 'date_created', '>', date_time_from]) if date_time_from else None
-	filters.append(['WooCommerce Order', 'date_created', '<', date_time_to]) if date_time_to else None
+	filters.append(
+		["WooCommerce Order", "date_created", ">", date_time_from]
+	) if date_time_from else None
+	filters.append(["WooCommerce Order", "date_created", "<", date_time_to]) if date_time_to else None
 	while new_results:
-		woocommerce_order = frappe.get_doc({
-			'doctype': 'WooCommerce Order'
-		})
+		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		new_results = woocommerce_order.get_list(
-			args={
-				'filters': filters,
-				'page_lenth': page_length,
-				'start': start
-			}
+			args={"filters": filters, "page_lenth": page_length, "start": start}
 		)
 		wc_order_list.extend(new_results)
 		start += page_length
 	return wc_order_list
+
 
 def update_sales_order(woocommerce_order, sales_order_name):
 	"""
@@ -132,12 +123,7 @@ def update_sales_order(woocommerce_order, sales_order_name):
 	sales_order = frappe.get_doc("Sales Order", sales_order_name)
 
 	# Get the WooCommerce Order doc
-	wc_order = frappe.get_doc(
-		{
-			'doctype': 'WooCommerce Order',
-			'name': woocommerce_order['name']
-		}
-	)
+	wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
 	wc_order.load_from_db()
 
 	# Update the woocommerce_status field if necessary
@@ -155,12 +141,7 @@ def update_woocommerce_order(woocommerce_order, sales_order_name):
 	sales_order = frappe.get_doc("Sales Order", sales_order_name)
 
 	# Get the WooCommerce Order doc
-	wc_order = frappe.get_doc(
-		{
-			'doctype': 'WooCommerce Order',
-			'name': woocommerce_order['name']
-		}
-	)
+	wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
 	wc_order.load_from_db()
 
 	# Update the woocommerce_status field if necessary
@@ -168,7 +149,6 @@ def update_woocommerce_order(woocommerce_order, sales_order_name):
 	if sales_order_wc_status != wc_order.status:
 		wc_order.status = sales_order_wc_status
 		wc_order.save()
-
 
 
 def create_sales_order(order, woocommerce_settings):
