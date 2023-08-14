@@ -1,5 +1,3 @@
-from . import __version__ as app_version
-
 app_name = "woocommerce_fusion"
 app_title = "WooCommerce Fusion"
 app_publisher = "Dirk van der Laarse"
@@ -29,11 +27,8 @@ app_license = "GNU GPLv3"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {
-	"Sales Order" : "public/js/selling/sales_order.js",
-	"Item": "public/js/stock/item.js"
-}
-doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
+doctype_js = {"Sales Order": "public/js/selling/sales_order.js", "Item": "public/js/stock/item.js"}
+doctype_list_js = {"Sales Order": "public/js/selling/sales_order_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -45,7 +40,7 @@ doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Generators
@@ -59,8 +54,8 @@ doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "woocommerce_fusion.utils.jinja_methods",
-#	"filters": "woocommerce_fusion.utils.jinja_filters"
+# 	"methods": "woocommerce_fusion.utils.jinja_methods",
+# 	"filters": "woocommerce_fusion.utils.jinja_filters"
 # }
 
 # Installation
@@ -86,11 +81,11 @@ doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -98,8 +93,7 @@ doctype_list_js = {"Sales Order" : "public/js/selling/sales_order_list.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Woocommerce Settings":
-		"woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings"
+	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings"
 }
 
 # Document Events
@@ -107,70 +101,69 @@ override_doctype_class = {
 # Hook on document methods and events
 
 # doc_events = {
-#	"*": {
-#		"on_update": "method",
-#		"on_cancel": "method",
-#		"on_trash": "method"
-#	}
+# 	"*": {
+# 		"on_update": "method",
+# 		"on_cancel": "method",
+# 		"on_trash": "method"
+# 	}
 # }
 doc_events = {
 	"Stock Entry": {
 		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
-		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
 	},
 	"Stock Reconciliation": {
 		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
-		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
 	},
 	"Sales Invoice": {
 		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
-		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
 	},
 	"Delivery Note": {
 		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
-		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item"
-	}
+		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
+	},
 }
 
 # Scheduled Tasks
 # ---------------
 
 # scheduler_events = {
-#	"all": [
-#		"woocommerce_fusion.tasks.all"
-#	],
-#	"daily": [
-#		"woocommerce_fusion.tasks.daily"
-#	],
-#	"hourly": [
-#		"woocommerce_fusion.tasks.hourly"
-#	],
-#	"weekly": [
-#		"woocommerce_fusion.tasks.weekly"
-#	],
-#	"monthly": [
-#		"woocommerce_fusion.tasks.monthly"
-#	],
+# 	"all": [
+# 		"woocommerce_fusion.tasks.all"
+# 	],
+# 	"daily": [
+# 		"woocommerce_fusion.tasks.daily"
+# 	],
+# 	"hourly": [
+# 		"woocommerce_fusion.tasks.hourly"
+# 	],
+# 	"weekly": [
+# 		"woocommerce_fusion.tasks.weekly"
+# 	],
+# 	"monthly": [
+# 		"woocommerce_fusion.tasks.monthly"
+# 	],
 # }
 
 # Testing
 # -------
 
-# before_tests = "woocommerce_fusion.install.before_tests"
+before_tests = "woocommerce_fusion.setup.utils.before_tests"
 
 # Overriding Methods
 # ------------------------------
 #
 override_whitelisted_methods = {
-	"erpnext.erpnext_integrations.connectors.woocommerce_connection.order":
-		"woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection.custom_order"
+	"erpnext.erpnext_integrations.connectors.woocommerce_connection.order": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection.custom_order"
 }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-#	"Task": "woocommerce_fusion.task.get_dashboard_data"
+# 	"Task": "woocommerce_fusion.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -196,29 +189,29 @@ override_whitelisted_methods = {
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"woocommerce_fusion.auth.validate"
+# 	"woocommerce_fusion.auth.validate"
 # ]

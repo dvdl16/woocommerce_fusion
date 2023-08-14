@@ -2,16 +2,16 @@ import json
 from urllib.parse import urlparse
 
 import frappe
-
 from erpnext.erpnext_integrations.connectors.woocommerce_connection import (
-	verify_request,
 	link_customer_and_address,
 	link_items,
-	set_items_in_sales_order
+	set_items_in_sales_order,
+	verify_request,
 )
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order \
-	import WC_ORDER_STATUS_MAPPING_REVERSE
+from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
+	WC_ORDER_STATUS_MAPPING_REVERSE,
+)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -69,6 +69,7 @@ def _custom_order(*args, **kwargs):
 		custom_create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
 		# ==================================== Custom code ends here ==================================== #
 
+
 def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_lang):
 	"""
 	Overrided version of erpnext.erpnext_integrations.connectors.woocommerce_connection.create_sales_order
@@ -79,20 +80,16 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 
 	new_sales_order.po_no = new_sales_order.woocommerce_id = order.get("id")
 
-
 	# ==================================== Custom code starts here ==================================== #
 	try:
-		site_domain = urlparse(order.get("_links")['self'][0]['href']).netloc
+		site_domain = urlparse(order.get("_links")["self"][0]["href"]).netloc
 	except Exception:
-		error_message = (
-			frappe.get_traceback() + "\n\n Order Data: \n" + order.__str__()
-		)
+		error_message = frappe.get_traceback() + "\n\n Order Data: \n" + order.__str__()
 		frappe.log_error("WooCommerce Error", error_message)
 		raise
 	new_sales_order.woocommerce_site = site_domain
 	new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[order.get("status")]
 	# ==================================== Custom code ends here ==================================== #
-
 
 	new_sales_order.naming_series = woocommerce_settings.sales_order_series or "SO-WOO-"
 
@@ -108,4 +105,6 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 	new_sales_order.insert()
 	new_sales_order.submit()
 
+	# manually commit, following convention in ERPNext
+	# nosemgrep
 	frappe.db.commit()

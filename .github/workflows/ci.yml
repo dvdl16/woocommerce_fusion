@@ -4,8 +4,7 @@ name: CI
 on:
   push:
     branches:
-      - develop
-      - main
+      - version-14
   pull_request:
 
 concurrency:
@@ -40,7 +39,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: 18
           check-latest: true
 
       - name: Cache pip
@@ -77,10 +76,10 @@ jobs:
           set -e
           bench get-app erpnext
           bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
-          bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app woocommerce_fusion
+          bench setup requirements --dev
           bench build
         env:
           CI: 'Yes'
