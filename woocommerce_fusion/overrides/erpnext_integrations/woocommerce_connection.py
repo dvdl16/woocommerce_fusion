@@ -103,7 +103,6 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 	set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang)
 	new_sales_order.flags.ignore_mandatory = True
 	new_sales_order.insert()
-	new_sales_order.set_status()
 	new_sales_order.submit()
 
 	# manually commit, following convention in ERPNext
