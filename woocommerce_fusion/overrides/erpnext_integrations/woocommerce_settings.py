@@ -23,23 +23,27 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 						read_only=1,
 						print_hide=1,
 					),
-					("Sales Order"): [
-						dict(
-							fieldname="woocommerce_status",
-							label="Woocommerce Status",
-							fieldtype="Select",
-							options="\nPending Payment\nOn hold\nFailed\nCancelled"
-							"\nProcessing\nRefunded\nShipped\nReady for Pickup"
-							"\nPicked up\nDelivered\nProcessing LP\nDraft\n",
-							allow_on_submit=1,
-						),
-						dict(fieldname="woocommerce_shipment_tracking_html", label="", fieldtype="HTML"),
-					],
+					("Sales Order"): dict(
+						fieldname="woocommerce_status",
+						label="Woocommerce Status",
+						fieldtype="Select",
+						options="\nPending Payment\nOn hold\nFailed\nCancelled"
+						"\nProcessing\nRefunded\nShipped\nReady for Pickup"
+						"\nPicked up\nDelivered\nProcessing LP\nDraft\n",
+						allow_on_submit=1,
+					),
 					("Item"): dict(
 						fieldname="woocommerce_servers",
 						label="",
 						fieldtype="Table",
 						options="Item WooCommerce Server",
+					),
+				}
+			)
+			create_custom_fields(
+				{
+					("Sales Order"): dict(
+						fieldname="woocommerce_shipment_tracking_html", label="", fieldtype="HTML"
 					),
 				}
 			)
