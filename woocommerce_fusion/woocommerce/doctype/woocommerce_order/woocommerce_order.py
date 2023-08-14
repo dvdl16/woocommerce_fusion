@@ -249,6 +249,8 @@ class WooCommerceOrder(Document):
 						f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
 					)
 
+	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
+	# nosemgrep
 	@staticmethod
 	def get_list(args):
 		"""
@@ -348,6 +350,8 @@ class WooCommerceOrder(Document):
 
 			return all_results
 
+	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
+	# nosemgrep
 	@staticmethod
 	def get_count(args) -> int:
 		"""
@@ -373,6 +377,8 @@ class WooCommerceOrder(Document):
 
 		return total_count
 
+	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
+	# nosemgrep
 	@staticmethod
 	def get_stats(args):
 		pass

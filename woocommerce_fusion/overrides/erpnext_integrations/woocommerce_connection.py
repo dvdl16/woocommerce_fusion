@@ -105,4 +105,6 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 	new_sales_order.insert()
 	new_sales_order.submit()
 
+	# manually commit, following convention in ERPNext
+	# nosemgrep
 	frappe.db.commit()
