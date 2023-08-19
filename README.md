@@ -62,4 +62,3 @@ If you use VS Code, you can specify the `.flake8` config file in your `settings.
 ```shell
 "python.linting.flake8Args": ["--config=frappe-bench-v14/apps/woocommerce_fusion/.flake8_strict"]
 ```
-```
