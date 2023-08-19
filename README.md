@@ -9,6 +9,21 @@ WooCommerce connector for ERPNext v14+
 
 Dirk van der Laarse
 
+#### Manual Installation
+
+1. [Install bench](https://github.com/frappe/bench).
+2. [Install ERPNext](https://github.com/frappe/erpnext#installation).
+3. Once ERPNext is installed, add the woocommerce_fusion app to your bench by running
+
+	```sh
+	$ bench get-app https://github.com/dvdl16/woocommerce_fusion
+	```
+4. After that, you can install the woocommerce_fusion app on the required site by running
+	```sh
+	$ bench --site sitename install-app woocommerce_fusion
+	```
+
+
 #### Tests
 
 To run unit tests:
