@@ -11,12 +11,16 @@ concurrency:
   group: develop-woocommerce_fusion-${{ github.event.number }}
   cancel-in-progress: true
 
+env:
+  TEST_AGAINST_FRAPPE_VERSION: v14.45.0
+  TEST_AGAINST_ERPNEXT_VERSION: v14.37.1
+
 jobs:
   tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-    name: Server
+    name: Backend Unit Tests & UI Tests
 
     services:
       mariadb:
@@ -29,21 +33,22 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: |
+              3.10
 
       - name: Setup Node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: 18
           check-latest: true
 
       - name: Cache pip
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
@@ -53,9 +58,10 @@ jobs:
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
-        run: 'echo "::set-output name=dir::$(yarn cache dir)"'
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - name: Cache yarn
+        uses: actions/cache@v3
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -66,20 +72,20 @@ jobs:
       - name: Setup
         run: |
           pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" --frappe-branch $TEST_AGAINST_FRAPPE_VERSION ~/frappe-bench
           mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Install
         working-directory: /home/runner/frappe-bench
         run: |
-          set -e
-          bench get-app erpnext
+          bench get-app erpnext --branch $TEST_AGAINST_ERPNEXT_VERSION
           bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
+          bench -v setup env --python python3.10
+          bench -v setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app woocommerce_fusion
-          bench setup requirements --dev
           bench build
         env:
           CI: 'Yes'
@@ -89,13 +95,13 @@ jobs:
         run: |
           bench --site test_site set-config allow_tests true
           bench --site test_site run-tests --app woocommerce_fusion --coverage
-          # bench --site test_site run-ui-tests woocommerce_fusion --headless
         env:
           TYPE: server
 
       - name: Upload coverage data
         uses: codecov/codecov-action@v3
         with:
+          name: Backend
           token: ${{ secrets.CODECOV_TOKEN }}
           # fail_ci_if_error: true
           files: /home/runner/frappe-bench/sites/coverage.xml
