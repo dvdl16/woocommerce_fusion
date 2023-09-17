@@ -30,9 +30,6 @@ def update_stock_levels_on_woocommerce_site(item_code):
 		return False
 	else:
 		wc_additional_settings = frappe.get_single("WooCommerce Additional Settings")
-		inventory_to_warehouse_map = {
-			row.woocommerce_inventory_name: row.warehouse for row in wc_additional_settings.warehouses
-		}
 
 		bins = frappe.get_list(
 			"Bin", {"item_code": item_code}, ["name", "warehouse", "reserved_qty", "actual_qty"]
@@ -62,37 +59,10 @@ def update_stock_levels_on_woocommerce_site(item_code):
 				timeout=40,
 			)
 
-			try:
-				response = wc_api.get(f"products/{woocommerce_id}/inventories")
-			except Exception as err:
-				frappe.log_error("WooCommerce Error")
-				return False
-			if response.status_code != 200:
-				frappe.log_error("WooCommerce Error", response)
-
-			product_inventories = response.json()
-
-			data_to_post = {"update": []}
-
-			data_to_post["update"] = [
-				{
-					"id": inventory["id"],
-					"meta_data": {
-						# "manage_stock": True,
-						"stock_quantity": sum(
-							bin.actual_qty
-							for bin in bins
-							if bin.warehouse == inventory_to_warehouse_map[inventory["name"]]
-						)
-					},
-				}
-				for inventory in product_inventories
-			]
+			data_to_post = {"stock_quantity": sum(bin.actual_qty for bin in bins)}
 
 			try:
-				response = wc_api.post(
-					endpoint=f"products/{woocommerce_id}/inventories/batch", data=data_to_post
-				)
+				response = wc_api.put(endpoint=f"products/{woocommerce_id}", data=data_to_post)
 			except Exception as err:
 				frappe.log_error("WooCommerce Error")
 				return False
