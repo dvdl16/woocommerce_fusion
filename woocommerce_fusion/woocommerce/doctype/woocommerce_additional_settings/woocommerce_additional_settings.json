@@ -7,9 +7,9 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "warning_html",
   "servers",
-  "wc_last_sync_date",
-  "warehouses"
+  "wc_last_sync_date"
  ],
  "fields": [
   {
@@ -26,16 +26,16 @@
    "options": "WooCommerce Additional Settings Servers"
   },
   {
-   "fieldname": "warehouses",
-   "fieldtype": "Table",
-   "label": "Warehouses",
-   "options": "WooCommerce Additional Settings Warehouse"
+   "fieldname": "warning_html",
+   "fieldtype": "HTML",
+   "label": "Warning HTML",
+   "options": "<div class=\"form-message red\">\n\t<div>{{__(\"Enabling Sync for WooCommerce Sites allows ERPNext to modify Stock Levels and Order Statuses on these Sites\")}}</div>\n</div>"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-05-27 12:25:50.099398",
+ "modified": "2023-09-17 14:10:22.187445",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",
