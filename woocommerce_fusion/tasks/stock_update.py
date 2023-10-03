@@ -4,8 +4,9 @@ from woocommerce import API
 
 def update_stock_levels_for_woocommerce_item(doc, method):
 	if doc.doctype in ("Stock Entry", "Stock Reconciliation", "Sales Invoice", "Delivery Note"):
-		if doc.doctype in ("Sales Invoice", "Delivery Note") and doc.update_stock == 0:
-			return
+		if doc.doctype == "Sales Invoice":
+			if doc.update_stock == 0:
+				return
 		item_codes = [row.item_code for row in doc.items]
 		for item_code in item_codes:
 			frappe.enqueue(
