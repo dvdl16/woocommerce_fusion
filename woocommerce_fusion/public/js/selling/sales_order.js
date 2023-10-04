@@ -48,7 +48,8 @@ frappe.ui.form.on('Sales Order', {
 		frappe.call({
 			method: "woocommerce_fusion.tasks.sync.sync_sales_orders",
 			args: {
-				date_time_from: "2023-10-03 09:00:00"
+				sales_order_name: frm.doc.name,
+				update_sync_date_in_settings: false
 			},
 			callback: function(r) {
 				frm.reload_doc();
