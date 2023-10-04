@@ -15,7 +15,7 @@ from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order 
 
 @frappe.whitelist()
 def sync_sales_orders(
-	sales_order_name=None, date_time_from=None, date_time_to=None, update_sync_date_in_settings=False
+	sales_order_name=None, date_time_from=None, date_time_to=None, update_sync_date_in_settings=True
 ):
 	"""
 	Syncronise Sales Orders between ERPNext and WooCommerce

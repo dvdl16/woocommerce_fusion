@@ -129,23 +129,21 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"woocommerce_fusion.tasks.all"
-# 	],
-# 	"daily": [
-# 		"woocommerce_fusion.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"woocommerce_fusion.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"woocommerce_fusion.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"woocommerce_fusion.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	# 	"all": [
+	# 		"woocommerce_fusion.tasks.all"
+	# 	],
+	# 	"daily": [
+	# 		"woocommerce_fusion.tasks.daily"
+	# 	],
+	"hourly": ["woocommerce_fusion.tasks.sync.sync_sales_orders"],
+	# 	"weekly": [
+	# 		"woocommerce_fusion.tasks.weekly"
+	# 	],
+	# 	"monthly": [
+	# 		"woocommerce_fusion.tasks.monthly"
+	# 	],
+}
 
 # Testing
 # -------
