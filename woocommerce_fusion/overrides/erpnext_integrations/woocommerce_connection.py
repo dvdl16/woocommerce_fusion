@@ -1,4 +1,5 @@
 import json
+import random
 from urllib.parse import urlparse
 
 import frappe
@@ -114,7 +115,9 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 		new_sales_order.submit()
 	except Exception:
 		error_message = (
-			frappe.get_traceback() + "\n\n Request Data: \n" + json.loads(frappe.request.data).__str__()
+			frappe.get_traceback()
+			+ "\n\n Sales Order Data: \n"
+			+ json.loads(new_sales_order.__dict__).__str__()
 		)
 		frappe.log_error("WooCommerce Error", error_message)
 	# ==================================== Custom code ends here ==================================== #
@@ -140,16 +143,21 @@ def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name
 		old_name = customer.customer_name
 
 	customer.customer_name = customer_name
+	customer.name = customer_name[:3].upper() + f"{random.randrange(1, 10**3):03}"
 	customer.woocommerce_email = customer_woo_com_email
 	customer.flags.ignore_mandatory = True
-	customer.save()
+	try:
+		customer.save()
+	except Exception:
+		error_message = (
+			frappe.get_traceback() + "\n\n Customer Data: \n" + json.loads(customer.__dict__).__str__()
+		)
+		frappe.log_error("WooCommerce Error", error_message)
 
 	if customer_exists:
 		# ==================================== Custom code starts here ==================================== #
-		# Original code
+		# Original code commented out, we do not want to rename customers
 		# frappe.rename_doc("Customer", old_name, customer_name)
-		if old_name != customer_name:
-			frappe.rename_doc("Customer", old_name, customer_name)
 		# ==================================== Custom code ends here ==================================== #
 		for address_type in (
 			"Billing",
