@@ -3,8 +3,10 @@ from urllib.parse import urlparse
 
 import frappe
 from erpnext.erpnext_integrations.connectors.woocommerce_connection import (
-	link_customer_and_address,
+	create_address,
+	create_contact,
 	link_items,
+	rename_address,
 	set_items_in_sales_order,
 	verify_request,
 )
@@ -108,3 +110,51 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 	# manually commit, following convention in ERPNext
 	# nosemgrep
 	frappe.db.commit()
+
+
+def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name):
+	"""
+	Overrided version of erpnext.erpnext_integrations.connectors.woocommerce_connection.link_customer_and_address
+	in order to handle calls to frappe.rename_doc with the same old_name and customer_name
+	"""
+	customer_woo_com_email = raw_billing_data.get("email")
+	customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
+	if not customer_exists:
+		# Create Customer
+		customer = frappe.new_doc("Customer")
+	else:
+		# Edit Customer
+		customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
+		old_name = customer.customer_name
+
+	customer.customer_name = customer_name
+	customer.woocommerce_email = customer_woo_com_email
+	customer.flags.ignore_mandatory = True
+	customer.save()
+
+	if customer_exists:
+		# ==================================== Custom code starts here ==================================== #
+		# Original code
+		# frappe.rename_doc("Customer", old_name, customer_name)
+		if old_name != customer_name:
+			frappe.rename_doc("Customer", old_name, customer_name)
+		# ==================================== Custom code ends here ==================================== #
+		for address_type in (
+			"Billing",
+			"Shipping",
+		):
+			try:
+				address = frappe.get_doc(
+					"Address", {"woocommerce_email": customer_woo_com_email, "address_type": address_type}
+				)
+				rename_address(address, customer)
+			except (
+				frappe.DoesNotExistError,
+				frappe.DuplicateEntryError,
+				frappe.ValidationError,
+			):
+				pass
+	else:
+		create_address(raw_billing_data, customer, "Billing")
+		create_address(raw_shipping_data, customer, "Shipping")
+		create_contact(raw_billing_data, customer)
