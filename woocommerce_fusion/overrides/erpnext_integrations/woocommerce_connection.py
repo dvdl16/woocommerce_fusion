@@ -104,8 +104,20 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 
 	set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang)
 	new_sales_order.flags.ignore_mandatory = True
-	new_sales_order.insert()
-	new_sales_order.submit()
+	# ==================================== Custom code starts here ==================================== #
+	# Original code
+	# new_sales_order.insert()
+	# new_sales_order.submit()
+
+	try:
+		new_sales_order.insert()
+		new_sales_order.submit()
+	except Exception:
+		error_message = (
+			frappe.get_traceback() + "\n\n Request Data: \n" + json.loads(frappe.request.data).__str__()
+		)
+		frappe.log_error("WooCommerce Error", error_message)
+	# ==================================== Custom code ends here ==================================== #
 
 	# manually commit, following convention in ERPNext
 	# nosemgrep
