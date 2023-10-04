@@ -1,9 +1,11 @@
 frappe.ui.form.on('Sales Order', {
 	refresh: function(frm) {
 		// Add a custom button to sync Sales Orders with WooCommerce
-		frm.add_custom_button(__("Sync this Order with WooCommerce"), function () {
-			frm.trigger("sync_sales_order");
-		}, __('Actions'));
+		if (frm.doc.woocommerce_id){
+			frm.add_custom_button(__("Sync this Order with WooCommerce"), function () {
+				frm.trigger("sync_sales_order");
+			}, __('Actions'));
+		}
 
 		// Add a table with Shipment Trackings
 		if (frm.doc.woocommerce_id && frm.doc.woocommerce_site){			
@@ -34,9 +36,11 @@ frappe.ui.form.on('Sales Order', {
 		}
 
 		// Add a custom button to allow adding or editing Shipment Trackings
-		frm.add_custom_button(__("Edit WooCommerce Shipment Trackings"), function () {
-			frm.trigger("prompt_user_for_shipment_trackings");
-		}, __('Actions'));
+		if (frm.doc.woocommerce_id){
+			frm.add_custom_button(__("Edit WooCommerce Shipment Trackings"), function () {
+				frm.trigger("prompt_user_for_shipment_trackings");
+			}, __('Actions'));
+		}
 	},
 
 	sync_sales_order: function(frm) {
@@ -44,7 +48,7 @@ frappe.ui.form.on('Sales Order', {
 		frappe.call({
 			method: "woocommerce_fusion.tasks.sync.sync_sales_orders",
 			args: {
-				sales_order_name: frm.doc.name
+				date_time_from: "2023-10-03 09:00:00"
 			},
 			callback: function(r) {
 				frm.reload_doc();

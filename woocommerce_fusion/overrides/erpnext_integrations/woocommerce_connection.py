@@ -64,22 +64,22 @@ def _custom_order(*args, **kwargs):
 		raw_billing_data = order.get("billing")
 		raw_shipping_data = order.get("shipping")
 		customer_name = raw_billing_data.get("first_name") + " " + raw_billing_data.get("last_name")
-		link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
+		customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
 		link_items(order.get("line_items"), woocommerce_settings, sys_lang)
 		# ==================================== Custom code starts here ==================================== #
 		# Original code
 		# create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
-		custom_create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
+		custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
 		# ==================================== Custom code ends here ==================================== #
 
 
-def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_lang):
+def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang):
 	"""
 	Overrided version of erpnext.erpnext_integrations.connectors.woocommerce_connection.create_sales_order
 	in order to populate our custom fields when a Webhook is received
 	"""
 	new_sales_order = frappe.new_doc("Sales Order")
-	new_sales_order.customer = customer_name
+	new_sales_order.customer = customer_docname
 
 	new_sales_order.po_no = new_sales_order.woocommerce_id = order.get("id")
 
@@ -114,11 +114,7 @@ def custom_create_sales_order(order, woocommerce_settings, customer_name, sys_la
 		new_sales_order.insert()
 		new_sales_order.submit()
 	except Exception:
-		error_message = (
-			frappe.get_traceback()
-			+ "\n\n Sales Order Data: \n"
-			+ json.loads(new_sales_order.__dict__).__str__()
-		)
+		error_message = frappe.get_traceback() + "\n\n Sales Order Data: \n" + new_sales_order.__str__()
 		frappe.log_error("WooCommerce Error", error_message)
 	# ==================================== Custom code ends here ==================================== #
 
@@ -137,22 +133,29 @@ def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name
 	if not customer_exists:
 		# Create Customer
 		customer = frappe.new_doc("Customer")
+		# ==================================== Custom code starts here ==================================== #
+		customer_docname = customer_name[:3].upper() + f"{random.randrange(1, 10**3):03}"
+		customer.name = customer_docname
+		# ==================================== Custom code ends here ==================================== #
 	else:
 		# Edit Customer
 		customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
 		old_name = customer.customer_name
 
 	customer.customer_name = customer_name
-	customer.name = customer_name[:3].upper() + f"{random.randrange(1, 10**3):03}"
 	customer.woocommerce_email = customer_woo_com_email
 	customer.flags.ignore_mandatory = True
+
+	# ==================================== Custom code starts here ==================================== #
+	# Original code
+	# customer.save()
+
 	try:
 		customer.save()
 	except Exception:
-		error_message = (
-			frappe.get_traceback() + "\n\n Customer Data: \n" + json.loads(customer.__dict__).__str__()
-		)
+		error_message = frappe.get_traceback() + "\n\n Customer Data: \n" + customer.__str__()
 		frappe.log_error("WooCommerce Error", error_message)
+	# ==================================== Custom code ends here ==================================== #
 
 	if customer_exists:
 		# ==================================== Custom code starts here ==================================== #
@@ -178,3 +181,5 @@ def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name
 		create_address(raw_billing_data, customer, "Billing")
 		create_address(raw_shipping_data, customer, "Shipping")
 		create_contact(raw_billing_data, customer)
+
+	return customer.name

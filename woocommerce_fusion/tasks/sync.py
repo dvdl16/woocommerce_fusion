@@ -20,61 +20,60 @@ def sync_sales_orders(
 	"""
 	Syncronise Sales Orders between ERPNext and WooCommerce
 	"""
-	if sales_order_name or date_time_from or date_time_to:
-		# Fetch WooCommerce Settings
-		woocommerce_settings = frappe.get_doc("Woocommerce Settings")
+	# Fetch WooCommerce Settings
+	woocommerce_settings = frappe.get_doc("Woocommerce Settings")
 
-		# Fetch WooCommerce Additional Settings
-		woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
+	# Fetch WooCommerce Additional Settings
+	woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
 
-		wc_order_list = []
+	wc_order_list = []
 
-		# If no 'Sales Order List' or 'To Date' were supplied, default to synchronise all orders
-		# since last synchronisation
-		if not sales_order_name and not date_time_to:
-			date_time_from = woocommerce_additional_settings.wc_last_sync_date
+	# If no 'Sales Order List' or 'To Date' were supplied, default to synchronise all orders
+	# since last synchronisation
+	if not sales_order_name and not date_time_to:
+		date_time_from = woocommerce_additional_settings.wc_last_sync_date
 
-		if sales_order_name:
-			wc_order_list = get_list_of_wc_orders_from_sales_order(sales_order_name=sales_order_name)
+	if sales_order_name:
+		wc_order_list = get_list_of_wc_orders_from_sales_order(sales_order_name=sales_order_name)
+	else:
+		wc_order_list = get_list_of_wc_orders(date_time_from, date_time_to)
+
+	# Get list of Sales Orders
+	sales_orders = frappe.get_all(
+		"Sales Order",
+		filters={
+			"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
+			"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
+		},
+		fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
+	)
+
+	# Create a dictionary for quick access
+	sales_orders_dict = {
+		generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_site, so.woocommerce_id): so
+		for so in sales_orders
+	}
+
+	# Loop through each order
+	for order in wc_order_list:
+		if order["name"] in sales_orders_dict:
+			# If the Sales Order exists and it has been updated after last_updated, update it
+			if get_datetime(order["date_modified"]) > get_datetime(
+				sales_orders_dict[order["name"]].modified
+			):
+				update_sales_order(order, sales_orders_dict[order["name"]].name)
+			if get_datetime(order["date_modified"]) < get_datetime(
+				sales_orders_dict[order["name"]].modified
+			):
+				update_woocommerce_order(order, sales_orders_dict[order["name"]].name)
 		else:
-			wc_order_list = get_list_of_wc_orders(date_time_from, date_time_to)
+			# If the Sales Order does not exist, create it
+			create_sales_order(order, woocommerce_settings)
 
-		# Get list of Sales Orders
-		sales_orders = frappe.get_all(
-			"Sales Order",
-			filters={
-				"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
-				"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
-			},
-			fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
-		)
-
-		# Create a dictionary for quick access
-		sales_orders_dict = {
-			generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_site, so.woocommerce_id): so
-			for so in sales_orders
-		}
-
-		# Loop through each order
-		for order in wc_order_list:
-			if order["name"] in sales_orders_dict:
-				# If the Sales Order exists and it has been updated after last_updated, update it
-				if get_datetime(order["date_modified"]) > get_datetime(
-					sales_orders_dict[order["name"]].modified
-				):
-					update_sales_order(order, sales_orders_dict[order["name"]].name)
-				if get_datetime(order["date_modified"]) < get_datetime(
-					sales_orders_dict[order["name"]].modified
-				):
-					update_woocommerce_order(order, sales_orders_dict[order["name"]].name)
-			else:
-				# If the Sales Order does not exist, create it
-				create_sales_order(order, woocommerce_settings)
-
-		# Update Last Sales Order Sync Date Time
-		if update_sync_date_in_settings:
-			woocommerce_additional_settings.wc_last_sync_date = now()
-			woocommerce_additional_settings.save()
+	# Update Last Sales Order Sync Date Time
+	if update_sync_date_in_settings:
+		woocommerce_additional_settings.wc_last_sync_date = now()
+		woocommerce_additional_settings.save()
 
 
 def get_list_of_wc_orders_from_sales_order(sales_order_name):
@@ -159,6 +158,6 @@ def create_sales_order(order, woocommerce_settings):
 	raw_billing_data = order.get("billing")
 	raw_shipping_data = order.get("shipping")
 	customer_name = raw_billing_data.get("first_name") + " " + raw_billing_data.get("last_name")
-	link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
+	customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
 	link_items(order.get("line_items"), woocommerce_settings, sys_lang)
-	custom_create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
+	custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
