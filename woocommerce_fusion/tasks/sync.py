@@ -101,9 +101,11 @@ def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
 	start = 0
 	filters = []
 	filters.append(
-		["WooCommerce Order", "date_created", ">", date_time_from]
+		["WooCommerce Order", "date_modified", ">", date_time_from]
 	) if date_time_from else None
-	filters.append(["WooCommerce Order", "date_created", "<", date_time_to]) if date_time_to else None
+	filters.append(
+		["WooCommerce Order", "date_modified", "<", date_time_to]
+	) if date_time_to else None
 	while new_results:
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		new_results = woocommerce_order.get_list(
