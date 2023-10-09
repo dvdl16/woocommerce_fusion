@@ -13,7 +13,8 @@ frappe.listview_settings['Sales Order'] = {
 			'Picked up': 'light-green',
 			'Delivered': 'green',
 			'Processing LP': 'purple',
-			'Draft': 'grey'
+			'Draft': 'grey',
+			'Quote Sent': 'grey'
 		}[doc.woocommerce_status], "woocommerce_status,=," + doc.woocommerce_status];
 	},
 	has_indicator_for_draft: true,

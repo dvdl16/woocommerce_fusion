@@ -31,7 +31,13 @@ def custom_order(*args, **kwargs):
 		# ==================================== Custom code starts here ==================================== #
 	except Exception:
 		error_message = (
-			frappe.get_traceback() + "\n\n Request Data: \n" + json.loads(frappe.request.data).__str__()
+			# ==================================== Custom code starts here ==================================== #
+			# Original Code
+			# frappe.get_traceback() + "\n\n Request Data: \n" + json.loads(frappe.request.data).__str__()
+			frappe.get_traceback()
+			+ "\n\n Request Data: \n"
+			+ str(frappe.request.data)
+			# ==================================== Custom code starts here ==================================== #
 		)
 		frappe.log_error("WooCommerce Error", error_message)
 		raise
@@ -87,11 +93,18 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 	try:
 		site_domain = urlparse(order.get("_links")["self"][0]["href"]).netloc
 	except Exception:
-		error_message = frappe.get_traceback() + "\n\n Order Data: \n" + order.__str__()
+		error_message = frappe.get_traceback() + "\n\n Order Data: \n" + str(order.as_dict())
 		frappe.log_error("WooCommerce Error", error_message)
 		raise
 	new_sales_order.woocommerce_site = site_domain
-	new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[order.get("status")]
+	try:
+		new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[order.get("status")]
+	except KeyError:
+		error_message = (
+			frappe.get_traceback() + "\n\nSales Order Data: \n" + str(new_sales_order.as_dict())
+		)
+		frappe.log_error("WooCommerce Error", error_message)
+		raise
 	# ==================================== Custom code ends here ==================================== #
 
 	new_sales_order.naming_series = woocommerce_settings.sales_order_series or "SO-WOO-"
@@ -114,7 +127,9 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 		new_sales_order.insert()
 		new_sales_order.submit()
 	except Exception:
-		error_message = frappe.get_traceback() + "\n\n Sales Order Data: \n" + new_sales_order.__str__()
+		error_message = (
+			frappe.get_traceback() + "\n\nSales Order Data: \n" + str(new_sales_order.as_dict())
+		)
 		frappe.log_error("WooCommerce Error", error_message)
 	# ==================================== Custom code ends here ==================================== #
 
@@ -153,7 +168,7 @@ def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name
 	try:
 		customer.save()
 	except Exception:
-		error_message = frappe.get_traceback() + "\n\n Customer Data: \n" + customer.__str__()
+		error_message = frappe.get_traceback() + "\n\nCustomer Data: \n" + str(customer.as_dict())
 		frappe.log_error("WooCommerce Error", error_message)
 	# ==================================== Custom code ends here ==================================== #
 
