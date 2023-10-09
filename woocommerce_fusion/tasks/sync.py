@@ -149,7 +149,13 @@ def update_woocommerce_order(woocommerce_order, sales_order_name):
 	sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
 	if sales_order_wc_status != wc_order.status:
 		wc_order.status = sales_order_wc_status
-		wc_order.save()
+		try:
+			wc_order.save()
+		except Exception:
+			frappe.log_error(
+				"WooCommerce Sync Task Error",
+				f"Failed to update WooCommerce Order {woocommerce_order['name']}\n{frappe.get_traceback()}",
+			)
 
 
 def create_sales_order(order, woocommerce_settings):
