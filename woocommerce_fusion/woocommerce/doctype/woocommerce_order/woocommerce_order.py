@@ -70,11 +70,9 @@ class WooCommerceOrder(Document):
 		try:
 			response = self.current_wc_api.api.post("orders", data=order_data)
 		except Exception as err:
-			log_and_raise_error(err)
-		if not response or response.status_code != 201:
-			frappe.throw(
-				f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-			)
+			log_and_raise_error(err, error_text="db_insert failed")
+		if response.status_code != 201:
+			log_and_raise_error(error_text="db_insert failed", response=response)
 
 	def load_from_db(self):
 		"""
@@ -96,7 +94,12 @@ class WooCommerceOrder(Document):
 		try:
 			order = self.current_wc_api.api.get(f"orders/{order_id}").json()
 		except Exception as err:
-			log_and_raise_error(err)
+			log_and_raise_error(error_text=f"load_from_db failed (WooCommerce Order #{order_id})")
+
+		if "id" not in order:
+			log_and_raise_error(
+				error_text=f"load_from_db failed (WooCommerce Order #{order_id})\n{str(order)}"
+			)
 
 		order = self.get_additional_order_attributes(order)
 
@@ -143,11 +146,9 @@ class WooCommerceOrder(Document):
 		try:
 			response = self.current_wc_api.api.put(f"orders/{order_id}", data=cleaned_order)
 		except Exception as err:
-			log_and_raise_error(err)
-		if not response or response.status_code != 200:
-			frappe.throw(
-				f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-			)
+			log_and_raise_error(err, error_text="db_update failed")
+		if response.status_code != 200:
+			log_and_raise_error(error_text="db_update failed", response=response)
 
 		self.update_shipment_tracking()
 
@@ -244,11 +245,9 @@ class WooCommerceOrder(Document):
 						f"orders/{order_id}/shipment-trackings/", data=tracking_info
 					)
 				except Exception as err:
-					log_and_raise_error(err)
-				if not response or response.status_code != 201:
-					frappe.throw(
-						f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-					)
+					log_and_raise_error(err, error_text="update_shipment_tracking failed")
+				if response.status_code != 201:
+					log_and_raise_error(error_text="update_shipment_tracking failed", response=response)
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
 	# nosemgrep
@@ -294,11 +293,9 @@ class WooCommerceOrder(Document):
 				try:
 					response = wc_server.api.get("orders", params=params)
 				except Exception as err:
-					log_and_raise_error(err)
-				if not response or response.status_code != 200:
-					frappe.throw(
-						f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-					)
+					log_and_raise_error(err, error_text="get_list failed")
+				if response.status_code != 200:
+					log_and_raise_error(error_text="get_list failed", response=response)
 
 				# Store the count of total orders in this API
 				count_of_total_records_in_api = int(response.headers["x-wp-total"])
@@ -342,11 +339,9 @@ class WooCommerceOrder(Document):
 					try:
 						response = wc_server.api.get("orders", params=params)
 					except Exception as err:
-						log_and_raise_error(err)
-					if not response or response.status_code != 200:
-						frappe.throw(
-							f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-						)
+						log_and_raise_error(err, error_text="get_list failed")
+					if response.status_code != 200:
+						log_and_raise_error(error_text="get_list failed", response=response)
 					results = response.json()
 
 			return all_results
@@ -367,11 +362,9 @@ class WooCommerceOrder(Document):
 			try:
 				response = wc_server.api.get("orders")
 			except Exception as err:
-				log_and_raise_error(err)
-			if not response or response.status_code != 200:
-				frappe.throw(
-					f"Something went wrong when connecting to WooCommerce: {response.reason} \n {response.text}"
-				)
+				log_and_raise_error(err, error_text="get_count failed")
+			if response.status_code != 200:
+				log_and_raise_error(error_text="get_count failed", response=response)
 
 			if "x-wp-total" in response.headers:
 				total_count += int(response.headers["x-wp-total"])
@@ -510,11 +503,18 @@ def parse_domain_from_url(url: str):
 	return urlparse(url).netloc
 
 
-def log_and_raise_error(err):
+def log_and_raise_error(exception=None, error_text=None, response=None):
 	"""
 	Create an "Error Log" and raise error
 	"""
-	log = frappe.log_error("WooCommerce Error")
+	error_message = frappe.get_traceback() if exception else ""
+	error_message += "\n" + error_text if error_text else ""
+	error_message += (
+		f"\nResponse Code: {response.status_code}\nResponse Text: {response.text}\nRequest URL: {response.request.url}\nRequest Body: {response.request.body}"
+		if response is not None
+		else ""
+	)
+	log = frappe.log_error("WooCommerce Error", error_message)
 	log_link = frappe.utils.get_link_to_form("Error Log", log.name)
 	frappe.throw(
 		msg=_("Something went wrong while connecting to WooCommerce. See Error Log {0}").format(
@@ -522,4 +522,5 @@ def log_and_raise_error(err):
 		),
 		title=_("WooCommerce Error"),
 	)
-	raise err
+	if exception:
+		raise exception
