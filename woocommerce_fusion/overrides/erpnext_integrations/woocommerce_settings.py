@@ -29,7 +29,7 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 						fieldtype="Select",
 						options="\nPending Payment\nOn hold\nFailed\nCancelled"
 						"\nProcessing\nRefunded\nShipped\nReady for Pickup"
-						"\nPicked up\nDelivered\nProcessing LP\nDraft\n",
+						"\nPicked up\nDelivered\nProcessing LP\nDraft\nQuote Sent\n",
 						allow_on_submit=1,
 					),
 					("Item"): dict(

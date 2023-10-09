@@ -26,6 +26,7 @@ WC_ORDER_STATUS_MAPPING = {
 	"Delivered": "delivered",
 	"Processing LP": "processing-lp",
 	"Draft": "checkout-draft",
+	"Quote Sent": "gplsquote-req",
 }
 WC_ORDER_STATUS_MAPPING_REVERSE = {v: k for k, v in WC_ORDER_STATUS_MAPPING.items()}
 
