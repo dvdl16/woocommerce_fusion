@@ -31,9 +31,23 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
 
+      wordpress:
+        image: wordpress:latest
+        env:
+          WORDPRESS_DB_HOST: mariadb
+          WORDPRESS_DB_USER: root
+          WORDPRESS_DB_PASSWORD: root
+        ports:
+          - 8080:80
+        options: --health-cmd="curl -f http://localhost/wp-admin/install.php" --health-interval=10s --health-timeout=5s --health-retries=5
+
     steps:
       - name: Clone
         uses: actions/checkout@v4
+
+      - name: Install WooCommerce
+        run: |
+          docker run --network container:wordpress wordpress:cli wp plugin install woocommerce --activate --path="/var/www/html"
 
       - name: Setup Python
         uses: actions/setup-python@v4
