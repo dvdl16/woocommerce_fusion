@@ -31,23 +31,9 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
 
-      wordpress:
-        image: wordpress:latest
-        env:
-          WORDPRESS_DB_HOST: mariadb
-          WORDPRESS_DB_USER: root
-          WORDPRESS_DB_PASSWORD: root
-        ports:
-          - 8080:80
-        options: --health-cmd="curl -f http://localhost/wp-admin/install.php" --health-interval=10s --health-timeout=5s --health-retries=5
-
     steps:
       - name: Clone
         uses: actions/checkout@v4
-
-      - name: Install WooCommerce
-        run: |
-          docker run --network container:wordpress wordpress:cli wp plugin install woocommerce --activate --path="/var/www/html"
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -103,6 +89,29 @@ jobs:
           bench build
         env:
           CI: 'Yes'
+
+      -   name: Create InstaWP instance
+          uses: instawp/wordpress-testing-automation@main
+          id: create-instawp
+          with:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
+              INSTAWP_TEMPLATE_SLUG: woocommerce-template
+              REPO_ID: 289
+
+      -   name: InstaWP instance URL
+          run: echo "InstaWP instance URL - ${{ steps.create-instawp.outputs.instawp_url }}"
+          shell: bash
+
+      -   name: Extract InstaWP domain
+          id: extract-instawp-domain                
+          run: |
+              instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
+              echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
+
+      -   name: Sleep a bit to make sure InstaWP is ready
+          run: sleep 180s
+          shell: bash
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
