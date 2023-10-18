@@ -74,6 +74,7 @@ jobs:
       -   name: Create InstaWP instance
           uses: instawp/wordpress-testing-automation@main
           id: create-instawp
+          continue-on-error: true
           with:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
