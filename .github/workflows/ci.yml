@@ -125,6 +125,20 @@ jobs:
           bench --site test_site run-tests --app woocommerce_fusion --coverage
         env:
           TYPE: server
+          WOO_INTEGRATION_TESTS_WEBSERVER: ${{ steps.create-instawp.outputs.instawp_url }}
+          WOO_API_CONSUMER_KEY: ${{ secrets.WOO_API_CONSUMER_KEY }}
+          WOO_API_CONSUMER_SECRET: ${{ secrets.WOO_API_CONSUMER_SECRET }}
+
+      - name: Destroy InstaWP instance
+        uses: instawp/wordpress-testing-automation@main
+        id: destroy-instawp
+        if: ${{ always() }}
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}    
+          INSTAWP_TEMPLATE_SLUG: woocommerce-with-cactus-products
+          REPO_ID: 291
+          INSTAWP_ACTION: destroy-site
 
       - name: Upload coverage data
         uses: codecov/codecov-action@v3
