@@ -69,6 +69,30 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      -   name: Create InstaWP instance
+          uses: instawp/wordpress-testing-automation@main
+          id: create-instawp
+          with:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
+              INSTAWP_TEMPLATE_SLUG: wordpress-woocommerce
+              REPO_ID: 290
+              INSTAWP_ACTION: create-site-template
+
+      -   name: InstaWP instance URL
+          run: echo "InstaWP instance URL - ${{ steps.create-instawp.outputs.instawp_url }}"
+          shell: bash
+
+      -   name: Extract InstaWP domain
+          id: extract-instawp-domain                
+          run: |
+              instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
+              echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
+
+      -   name: Sleep a bit to make sure InstaWP is ready
+          run: sleep 180s
+          shell: bash
+
       - name: Setup
         run: |
           pip install frappe-bench
@@ -89,29 +113,6 @@ jobs:
           bench build
         env:
           CI: 'Yes'
-
-      -   name: Create InstaWP instance
-          uses: instawp/wordpress-testing-automation@main
-          id: create-instawp
-          with:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
-              INSTAWP_TEMPLATE_SLUG: woocommerce-template
-              REPO_ID: 289
-
-      -   name: InstaWP instance URL
-          run: echo "InstaWP instance URL - ${{ steps.create-instawp.outputs.instawp_url }}"
-          shell: bash
-
-      -   name: Extract InstaWP domain
-          id: extract-instawp-domain                
-          run: |
-              instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
-              echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
-
-      -   name: Sleep a bit to make sure InstaWP is ready
-          run: sleep 180s
-          shell: bash
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
