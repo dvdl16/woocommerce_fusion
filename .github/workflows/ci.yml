@@ -74,11 +74,11 @@ jobs:
       -   name: Create InstaWP instance
           uses: instawp/wordpress-testing-automation@main
           id: create-instawp
-          continue-on-error: true
+          continue-on-error: true # To avoid "Error: Resource not accessible by integration"
           with:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
-              INSTAWP_TEMPLATE_SLUG: wordpress-woocommerce
+              INSTAWP_TEMPLATE_SLUG: woocommerce-craft-with-products
               REPO_ID: 291
               INSTAWP_ACTION: create-site-template
 
@@ -89,12 +89,17 @@ jobs:
       -   name: Extract InstaWP domain
           id: extract-instawp-domain                
           run: |
+              # Check step to ensure instawp_url is not empty
+              if [[ -z "${{ steps.create-instawp.outputs.instawp_url }}" ]]; then
+                echo "instawp_url is empty. Failing the job."
+                exit 1
+              else
+                echo "instawp_url exists: ${{ steps.create-instawp.outputs.instawp_url }}"
+              fi
+
               instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
               echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
 
-      -   name: Sleep a bit to make sure InstaWP is ready
-          run: sleep 180s
-          shell: bash
 
       - name: Setup
         run: |
