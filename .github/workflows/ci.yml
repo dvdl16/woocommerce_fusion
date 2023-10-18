@@ -69,6 +69,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+              name: InstaWP WordPress Testing
+
       -   name: Create InstaWP instance
           uses: instawp/wordpress-testing-automation@main
           id: create-instawp
@@ -76,7 +78,7 @@ jobs:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
               INSTAWP_TEMPLATE_SLUG: wordpress-woocommerce
-              REPO_ID: 290
+              REPO_ID: 291
               INSTAWP_ACTION: create-site-template
 
       -   name: InstaWP instance URL
