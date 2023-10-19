@@ -25,6 +25,19 @@ class TestWooCommerceOrder(FrappeTestCase):
 		if not all([self.wc_url, self.wc_consumer_key, self.wc_consumer_secret]):
 			raise ValueError("Missing environment variables")
 
+		# Set WooCommerce Settings
+		woocommerce_additional_settings = frappe.get_single("Woocommerce Settings")
+		woocommerce_additional_settings.enable_sync = 1
+		woocommerce_additional_settings.woocommerce_server_url = self.wc_url
+		woocommerce_additional_settings.api_consumer_key = self.wc_consumer_key
+		woocommerce_additional_settings.api_consumer_secret = self.wc_consumer_secret
+		woocommerce_additional_settings.tax_account = "VAT - SC"
+		woocommerce_additional_settings.f_n_f_account = "Freight and Forwarding Charges - SC"
+		woocommerce_additional_settings.creation_user = "test@erpnext.com"
+		woocommerce_additional_settings.company = "Some Company (Pty) Ltd"
+		woocommerce_additional_settings.save()
+
+		# Set WooCommerce Additional Settings
 		woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
 		woocommerce_additional_settings.wc_last_sync_date = (add_to_date(now(), days=-1),)
 		row = woocommerce_additional_settings.append("servers")
