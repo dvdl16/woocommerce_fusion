@@ -99,7 +99,7 @@ class WooCommerceOrder(Document):
 
 		if "id" not in order:
 			log_and_raise_error(
-				error_text=f"load_from_db failed (WooCommerce Order #{order_id})\n{str(order)}"
+				error_text=f"load_from_db failed (WooCommerce Order #{order_id})\nOrder:\n{str(order)}"
 			)
 
 		order = self.get_additional_order_attributes(order)
