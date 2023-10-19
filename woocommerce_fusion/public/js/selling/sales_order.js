@@ -181,9 +181,9 @@ frappe.ui.form.on('Sales Order', {
 });
 
 
-function convert_ship_date_format_to_site_format(dateString){
-	// Create a new Date object
-	let dateObj = new Date(dateString);
+function convert_ship_date_format_to_site_format(epochTime){
+	// Create a new Date object from epoch time in seconds
+	let dateObj = new Date(epochTime * 1000);
 
 	// Format the date
 	let year = dateObj.getFullYear();
