@@ -213,3 +213,26 @@ override_whitelisted_methods = {
 # auth_hooks = [
 # 	"woocommerce_fusion.auth.validate"
 # ]
+
+
+fixtures = [
+	{
+		"dt": "Custom Field",
+		"filters": [
+			[
+				"name",
+				"in",
+				(
+					"Customer-woocommerce_site",
+					"Sales Order-woocommerce_site",
+					"Sales Order-woocommerce_status",
+					"Sales Order-woocommerce_shipment_tracking_html",
+					"Sales Order-woocommerce_payment_entry",
+					"Item-woocommerce_site",
+					"Address-woocommerce_site",
+					"Item-woocommerce_servers",
+				),
+			]
+		],
+	}
+]

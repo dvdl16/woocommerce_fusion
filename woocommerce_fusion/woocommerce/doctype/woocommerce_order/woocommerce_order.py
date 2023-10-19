@@ -94,11 +94,12 @@ class WooCommerceOrder(Document):
 		try:
 			order = self.current_wc_api.api.get(f"orders/{order_id}").json()
 		except Exception as err:
-			log_and_raise_error(error_text=f"load_from_db failed (WooCommerce Order #{order_id})")
+			error_text = f"load_from_db failed (WooCommerce Order #{order_id})\n\n{frappe.get_traceback()}"
+			log_and_raise_error(error_text)
 
 		if "id" not in order:
 			log_and_raise_error(
-				error_text=f"load_from_db failed (WooCommerce Order #{order_id})\n{str(order)}"
+				error_text=f"load_from_db failed (WooCommerce Order #{order_id})\nOrder:\n{str(order)}"
 			)
 
 		order = self.get_additional_order_attributes(order)
@@ -123,7 +124,9 @@ class WooCommerceOrder(Document):
 
 	def db_update(self, *args, **kwargs):
 		"""
-		Updates a WooCommerce Order
+		Updates a WooCommerce Order.
+
+		Note: Only the 'status' and 'shipment_trackings' fields will be updated.
 		"""
 		# Verify that the WC API has been initialised
 		if not self.wc_api_list:
@@ -133,6 +136,13 @@ class WooCommerceOrder(Document):
 		order_data = self.to_dict()
 		order_with_deserialized_subdata = self.deserialize_attributes_of_type_dict_or_list(order_data)
 		cleaned_order = self.clean_up_order(order_with_deserialized_subdata)
+
+		# Drop all fields except for 'status' and 'shipment_trackings'
+		keys_to_pop = [
+			key for key in cleaned_order.keys() if key not in ("status", "shipment_trackings")
+		]
+		for key in keys_to_pop:
+			cleaned_order.pop(key)
 
 		# Parse the server domain and order_id from the Document name
 		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
@@ -391,6 +401,18 @@ class WooCommerceOrder(Document):
 				if "image" in line:
 					if "id" in line["image"] and line["image"]["id"] == "":
 						line.pop("image")
+
+		# Remove the read-only `display_value` and `display_key` attributes as per
+		# https://github.com/woocommerce/woocommerce/issues/32038#issuecomment-1117140390
+		# This avoids HTTP 400 errors when updating orders, e.g. "line_items[0][meta_data][0][display_value] is not of type string"
+		if "line_items" in order and order["line_items"]:
+			for line in order["line_items"]:
+				if "meta_data" in line:
+					for meta in line["meta_data"]:
+						if "display_key" in meta:
+							meta.pop("display_key")
+						if "display_value" in meta:
+							meta.pop("display_value")
 
 		return order
 

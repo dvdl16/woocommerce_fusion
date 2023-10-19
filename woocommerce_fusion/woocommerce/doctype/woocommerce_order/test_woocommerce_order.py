@@ -247,7 +247,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Call db_insert
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
-		woocommerce_order.customer_note = "Hello World"
+		woocommerce_order.status = "Hello World"
 		woocommerce_order.woocommerce_server_url = "site1.example.com"
 		woocommerce_order.db_insert()
 
@@ -261,10 +261,8 @@ class TestWooCommerceOrder(FrappeTestCase):
 		self.assertEqual(mock_api_list[0].api.post.call_args.args[0], "orders")
 
 		# Verify that an attribute is passed to the API
-		self.assertTrue("customer_note" in mock_api_list[0].api.post.call_args.kwargs["data"])
-		self.assertEqual(
-			mock_api_list[0].api.post.call_args.kwargs["data"]["customer_note"], "Hello World"
-		)
+		self.assertTrue("status" in mock_api_list[0].api.post.call_args.kwargs["data"])
+		self.assertEqual(mock_api_list[0].api.post.call_args.kwargs["data"]["status"], "Hello World")
 
 	def test_db_insert_with_failed_post_call_throws_error(self, mock_init_api):
 		"""
@@ -338,7 +336,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Call db_update
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
-		woocommerce_order.customer_note = "Hello World"
+		woocommerce_order.status = "Hello World"
 		woocommerce_order.db_update()
 
 		# Check that the API was initialised
@@ -351,10 +349,8 @@ class TestWooCommerceOrder(FrappeTestCase):
 		self.assertEqual(mock_api_list[0].api.put.call_args.args[0], f"orders/{order_id}")
 
 		# Verify that an attribute is passed to the API
-		self.assertTrue("customer_note" in mock_api_list[0].api.put.call_args.kwargs["data"])
-		self.assertEqual(
-			mock_api_list[0].api.put.call_args.kwargs["data"]["customer_note"], "Hello World"
-		)
+		self.assertTrue("status" in mock_api_list[0].api.put.call_args.kwargs["data"])
+		self.assertEqual(mock_api_list[0].api.put.call_args.kwargs["data"]["status"], "Hello World")
 
 	def test_get_additional_order_attributes_makes_api_get(self, mock_init_api):
 		"""

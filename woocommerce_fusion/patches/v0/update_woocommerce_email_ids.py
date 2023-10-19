@@ -32,7 +32,7 @@ def execute():
 						break
 
 			if woocommerce_email:
-				frappe.db.set_value("Customer", customer.name, "woocommerce_email", woocommerce_email)
+				frappe.db.set_single_value("Customer", customer.name, "woocommerce_email", woocommerce_email)
 				print(f"Setting {customer.name}'s woocommerce_email to {woocommerce_email}")
 				s += 1
 

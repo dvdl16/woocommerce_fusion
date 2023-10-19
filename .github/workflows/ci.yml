@@ -69,6 +69,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+              name: InstaWP WordPress Testing
+
+      -   name: Create InstaWP instance
+          uses: instawp/wordpress-testing-automation@main
+          id: create-instawp
+          continue-on-error: true # To avoid "Error: Resource not accessible by integration"
+          with:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
+              INSTAWP_TEMPLATE_SLUG: woocommerce-with-cactus-products
+              REPO_ID: 291
+              INSTAWP_ACTION: create-site-template
+
+      -   name: Extract InstaWP domain
+          id: extract-instawp-domain                
+          run: |
+              # Check step to ensure instawp_url is not empty
+              if [[ -z "${{ steps.create-instawp.outputs.instawp_url }}" ]]; then
+                echo "instawp_url is empty. Failing the job."
+                exit 1
+              else
+                echo "instawp_url exists: ${{ steps.create-instawp.outputs.instawp_url }}"
+              fi
+
+              instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
+              echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
+
+
       - name: Setup
         run: |
           pip install frappe-bench
@@ -97,6 +125,20 @@ jobs:
           bench --site test_site run-tests --app woocommerce_fusion --coverage
         env:
           TYPE: server
+          WOO_INTEGRATION_TESTS_WEBSERVER: ${{ steps.create-instawp.outputs.instawp_url }}
+          WOO_API_CONSUMER_KEY: ${{ secrets.WOO_API_CONSUMER_KEY }}
+          WOO_API_CONSUMER_SECRET: ${{ secrets.WOO_API_CONSUMER_SECRET }}
+
+      - name: Destroy InstaWP instance
+        uses: instawp/wordpress-testing-automation@main
+        id: destroy-instawp
+        if: ${{ always() }}
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}    
+          INSTAWP_TEMPLATE_SLUG: woocommerce-with-cactus-products
+          REPO_ID: 291
+          INSTAWP_ACTION: destroy-site
 
       - name: Upload coverage data
         uses: codecov/codecov-action@v3

@@ -213,7 +213,7 @@
   {
    "description": "User agent of the customer.",
    "fieldname": "customer_user_agent",
-   "fieldtype": "Data",
+   "fieldtype": "Long Text",
    "label": "Customer User Agent",
    "read_only": 1
   },
@@ -369,7 +369,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2023-05-26 10:12:55.071901",
+ "modified": "2023-10-19 17:06:43.305797",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Order",
