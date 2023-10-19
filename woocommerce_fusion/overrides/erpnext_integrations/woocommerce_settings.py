@@ -47,3 +47,15 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 					),
 				}
 			)
+			create_custom_fields(
+				{
+					("Sales Order"): dict(
+						fieldname="woocommerce_payment_entry",
+						label="Woocommerce Payment Entry",
+						fieldtype="Link",
+						options="Payment Entry",
+						read_only=1,
+						allow_on_submit=1,
+					),
+				}
+			)

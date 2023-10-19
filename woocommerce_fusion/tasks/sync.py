@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from frappe.utils import get_datetime, now
 
@@ -44,6 +46,7 @@ def sync_sales_orders(
 		filters={
 			"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
 			"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
+			"docstatus": 1,
 		},
 		fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
 	)
@@ -68,7 +71,7 @@ def sync_sales_orders(
 				update_woocommerce_order(order, sales_orders_dict[order["name"]].name)
 		else:
 			# If the Sales Order does not exist, create it
-			create_sales_order(order, woocommerce_settings)
+			create_sales_order(order, woocommerce_settings, woocommerce_additional_settings)
 
 	# Update Last Sales Order Sync Date Time
 	if update_sync_date_in_settings:
@@ -133,6 +136,9 @@ def update_sales_order(woocommerce_order, sales_order_name):
 		sales_order.woocommerce_status = wc_order_status
 		sales_order.save()
 
+	if not sales_order.woocommerce_payment_entry:
+		create_and_link_payment_entry(woocommerce_order, sales_order_name)
+
 
 def update_woocommerce_order(woocommerce_order, sales_order_name):
 	"""
@@ -158,7 +164,7 @@ def update_woocommerce_order(woocommerce_order, sales_order_name):
 			)
 
 
-def create_sales_order(order, woocommerce_settings):
+def create_sales_order(order, woocommerce_settings, woocommerce_additional_settings):
 	"""
 	Create an ERPNext Sales Order from the given WooCommerce Order
 	"""
@@ -169,3 +175,77 @@ def create_sales_order(order, woocommerce_settings):
 	customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
 	link_items(order.get("line_items"), woocommerce_settings, sys_lang)
 	custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
+
+	sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": order.get("id")})
+	create_and_link_payment_entry(order, sales_order.name)
+
+
+def create_and_link_payment_entry(wc_order, sales_order_name):
+	"""
+	Create a Payment Entry for WooCommerce Orders that has been marked as Paid
+	"""
+	# Fetch WooCommerce Additional Settings
+	woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
+
+	try:
+		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+		wc_server = next(
+			(
+				server
+				for server in woocommerce_additional_settings.servers
+				if sales_order.woocommerce_site in server.woocommerce_server_url
+			),
+			None,
+		)
+		if not wc_server:
+			raise ValueError("Could not find woocommerce_site in list of servers")
+
+		# Validate that WooCommerce order has been paid, and that sales order doesn't have a linked Payment Entry yet
+		if (
+			wc_server.enable_payments_sync
+			and wc_order["payment_method"]
+			and wc_order["date_paid"]
+			and not sales_order.woocommerce_payment_entry
+		):
+			# Get Company Bank Account for this Payment Method
+			payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
+			company_bank_account = payment_method_bank_account_mapping[wc_order["payment_method"]]
+
+			# Get G/L Account for this Payment Method
+			payment_method_gl_account_mapping = json.loads(wc_server.payment_method_gl_account_mapping)
+			company_gl_account = payment_method_gl_account_mapping[wc_order["payment_method"]]
+
+			# Create a new Payment Entry
+			company = frappe.get_value("Account", company_gl_account, "company")
+			payment_entry_dict = {
+				"company": company,
+				"payment_type": "Receive",
+				"reference_no": wc_order["payment_method_title"],
+				"reference_date": wc_order["date_paid"],
+				"party_type": "Customer",
+				"party": sales_order.customer,
+				"posting_date": wc_order["date_paid"],
+				"paid_amount": sales_order.grand_total,
+				"received_amount": sales_order.grand_total,
+				"bank_account": company_bank_account,
+				"paid_to": company_gl_account,
+			}
+			payment_entry = frappe.new_doc("Payment Entry")
+			payment_entry.update(payment_entry_dict)
+			row = payment_entry.append("references")
+			row.reference_doctype = "Sales Order"
+			row.reference_name = sales_order.name
+			row.total_amount = sales_order.grand_total
+			row.allocated_amount = sales_order.grand_total
+			payment_entry.save()
+
+			# Link created Payment Entry to Sales Order
+			sales_order.woocommerce_payment_entry = payment_entry.name
+			sales_order.save()
+
+	except Exception:
+		frappe.log_error(
+			"WooCommerce Sync Task Error",
+			f"Failed to create Payment Entry for WooCommerce Order {wc_order['name']}\n{frappe.get_traceback()}",
+		)
+		return
