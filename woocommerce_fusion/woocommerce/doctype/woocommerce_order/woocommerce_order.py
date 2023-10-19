@@ -124,7 +124,9 @@ class WooCommerceOrder(Document):
 
 	def db_update(self, *args, **kwargs):
 		"""
-		Updates a WooCommerce Order
+		Updates a WooCommerce Order.
+
+		Note: Only the 'status' and 'shipment_trackings' fields will be updated.
 		"""
 		# Verify that the WC API has been initialised
 		if not self.wc_api_list:
@@ -134,6 +136,13 @@ class WooCommerceOrder(Document):
 		order_data = self.to_dict()
 		order_with_deserialized_subdata = self.deserialize_attributes_of_type_dict_or_list(order_data)
 		cleaned_order = self.clean_up_order(order_with_deserialized_subdata)
+
+		# Drop all fields except for 'status' and 'shipment_trackings'
+		keys_to_pop = [
+			key for key in cleaned_order.keys() if key not in ("status", "shipment_trackings")
+		]
+		for key in keys_to_pop:
+			cleaned_order.pop(key)
 
 		# Parse the server domain and order_id from the Document name
 		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_order_name(self.name)
