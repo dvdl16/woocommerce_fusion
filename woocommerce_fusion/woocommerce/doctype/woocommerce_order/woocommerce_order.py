@@ -94,7 +94,8 @@ class WooCommerceOrder(Document):
 		try:
 			order = self.current_wc_api.api.get(f"orders/{order_id}").json()
 		except Exception as err:
-			log_and_raise_error(error_text=f"load_from_db failed (WooCommerce Order #{order_id})")
+			error_text = f"load_from_db failed (WooCommerce Order #{order_id})\n\n{frappe.get_traceback()}"
+			log_and_raise_error(error_text)
 
 		if "id" not in order:
 			log_and_raise_error(
