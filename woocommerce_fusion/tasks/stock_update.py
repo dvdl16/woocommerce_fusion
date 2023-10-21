@@ -65,15 +65,15 @@ def update_stock_levels_on_woocommerce_site(item_code):
 			try:
 				response = wc_api.put(endpoint=f"products/{woocommerce_id}", data=data_to_post)
 			except Exception as err:
-				error_message = frappe.get_traceback() + "\n\nData in PUT request: \n" + str(data_to_post)
+				error_message = f"{frappe.get_traceback()}\n\nData in PUT request: \n{str(data_to_post)}"
 				frappe.log_error("WooCommerce Error", error_message)
 				return False
 			if response.status_code != 200:
-				error_message = (
-					"Status Code not 200\n\nData in PUT request: \n"
-					+ str(data_to_post)
-					+ "\n\nResponse: \n"
-					+ response
+				error_message = f"Status Code not 200\n\nData in PUT request: \n{str(data_to_post)}"
+				error_message += (
+					f"\n\nResponse: \n{response.status_code}\nResponse Text: {response.text}\nRequest URL: {response.request.url}\nRequest Body: {response.request.body}"
+					if response is not None
+					else ""
 				)
 				frappe.log_error("WooCommerce Error", error_message)
 

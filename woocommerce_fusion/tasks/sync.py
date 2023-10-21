@@ -171,7 +171,7 @@ def create_sales_order(order, woocommerce_settings, woocommerce_additional_setti
 	sys_lang = frappe.get_single("System Settings").language or "en"
 	raw_billing_data = order.get("billing")
 	raw_shipping_data = order.get("shipping")
-	customer_name = raw_billing_data.get("first_name") + " " + raw_billing_data.get("last_name")
+	customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
 	customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
 	link_items(order.get("line_items"), woocommerce_settings, sys_lang)
 	custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
