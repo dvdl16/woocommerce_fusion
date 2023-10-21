@@ -530,7 +530,7 @@ def log_and_raise_error(exception=None, error_text=None, response=None):
 	Create an "Error Log" and raise error
 	"""
 	error_message = frappe.get_traceback() if exception else ""
-	error_message += "\n" + error_text if error_text else ""
+	error_message += f"\n{error_text}" if error_text else ""
 	error_message += (
 		f"\nResponse Code: {response.status_code}\nResponse Text: {response.text}\nRequest URL: {response.request.url}\nRequest Body: {response.request.body}"
 		if response is not None
