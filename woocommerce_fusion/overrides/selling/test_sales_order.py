@@ -11,7 +11,7 @@ from woocommerce_fusion.overrides.selling.sales_order import (
 
 
 @patch("woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order")
-class TestWooCommerceOrder(FrappeTestCase):
+class TestCustomSalesOrder(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.

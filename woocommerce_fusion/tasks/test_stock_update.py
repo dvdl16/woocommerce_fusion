@@ -8,7 +8,7 @@ from woocommerce_fusion.tasks.stock_update import update_stock_levels_on_woocomm
 
 @patch("woocommerce_fusion.tasks.stock_update.frappe")
 @patch("woocommerce_fusion.tasks.stock_update.API", autospec=True)
-class TestWooCommerceOrder(FrappeTestCase):
+class TestWooCommerceStockSync(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
