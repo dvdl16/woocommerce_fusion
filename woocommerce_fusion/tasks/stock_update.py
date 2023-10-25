@@ -1,19 +1,22 @@
+import math
+
 import frappe
 from woocommerce import API
 
 
 def update_stock_levels_for_woocommerce_item(doc, method):
-	if doc.doctype in ("Stock Entry", "Stock Reconciliation", "Sales Invoice", "Delivery Note"):
-		if doc.doctype == "Sales Invoice":
-			if doc.update_stock == 0:
-				return
-		item_codes = [row.item_code for row in doc.items]
-		for item_code in item_codes:
-			frappe.enqueue(
-				"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
-				enqueue_after_commit=True,
-				item_code=item_code,
-			)
+	if not frappe.flags.in_test:
+		if doc.doctype in ("Stock Entry", "Stock Reconciliation", "Sales Invoice", "Delivery Note"):
+			if doc.doctype == "Sales Invoice":
+				if doc.update_stock == 0:
+					return
+			item_codes = [row.item_code for row in doc.items]
+			for item_code in item_codes:
+				frappe.enqueue(
+					"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
+					enqueue_after_commit=True,
+					item_code=item_code,
+				)
 
 
 @frappe.whitelist()
@@ -60,7 +63,8 @@ def update_stock_levels_on_woocommerce_site(item_code):
 				timeout=40,
 			)
 
-			data_to_post = {"stock_quantity": sum(bin.actual_qty for bin in bins)}
+			# Sum all quantities from all warehouses and round the total down (WooCommerce API doesn't accept float values)
+			data_to_post = {"stock_quantity": math.floor(sum(bin.actual_qty for bin in bins))}
 
 			try:
 				response = wc_api.put(endpoint=f"products/{woocommerce_id}", data=data_to_post)
@@ -76,5 +80,6 @@ def update_stock_levels_on_woocommerce_site(item_code):
 					else ""
 				)
 				frappe.log_error("WooCommerce Error", error_message)
+				return False
 
 		return True

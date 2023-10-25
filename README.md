@@ -26,11 +26,16 @@ Dirk van der Laarse
 
 #### Tests
 
-To run unit tests:
+To run unit and integration tests:
 
 ```shell
 bench --site test_site run-tests --app woocommerce_fusion --coverage
 ```
+
+##### InstaWP Requirement
+For integration tests, we use InstaWP to spin up temporary Wordpress websites.
+
+*TBD - steps to create a new site and template*
 
 #### Development
 

@@ -38,7 +38,11 @@ def sync_sales_orders(
 	if sales_order_name:
 		wc_order_list = get_list_of_wc_orders_from_sales_order(sales_order_name=sales_order_name)
 	else:
-		wc_order_list = get_list_of_wc_orders(date_time_from, date_time_to)
+		wc_order_list = get_list_of_wc_orders(
+			date_time_from,
+			date_time_to,
+			minimum_creation_date=woocommerce_additional_settings.minimum_creation_date,
+		)
 
 	# Get list of Sales Orders
 	sales_orders = frappe.get_all(
@@ -93,7 +97,7 @@ def get_list_of_wc_orders_from_sales_order(sales_order_name):
 	return [wc_order.__dict__]
 
 
-def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
+def get_list_of_wc_orders(date_time_from=None, date_time_to=None, minimum_creation_date=None):
 	"""
 	Fetches a list of WooCommerce Orders within a specified date range using pagination
 	"""
@@ -109,6 +113,9 @@ def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
 	filters.append(
 		["WooCommerce Order", "date_modified", "<", date_time_to]
 	) if date_time_to else None
+	filters.append(
+		["WooCommerce Order", "date_created", ">", minimum_creation_date]
+	) if minimum_creation_date else None
 	while new_results:
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		new_results = woocommerce_order.get_list(
@@ -211,37 +218,51 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 			payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
 			company_bank_account = payment_method_bank_account_mapping[wc_order["payment_method"]]
 
-			# Get G/L Account for this Payment Method
-			payment_method_gl_account_mapping = json.loads(wc_server.payment_method_gl_account_mapping)
-			company_gl_account = payment_method_gl_account_mapping[wc_order["payment_method"]]
+			if company_bank_account:
+				# Get G/L Account for this Payment Method
+				payment_method_gl_account_mapping = json.loads(wc_server.payment_method_gl_account_mapping)
+				company_gl_account = payment_method_gl_account_mapping[wc_order["payment_method"]]
 
-			# Create a new Payment Entry
-			company = frappe.get_value("Account", company_gl_account, "company")
-			payment_entry_dict = {
-				"company": company,
-				"payment_type": "Receive",
-				"reference_no": wc_order["payment_method_title"],
-				"reference_date": wc_order["date_paid"],
-				"party_type": "Customer",
-				"party": sales_order.customer,
-				"posting_date": wc_order["date_paid"],
-				"paid_amount": sales_order.grand_total,
-				"received_amount": sales_order.grand_total,
-				"bank_account": company_bank_account,
-				"paid_to": company_gl_account,
-			}
-			payment_entry = frappe.new_doc("Payment Entry")
-			payment_entry.update(payment_entry_dict)
-			row = payment_entry.append("references")
-			row.reference_doctype = "Sales Order"
-			row.reference_name = sales_order.name
-			row.total_amount = sales_order.grand_total
-			row.allocated_amount = sales_order.grand_total
-			payment_entry.save()
+				# Create a new Payment Entry
+				company = frappe.get_value("Account", company_gl_account, "company")
+				meta_data = wc_order.get("meta_data", None)
+				payment_reference_no = (
+					next(
+						(
+							data["value"]
+							for data in meta_data
+							if data["key"] in ("_yoco_payment_id", "_transaction_id")
+						),
+						None,
+					)
+					if meta_data and type(meta_data) is list
+					else None
+				)
+				payment_entry_dict = {
+					"company": company,
+					"payment_type": "Receive",
+					"reference_no": payment_reference_no or wc_order["payment_method_title"],
+					"reference_date": wc_order["date_paid"],
+					"party_type": "Customer",
+					"party": sales_order.customer,
+					"posting_date": wc_order["date_paid"],
+					"paid_amount": sales_order.grand_total,
+					"received_amount": sales_order.grand_total,
+					"bank_account": company_bank_account,
+					"paid_to": company_gl_account,
+				}
+				payment_entry = frappe.new_doc("Payment Entry")
+				payment_entry.update(payment_entry_dict)
+				row = payment_entry.append("references")
+				row.reference_doctype = "Sales Order"
+				row.reference_name = sales_order.name
+				row.total_amount = sales_order.grand_total
+				row.allocated_amount = sales_order.grand_total
+				payment_entry.save()
 
-			# Link created Payment Entry to Sales Order
-			sales_order.woocommerce_payment_entry = payment_entry.name
-			sales_order.save()
+				# Link created Payment Entry to Sales Order
+				sales_order.woocommerce_payment_entry = payment_entry.name
+				sales_order.save()
 
 	except Exception:
 		frappe.log_error(
