@@ -181,6 +181,46 @@ class TestWooCommerceSync(FrappeTestCase):
 		self.assertIsNotNone(mock_sales_order.woocommerce_payment_entry)
 		mock_frappe.new_doc.assert_called_once_with("Payment Entry")
 
+	@patch("woocommerce_fusion.tasks.sync.frappe")
+	def test_that_no_payment_entry_is_created_when_mapping_is_null(self, mock_frappe):
+		# Arrange
+		wc_order = {
+			"payment_method": "EFT",
+			"date_paid": "2023-01-01",
+			"name": "wc_order_1",
+			"payment_method_title": "EFT",
+		}
+		sales_order_name = "SO-0001"
+
+		mock_sales_order = MagicMock()
+		mock_sales_order.woocommerce_site = "example.com"
+		mock_sales_order.woocommerce_payment_entry = None
+		mock_sales_order.customer = "customer_1"
+		mock_sales_order.grand_total = 100
+		mock_sales_order.name = "SO-0001"
+
+		woocommerce_additional_settings = MagicMock()
+		woocommerce_additional_settings.servers = [
+			frappe._dict(
+				enable_payments_sync=1,
+				woocommerce_server_url="http://example.com",
+				payment_method_bank_account_mapping=json.dumps({"EFT": None}),
+				payment_method_gl_account_mapping=json.dumps({"EFT": None}),
+			)
+		]
+
+		mock_frappe.get_single.return_value = woocommerce_additional_settings
+		mock_frappe.get_doc.return_value = mock_sales_order
+		mock_frappe.get_value.return_value = "Test Company"
+		mock_frappe.new_doc.return_value = MagicMock()
+
+		# Act
+		create_and_link_payment_entry(wc_order, sales_order_name)
+
+		# Assert
+		self.assertIsNone(mock_sales_order.woocommerce_payment_entry)
+		mock_frappe.new_doc.assert_not_called()
+
 
 def create_bank_account(
 	bank_name=default_bank, account_name="_Test Bank", company=default_company
