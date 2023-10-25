@@ -1,12 +1,13 @@
 import json
+from urllib.parse import urlparse
 
 import frappe
 from frappe.utils import get_datetime, now
 
 from woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection import (
 	custom_create_sales_order,
+	custom_link_items,
 	link_customer_and_address,
-	link_items,
 )
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING,
@@ -180,7 +181,13 @@ def create_sales_order(order, woocommerce_settings, woocommerce_additional_setti
 	raw_shipping_data = order.get("shipping")
 	customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
 	customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
-	link_items(order.get("line_items"), woocommerce_settings, sys_lang)
+	try:
+		site_domain = urlparse(order.get("_links")["self"][0]["href"]).netloc
+	except Exception:
+		error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(order.as_dict())}"
+		frappe.log_error("WooCommerce Error", error_message)
+		raise
+	custom_link_items(order.get("line_items"), woocommerce_settings, sys_lang, site_domain)
 	custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
 
 	sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": order.get("id")})
