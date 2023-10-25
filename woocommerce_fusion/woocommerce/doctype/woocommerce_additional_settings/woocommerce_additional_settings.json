@@ -9,7 +9,9 @@
  "field_order": [
   "warning_html",
   "servers",
-  "wc_last_sync_date"
+  "wc_last_sync_date",
+  "section_break_nh5tj",
+  "minimum_creation_date"
  ],
  "fields": [
   {
@@ -30,12 +32,24 @@
    "fieldtype": "HTML",
    "label": "Warning HTML",
    "options": "<div class=\"form-message red\">\n\t<div>{{__(\"Enabling Sync for WooCommerce Sites allows ERPNext to modify Stock Levels and Order Statuses on these Sites\")}}</div>\n</div>"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_nh5tj",
+   "fieldtype": "Section Break",
+   "label": "Timespan Settings"
+  },
+  {
+   "description": "WooCommerce Orders with a creation date earlier than this date will be ignored",
+   "fieldname": "minimum_creation_date",
+   "fieldtype": "Datetime",
+   "label": "Minimum Creation Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-09-17 14:10:22.187445",
+ "modified": "2023-10-25 12:28:45.427309",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",

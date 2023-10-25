@@ -38,7 +38,11 @@ def sync_sales_orders(
 	if sales_order_name:
 		wc_order_list = get_list_of_wc_orders_from_sales_order(sales_order_name=sales_order_name)
 	else:
-		wc_order_list = get_list_of_wc_orders(date_time_from, date_time_to)
+		wc_order_list = get_list_of_wc_orders(
+			date_time_from,
+			date_time_to,
+			minimum_creation_date=woocommerce_additional_settings.minimum_creation_date,
+		)
 
 	# Get list of Sales Orders
 	sales_orders = frappe.get_all(
@@ -93,7 +97,7 @@ def get_list_of_wc_orders_from_sales_order(sales_order_name):
 	return [wc_order.__dict__]
 
 
-def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
+def get_list_of_wc_orders(date_time_from=None, date_time_to=None, minimum_creation_date=None):
 	"""
 	Fetches a list of WooCommerce Orders within a specified date range using pagination
 	"""
@@ -109,6 +113,9 @@ def get_list_of_wc_orders(date_time_from=None, date_time_to=None):
 	filters.append(
 		["WooCommerce Order", "date_modified", "<", date_time_to]
 	) if date_time_to else None
+	filters.append(
+		["WooCommerce Order", "date_created", ">", minimum_creation_date]
+	) if minimum_creation_date else None
 	while new_results:
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		new_results = woocommerce_order.get_list(
