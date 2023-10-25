@@ -4,13 +4,14 @@ from urllib.parse import urlparse
 
 import frappe
 from erpnext.erpnext_integrations.connectors.woocommerce_connection import (
+	add_tax_details,
 	create_address,
 	create_contact,
-	link_items,
 	rename_address,
-	set_items_in_sales_order,
 	verify_request,
 )
+from frappe import _
+from frappe.utils.data import cstr
 
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING_REVERSE,
@@ -71,10 +72,19 @@ def _custom_order(*args, **kwargs):
 		raw_shipping_data = order.get("shipping")
 		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
 		customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
-		link_items(order.get("line_items"), woocommerce_settings, sys_lang)
 		# ==================================== Custom code starts here ==================================== #
 		# Original code
+		# link_items(order.get("line_items"), woocommerce_settings, sys_lang)
 		# create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
+		try:
+			site_domain = urlparse(order.get("_links")["self"][0]["href"]).netloc
+		except Exception:
+			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(order.as_dict())}"
+			frappe.log_error("WooCommerce Error", error_message)
+			raise
+		custom_link_items(
+			order.get("line_items"), woocommerce_settings, sys_lang, woocommerce_site=site_domain
+		)
 		custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
 		# ==================================== Custom code ends here ==================================== #
 
@@ -116,7 +126,12 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 
 	new_sales_order.company = woocommerce_settings.company
 
-	set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang)
+	# ==================================== Custom code starts here ==================================== #
+	# Original code
+	# set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang)
+	custom_set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang)
+	# ==================================== Custom code ends here ==================================== #
+
 	new_sales_order.flags.ignore_mandatory = True
 	# ==================================== Custom code starts here ==================================== #
 	# Original code
@@ -198,3 +213,99 @@ def link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name
 		create_contact(raw_billing_data, customer)
 
 	return customer.name
+
+
+def custom_link_items(items_list, woocommerce_settings, sys_lang, woocommerce_site):
+	"""
+	Customised version of link_items to allow searching for items linked to
+	multiple WooCommerce sites
+	"""
+	for item_data in items_list:
+		item_woo_com_id = cstr(item_data.get("product_id"))
+
+		item_codes = frappe.db.get_all(
+			"Item WooCommerce Server",
+			filters={"woocommerce_id": item_woo_com_id, "woocommerce_site": woocommerce_site},
+			fields=["parent"],
+		)
+		found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+		# ==================================== Custom code starts here ==================================== #
+		# Original code:
+		# if not frappe.db.get_value("Item", {"woocommerce_id": item_woo_com_id}, "name"):
+		if not found_item:
+			# ==================================== Custom code ends here ==================================== #
+			# Create Item
+			item = frappe.new_doc("Item")
+			item.item_code = _("woocommerce - {0}", sys_lang).format(item_woo_com_id)
+			item.stock_uom = woocommerce_settings.uom or _("Nos", sys_lang)
+			item.item_group = _("WooCommerce Products", sys_lang)
+
+			item.item_name = item_data.get("name")
+			# ==================================== Custom code starts here ==================================== #
+			# Original code:
+			# item.woocommerce_id = item_woo_com_id
+			row = item.append("woocommerce_servers")
+			row.woocommerce_id = item_woo_com_id
+			row.woocommerce_site = woocommerce_site
+			# ==================================== Custom code ends here ==================================== #
+			item.flags.ignore_mandatory = True
+			item.save()
+
+
+def custom_set_items_in_sales_order(new_sales_order, woocommerce_settings, order, sys_lang):
+	"""
+	Customised version of set_items_in_sales_order to allow searching for items linked to
+	multiple WooCommerce sites
+	"""
+	company_abbr = frappe.db.get_value("Company", woocommerce_settings.company, "abbr")
+
+	default_warehouse = _("Stores - {0}", sys_lang).format(company_abbr)
+	if not frappe.db.exists("Warehouse", default_warehouse) and not woocommerce_settings.warehouse:
+		frappe.throw(_("Please set Warehouse in Woocommerce Settings"))
+
+	for item in order.get("line_items"):
+		woocomm_item_id = item.get("product_id")
+		# ==================================== Custom code starts here ==================================== #
+		# Original code
+		# found_item = frappe.get_doc("Item", {"woocommerce_id": cstr(woocomm_item_id)})
+		item_codes = frappe.db.get_all(
+			"Item WooCommerce Server",
+			filters={
+				"woocommerce_id": cstr(woocomm_item_id),
+				"woocommerce_site": new_sales_order.woocommerce_site,
+			},
+			fields=["parent"],
+		)
+		found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+		# ==================================== Custom code ends here ==================================== #
+		ordered_items_tax = item.get("total_tax")
+
+		new_sales_order.append(
+			"items",
+			{
+				"item_code": found_item.name,
+				"item_name": found_item.item_name,
+				"description": found_item.item_name,
+				"delivery_date": new_sales_order.delivery_date,
+				"uom": woocommerce_settings.uom or _("Nos", sys_lang),
+				"qty": item.get("quantity"),
+				"rate": item.get("price"),
+				"warehouse": woocommerce_settings.warehouse or default_warehouse,
+			},
+		)
+
+		add_tax_details(
+			new_sales_order, ordered_items_tax, "Ordered Item tax", woocommerce_settings.tax_account
+		)
+
+	# shipping_details = order.get("shipping_lines") # used for detailed order
+
+	add_tax_details(
+		new_sales_order, order.get("shipping_tax"), "Shipping Tax", woocommerce_settings.f_n_f_account
+	)
+	add_tax_details(
+		new_sales_order,
+		order.get("shipping_total"),
+		"Shipping Total",
+		woocommerce_settings.f_n_f_account,
+	)
