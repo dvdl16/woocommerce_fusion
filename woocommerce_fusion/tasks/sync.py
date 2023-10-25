@@ -225,10 +225,23 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 
 				# Create a new Payment Entry
 				company = frappe.get_value("Account", company_gl_account, "company")
+				meta_data = wc_order.get("meta_data", None)
+				payment_reference_no = (
+					next(
+						(
+							data["value"]
+							for data in meta_data
+							if data["key"] in ("_yoco_payment_id", "_transaction_id")
+						),
+						None,
+					)
+					if meta_data and type(meta_data) is list
+					else None
+				)
 				payment_entry_dict = {
 					"company": company,
 					"payment_type": "Receive",
-					"reference_no": wc_order["payment_method_title"],
+					"reference_no": payment_reference_no or wc_order["payment_method_title"],
 					"reference_date": wc_order["date_paid"],
 					"party_type": "Customer",
 					"party": sales_order.customer,

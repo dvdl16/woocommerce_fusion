@@ -32,6 +32,11 @@ To run unit and integration tests:
 bench --site test_site run-tests --app woocommerce_fusion --coverage
 ```
 
+##### InstaWP Requirement
+For integration tests, we use InstaWP to spin up temporary Wordpress websites.
+
+*TBD - steps to create a new site and template*
+
 #### Development
 
 We use [pre-commit](https://pre-commit.com/) for linting. First time setup may be required:
