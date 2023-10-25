@@ -1,3 +1,5 @@
+import math
+
 import frappe
 from woocommerce import API
 
@@ -60,7 +62,8 @@ def update_stock_levels_on_woocommerce_site(item_code):
 				timeout=40,
 			)
 
-			data_to_post = {"stock_quantity": sum(bin.actual_qty for bin in bins)}
+			# Sum all quantities from all warehouses and round the total down (WooCommerce API doesn't accept float values)
+			data_to_post = {"stock_quantity": math.floor(sum(bin.actual_qty for bin in bins))}
 
 			try:
 				response = wc_api.put(endpoint=f"products/{woocommerce_id}", data=data_to_post)
@@ -76,5 +79,6 @@ def update_stock_levels_on_woocommerce_site(item_code):
 					else ""
 				)
 				frappe.log_error("WooCommerce Error", error_message)
+				return False
 
 		return True
