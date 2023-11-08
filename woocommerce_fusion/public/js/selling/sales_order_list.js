@@ -18,7 +18,7 @@ frappe.listview_settings['Sales Order'] = {
 			///////////////////////////////////////////////////////////////////////////////////////
 			if (doc.advance_paid >= doc.grand_total) {
 				// not delivered & not billed
-				return [__("To be Paid"), "grey",
+				return [__("Paid in Advance"), "grey",
 					"advance_paid,>=,grand_total"];
 			} else
 			///////////////////////////////////////////////////////////////////////////////////////
