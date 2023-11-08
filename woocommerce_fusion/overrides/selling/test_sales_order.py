@@ -111,6 +111,7 @@ def create_so(woocommerce_id: str = None, woocommerce_site: str = None):
 			"delivery_date": date.today(),
 			"qty": 10,
 			"rate": 80,
+			"currency": "INR",
 		},
 	)
 	so.insert()
