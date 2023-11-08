@@ -106,13 +106,7 @@ def create_so(woocommerce_id: str = None, woocommerce_site: str = None):
 	so.set_warehouse = "Finished Goods - _TC"
 	so.append(
 		"items",
-		{
-			"item_code": "_Test Item",
-			"delivery_date": date.today(),
-			"qty": 10,
-			"rate": 80,
-			"currency": "INR",
-		},
+		{"item_code": "_Test Item", "delivery_date": date.today(), "qty": 10, "rate": 80},
 	)
 	so.insert()
 	so.save()
