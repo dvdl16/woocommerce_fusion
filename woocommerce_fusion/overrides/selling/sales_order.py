@@ -1,11 +1,45 @@
 import json
 
 import frappe
+from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 from frappe import _
+from frappe.model.naming import get_default_naming_series, make_autoname
 
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	generate_woocommerce_order_name_from_domain_and_id,
 )
+
+
+class CustomSalesOrder(SalesOrder):
+	"""
+	This class extends ERPNext's Sales Order doctype to override the autoname method
+
+	This allows us to name the Sales Order conditionally.
+	"""
+
+	def autoname(self):
+		"""
+		If this is a WooCommerce-linked order, name should be WEB[WooCommerce Order ID], e.g. WEB012142
+		else, name it normally.
+		"""
+		if self.woocommerce_id:
+			# Get idx of site
+			woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
+			wc_server = next(
+				(
+					server
+					for server in woocommerce_additional_settings.servers
+					if self.woocommerce_site in server.woocommerce_server_url
+				),
+				None,
+			)
+			idx = wc_server.idx if wc_server else 0
+			self.name = "WEB{}-{:06}".format(
+				idx, int(self.woocommerce_id)
+			)  # Format with leading zeros to make it 6 digits
+		else:
+			naming_series = get_default_naming_series("Sales Order")
+			self.name = make_autoname(key=naming_series)
 
 
 @frappe.whitelist()

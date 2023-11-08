@@ -93,7 +93,8 @@ doctype_list_js = {"Sales Order": "public/js/selling/sales_order_list.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings"
+	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings",
+	"Sales Order": "woocommerce_fusion.overrides.selling.sales_order.CustomSalesOrder",
 }
 
 # Document Events
