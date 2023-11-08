@@ -226,6 +226,7 @@ fixtures = [
 					"Customer-woocommerce_site",
 					"Sales Order-woocommerce_site",
 					"Sales Order-woocommerce_status",
+					"Sales Order-woocommerce_payment_method",
 					"Sales Order-woocommerce_shipment_tracking_html",
 					"Sales Order-woocommerce_payment_entry",
 					"Item-woocommerce_site",

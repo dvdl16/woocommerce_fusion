@@ -144,6 +144,10 @@ def update_sales_order(woocommerce_order, sales_order_name):
 		sales_order.woocommerce_status = wc_order_status
 		sales_order.save()
 
+	# Update the payment_method_title field if necessary
+	if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
+		sales_order.woocommerce_payment_method = wc_order.payment_method_title
+
 	if not sales_order.woocommerce_payment_entry:
 		create_and_link_payment_entry(woocommerce_order, sales_order_name)
 

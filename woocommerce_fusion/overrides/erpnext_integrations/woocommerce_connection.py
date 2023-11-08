@@ -115,6 +115,7 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 		)
 		frappe.log_error("WooCommerce Error", error_message)
 		raise
+	new_sales_order.woocommerce_payment_method = order.get("payment_method_title", None)
 	# ==================================== Custom code ends here ==================================== #
 
 	new_sales_order.naming_series = woocommerce_settings.sales_order_series or "SO-WOO-"
