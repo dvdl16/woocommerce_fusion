@@ -11,6 +11,8 @@ from woocommerce_fusion.overrides.selling.sales_order import (
 	update_woocommerce_order_shipment_trackings,
 )
 
+test_dependencies = ["Company", "Customer", "Warehouse"]
+
 
 @patch("woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order")
 class TestCustomSalesOrder(FrappeTestCase):
