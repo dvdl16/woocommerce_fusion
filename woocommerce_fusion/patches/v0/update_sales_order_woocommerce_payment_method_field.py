@@ -44,9 +44,11 @@ def execute():
 				wc_order.load_from_db()
 
 				# Set the payment_method_title field
+				sales_order.meta.get_field("woocommerce_payment_method").allow_on_submit = 1
 				sales_order.woocommerce_payment_method = wc_order.payment_method_title
 				print(f"Updating {so.name}")
 				sales_order.save()
+				sales_order.meta.get_field("woocommerce_payment_method").allow_on_submit = 0
 
 			except Exception as err:
 				frappe.log_error(
