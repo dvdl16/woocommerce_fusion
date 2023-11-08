@@ -1,2 +1,2 @@
 woocommerce_fusion.patches.v0.update_woocommerce_email_ids
-woocommerce_fusion.patches.v0.update_sales_order_woocommerce_payment_method_field
+woocommerce_fusion.patches.v0.update_sales_order_woocommerce_payment_method_field #2023-11-08
