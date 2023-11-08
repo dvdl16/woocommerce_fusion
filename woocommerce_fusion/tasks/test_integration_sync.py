@@ -15,7 +15,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		WooCommerce orders.
 		"""
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order()
+		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge")
 
 		# Run synchronisation
 		sync_sales_orders()
@@ -23,6 +23,9 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Expect newly created Sales Order in ERPNext
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
 		self.assertIsNotNone(sales_order)
+
+		# Expect correct payment method title on Sales Order
+		self.assertEqual(sales_order.woocommerce_payment_method, "Doge")
 
 	def test_sync_create_new_sales_order_and_pe_when_synchronising_with_woocommerce(self):
 		"""

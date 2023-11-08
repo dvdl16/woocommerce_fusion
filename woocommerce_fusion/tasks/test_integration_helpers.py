@@ -57,7 +57,9 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		row.payment_method_gl_account_mapping = json.dumps({"bacs": gl_account.name})
 		woocommerce_additional_settings.save()
 
-	def post_woocommerce_order(self, set_paid: bool = False) -> int:
+	def post_woocommerce_order(
+		self, set_paid: bool = False, payment_method_title: str = "Direct Bank Transfer"
+	) -> int:
 		"""
 		Create a dummy order on a WooCommerce testing site
 		"""
@@ -77,7 +79,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		payload = json.dumps(
 			{
 				"payment_method": "bacs",
-				"payment_method_title": "Direct Bank Transfer",
+				"payment_method_title": payment_method_title,
 				"set_paid": set_paid,
 				"billing": {
 					"first_name": "John",

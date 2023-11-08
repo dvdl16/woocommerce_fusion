@@ -93,7 +93,8 @@ doctype_list_js = {"Sales Order": "public/js/selling/sales_order_list.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings"
+	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings",
+	"Sales Order": "woocommerce_fusion.overrides.selling.sales_order.CustomSalesOrder",
 }
 
 # Document Events
@@ -137,9 +138,9 @@ scheduler_events = {
 	# 		"woocommerce_fusion.tasks.daily"
 	# 	],
 	"hourly": ["woocommerce_fusion.tasks.sync.sync_sales_orders"],
-	# 	"weekly": [
-	# 		"woocommerce_fusion.tasks.weekly"
-	# 	],
+	"weekly": [
+		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background"
+	],
 	# 	"monthly": [
 	# 		"woocommerce_fusion.tasks.monthly"
 	# 	],
@@ -226,6 +227,7 @@ fixtures = [
 					"Customer-woocommerce_site",
 					"Sales Order-woocommerce_site",
 					"Sales Order-woocommerce_status",
+					"Sales Order-woocommerce_payment_method",
 					"Sales Order-woocommerce_shipment_tracking_html",
 					"Sales Order-woocommerce_payment_entry",
 					"Item-woocommerce_site",

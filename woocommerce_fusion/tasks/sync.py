@@ -144,6 +144,10 @@ def update_sales_order(woocommerce_order, sales_order_name):
 		sales_order.woocommerce_status = wc_order_status
 		sales_order.save()
 
+	# Update the payment_method_title field if necessary
+	if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
+		sales_order.woocommerce_payment_method = wc_order.payment_method_title
+
 	if not sales_order.woocommerce_payment_entry:
 		create_and_link_payment_entry(woocommerce_order, sales_order_name)
 
@@ -266,6 +270,8 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				row.total_amount = sales_order.grand_total
 				row.allocated_amount = sales_order.grand_total
 				payment_entry.save()
+
+				payment_entry.add_comment("Comment", frappe._("WC Order Metadata: {0}").format(str(meta_data)))
 
 				# Link created Payment Entry to Sales Order
 				sales_order.woocommerce_payment_entry = payment_entry.name

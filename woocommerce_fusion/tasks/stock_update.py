@@ -19,6 +19,34 @@ def update_stock_levels_for_woocommerce_item(doc, method):
 				)
 
 
+def update_stock_levels_for_all_enabled_items_in_background():
+	"""
+	Get all enabled ERPNext Items and post stock updates to WooCommerce
+	"""
+	erpnext_items = []
+	current_page_length = 500
+	start = 0
+
+	# Get all items, 500 records at a time
+	while current_page_length == 500:
+		items = frappe.db.get_all(
+			doctype="Item",
+			filters={"disabled": 0},
+			fields=["name"],
+			start=start,
+			page_length=500,
+		)
+		erpnext_items.extend(items)
+		current_page_length = len(items)
+		start += current_page_length
+
+	for item in erpnext_items:
+		frappe.enqueue(
+			"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
+			item_code=item.name,
+		)
+
+
 @frappe.whitelist()
 def update_stock_levels_on_woocommerce_site(item_code):
 	"""

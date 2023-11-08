@@ -12,7 +12,7 @@ def before_tests():
 		current_year = now_datetime().year
 		setup_complete(
 			{
-				"currency": "ZAR",
+				"currency": "INR",
 				"full_name": "Test User",
 				"company_name": "Some Company (Pty) Ltd",
 				"timezone": "Africa/Johannesburg",

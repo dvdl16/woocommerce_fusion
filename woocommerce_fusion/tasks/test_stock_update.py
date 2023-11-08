@@ -1,18 +1,22 @@
 from unittest.mock import MagicMock, Mock, call, patch
 
 import frappe
+from frappe import _dict
 from frappe.tests.utils import FrappeTestCase
 
-from woocommerce_fusion.tasks.stock_update import update_stock_levels_on_woocommerce_site
+from woocommerce_fusion.tasks.stock_update import (
+	update_stock_levels_for_all_enabled_items_in_background,
+	update_stock_levels_on_woocommerce_site,
+)
 
 
-@patch("woocommerce_fusion.tasks.stock_update.frappe")
-@patch("woocommerce_fusion.tasks.stock_update.API", autospec=True)
 class TestWooCommerceStockSync(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
+	@patch("woocommerce_fusion.tasks.stock_update.frappe")
+	@patch("woocommerce_fusion.tasks.stock_update.API", autospec=True)
 	def test_update_stock_levels_on_woocommerce_site(self, mock_wc_api, mock_frappe):
 		# Set up a dummy item set to sync to two different WC sites
 		some_item = frappe._dict(
@@ -60,3 +64,35 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		expected_put_data = [expected_data for x in range(2)]
 		self.assertEqual(actual_put_endpoints, expected_put_endpoints)
 		self.assertEqual(actual_put_data, expected_put_data)
+
+	@patch("woocommerce_fusion.tasks.stock_update.frappe.db.get_all")
+	@patch("woocommerce_fusion.tasks.stock_update.frappe.enqueue")
+	def test_update_stock_levels_for_all_enabled_items_in_background(
+		self, mock_enqueue, mock_get_all
+	):
+		# Set up mock return values
+		mock_get_all.side_effect = [
+			[_dict({"name": f"Item-1-{x}"}) for x in range(500)],  # First page of results
+			[_dict({"name": f"Item-2-{x}"}) for x in range(500)],  # Second page of results
+			[],  # No more results, loop should exit
+		]
+
+		# Call the function
+		update_stock_levels_for_all_enabled_items_in_background()
+
+		# Assertions to check if get_all was called correctly
+		self.assertEqual(mock_get_all.call_count, 3)
+		expected_calls = [
+			call(doctype="Item", filters={"disabled": 0}, fields=["name"], start=0, page_length=500),
+			call(doctype="Item", filters={"disabled": 0}, fields=["name"], start=500, page_length=500),
+			call(doctype="Item", filters={"disabled": 0}, fields=["name"], start=1000, page_length=500),
+		]
+		mock_get_all.assert_has_calls(expected_calls, any_order=True)
+
+		# Assertions to check if enqueue was called correctly
+		# This assumes we have 1000 items, based on the pagination logic above.
+		self.assertEqual(mock_enqueue.call_count, 1000)
+		mock_enqueue.assert_called_with(
+			"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
+			item_code="Item-2-499",  # Here we'd check for the last `item_code` being passed.
+		)
