@@ -137,9 +137,9 @@ scheduler_events = {
 	# 		"woocommerce_fusion.tasks.daily"
 	# 	],
 	"hourly": ["woocommerce_fusion.tasks.sync.sync_sales_orders"],
-	# 	"weekly": [
-	# 		"woocommerce_fusion.tasks.weekly"
-	# 	],
+	"weekly": [
+		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background"
+	],
 	# 	"monthly": [
 	# 		"woocommerce_fusion.tasks.monthly"
 	# 	],
