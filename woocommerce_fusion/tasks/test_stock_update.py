@@ -21,8 +21,8 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		# Set up a dummy item set to sync to two different WC sites
 		some_item = frappe._dict(
 			woocommerce_servers=[
-				frappe._dict(woocommerce_id=1, woocommerce_site="woo1.example.com"),
-				frappe._dict(woocommerce_id=2, woocommerce_site="woo2.example.com"),
+				frappe._dict(woocommerce_id=1, woocommerce_server="woo1.example.com"),
+				frappe._dict(woocommerce_id=2, woocommerce_server="woo2.example.com"),
 			]
 		)
 		mock_frappe.get_doc.return_value = some_item
@@ -37,8 +37,8 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		# Set up a dummy settings doc with two different WC servers
 		wc_additional_settings = frappe._dict(
 			servers=[
-				frappe._dict(woocommerce_server_url="https://woo1.example.com/", enable_sync=1),
-				frappe._dict(woocommerce_server_url="https://woo2.example.com/", enable_sync=1),
+				frappe._dict(woocommerce_server="woo1.example.com", enable_sync=1),
+				frappe._dict(woocommerce_server="woo2.example.com", enable_sync=1),
 			]
 		)
 		mock_frappe.get_single.return_value = wc_additional_settings

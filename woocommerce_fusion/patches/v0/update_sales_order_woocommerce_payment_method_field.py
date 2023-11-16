@@ -21,13 +21,13 @@ def execute():
 	# Get the Sales Orders
 	sales_orders = frappe.db.get_all(
 		"Sales Order",
-		fields=["name", "woocommerce_site", "woocommerce_id", "woocommerce_payment_method"],
+		fields=["name", "woocommerce_server", "woocommerce_id", "woocommerce_payment_method"],
 		order_by="name",
 	)
 
 	s = 0
 	for so in sales_orders:
-		if so.woocommerce_site and so.woocommerce_id and not so.woocommerce_payment_method:
+		if so.woocommerce_server and so.woocommerce_id and not so.woocommerce_payment_method:
 			try:
 				# Get the Sales Order doc
 				sales_order = frappe.get_doc("Sales Order", so.name)
@@ -37,7 +37,7 @@ def execute():
 					{
 						"doctype": "WooCommerce Order",
 						"name": generate_woocommerce_order_name_from_domain_and_id(
-							so.woocommerce_site, so.woocommerce_id
+							so.woocommerce_server, so.woocommerce_id
 						),
 					}
 				)

@@ -50,15 +50,15 @@ def sync_sales_orders(
 		"Sales Order",
 		filters={
 			"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
-			"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
+			"woocommerce_server": ["in", [order["woocommerce_server"] for order in wc_order_list]],
 			"docstatus": 1,
 		},
-		fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
+		fields=["name", "woocommerce_id", "woocommerce_server", "modified"],
 	)
 
 	# Create a dictionary for quick access
 	sales_orders_dict = {
-		generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_site, so.woocommerce_id): so
+		generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_server, so.woocommerce_id): so
 		for so in sales_orders
 	}
 
@@ -90,7 +90,7 @@ def get_list_of_wc_orders_from_sales_order(sales_order_name):
 	"""
 	sales_order = frappe.get_doc("Sales Order", sales_order_name)
 	wc_order_name = generate_woocommerce_order_name_from_domain_and_id(
-		domain=sales_order.woocommerce_site,
+		domain=sales_order.woocommerce_server,
 		order_id=sales_order.woocommerce_id,
 	)
 	wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
@@ -211,12 +211,12 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 			(
 				server
 				for server in woocommerce_additional_settings.servers
-				if sales_order.woocommerce_site in server.woocommerce_server_url
+				if sales_order.woocommerce_server in server.woocommerce_server_url
 			),
 			None,
 		)
 		if not wc_server:
-			raise ValueError("Could not find woocommerce_site in list of servers")
+			raise ValueError("Could not find woocommerce_server in list of servers")
 
 		# Validate that WooCommerce order has been paid, and that sales order doesn't have a linked Payment Entry yet
 		if (

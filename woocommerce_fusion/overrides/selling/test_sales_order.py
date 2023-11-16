@@ -28,7 +28,7 @@ class TestCustomSalesOrder(FrappeTestCase):
 		mock_get_woocommerce_order.return_value = woocommerce_order
 
 		sales_order = frappe._dict(
-			doctype="Sales Order", woocommerce_site="site1.example.com", woocommerce_id="1"
+			doctype="Sales Order", woocommerce_server="site1.example.com", woocommerce_id="1"
 		)
 		doc = json.dumps(sales_order)
 		result = get_woocommerce_order_shipment_trackings(doc)
@@ -53,7 +53,7 @@ class TestCustomSalesOrder(FrappeTestCase):
 		new_shipment_trackings = [{"foo": "baz"}]
 
 		sales_order = frappe._dict(
-			doctype="Sales Order", woocommerce_site="site1.example.com", woocommerce_id="1"
+			doctype="Sales Order", woocommerce_server="site1.example.com", woocommerce_id="1"
 		)
 		doc = json.dumps(sales_order)
 		update_woocommerce_order_shipment_trackings(doc, new_shipment_trackings)
@@ -89,19 +89,32 @@ class TestCustomSalesOrder(FrappeTestCase):
 		mock_frappe.get_single.return_value = frappe._dict(
 			{"servers": [frappe._dict({"idx": 1, "woocommerce_server_url": "somesite"})]}
 		)
-		sales_order = create_so(woocommerce_id="123", woocommerce_site="somesite")
+		sales_order = create_so(woocommerce_id="123", woocommerce_server_url="somesite")
 
 		# Expect WEB[x]-[yyyyyy] where x = 1 because it's the first row in the servers list, and yyy = 000123 because the woocommerce id = 123
 		self.assertEqual(sales_order.name, "WEB1-000123")
 
 
-def create_so(woocommerce_id: str = None, woocommerce_site: str = None):
+def create_so(woocommerce_id: str = None, woocommerce_server_url: str = None):
 	so = frappe.new_doc("Sales Order")
+
+	if woocommerce_server_url:
+		wc_server = frappe.get_doc(
+			{
+				"doctype": "WooCommerce Server",
+				"woocommerce_server_url": woocommerce_server_url,
+			}
+		)
+		if not wc_server:
+			wc_server = frappe.new_doc("WooCommerce Server")
+			wc_server.woocommerce_server_url = woocommerce_server_url
+			wc_server.save()
+		so.woocommerce_server = wc_server.name
+
 	so.customer = "_Test Customer"
 	so.company = "_Test Company"
 	so.transaction_date = date.today()
 	so.woocommerce_id = woocommerce_id
-	so.woocommerce_site = woocommerce_site
 
 	so.set_warehouse = "Finished Goods - _TC"
 	so.append(

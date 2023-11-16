@@ -112,7 +112,7 @@ class WooCommerceOrder(Document):
 
 		# Define woocommerce_server_url
 		server_domain = parse_domain_from_url(self.current_wc_api.woocommerce_server_url)
-		order["woocommerce_site"] = server_domain
+		order["woocommerce_server"] = server_domain
 
 		# Make sure that all JSON fields are dumped as JSON when returned from the WooCommerce API
 		order_with_serialized_subdata = self.serialize_attributes_of_type_dict_or_list(order)
@@ -333,7 +333,7 @@ class WooCommerceOrder(Document):
 						order["name"] = generate_woocommerce_order_name_from_domain_and_id(
 							domain=server_domain, order_id=order["id"]
 						)
-						order["woocommerce_site"] = server_domain
+						order["woocommerce_server"] = server_domain
 
 					all_results.extend(results[start:end])
 					total_processed += len(results)

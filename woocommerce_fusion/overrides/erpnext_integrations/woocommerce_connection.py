@@ -106,7 +106,7 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 		error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(order.as_dict())}"
 		frappe.log_error("WooCommerce Error", error_message)
 		raise
-	new_sales_order.woocommerce_site = site_domain
+	new_sales_order.woocommerce_server = site_domain
 	try:
 		new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[order.get("status")]
 	except KeyError:
@@ -226,7 +226,7 @@ def custom_link_items(items_list, woocommerce_settings, sys_lang, woocommerce_si
 
 		item_codes = frappe.db.get_all(
 			"Item WooCommerce Server",
-			filters={"woocommerce_id": item_woo_com_id, "woocommerce_site": woocommerce_site},
+			filters={"woocommerce_id": item_woo_com_id, "woocommerce_server": woocommerce_site},
 			fields=["parent"],
 		)
 		found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
@@ -247,7 +247,7 @@ def custom_link_items(items_list, woocommerce_settings, sys_lang, woocommerce_si
 			# item.woocommerce_id = item_woo_com_id
 			row = item.append("woocommerce_servers")
 			row.woocommerce_id = item_woo_com_id
-			row.woocommerce_site = woocommerce_site
+			row.woocommerce_server = woocommerce_site
 			# ==================================== Custom code ends here ==================================== #
 			item.flags.ignore_mandatory = True
 			item.save()
@@ -273,7 +273,7 @@ def custom_set_items_in_sales_order(new_sales_order, woocommerce_settings, order
 			"Item WooCommerce Server",
 			filters={
 				"woocommerce_id": cstr(woocomm_item_id),
-				"woocommerce_site": new_sales_order.woocommerce_site,
+				"woocommerce_server": new_sales_order.woocommerce_server,
 			},
 			fields=["parent"],
 		)
