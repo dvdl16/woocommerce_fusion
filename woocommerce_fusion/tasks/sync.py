@@ -237,18 +237,20 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				# Create a new Payment Entry
 				company = frappe.get_value("Account", company_gl_account, "company")
 				meta_data = wc_order.get("meta_data", None)
-				payment_reference_no = (
-					next(
-						(
-							data["value"]
-							for data in meta_data
-							if data["key"] in ("_yoco_payment_id", "_transaction_id")
-						),
-						None,
+
+				# Attempt to get Payfast Transaction ID
+				payment_reference_no = wc_order.get("transaction_id", None)
+
+				# Attempt to get Yoco Transaction ID
+				if not payment_reference_no:
+					payment_reference_no = (
+						next(
+							(data["value"] for data in meta_data if data["key"] == "yoco_order_payment_id"),
+							None,
+						)
+						if meta_data and type(meta_data) is list
+						else None
 					)
-					if meta_data and type(meta_data) is list
-					else None
-				)
 				payment_entry_dict = {
 					"company": company,
 					"payment_type": "Receive",
@@ -271,7 +273,9 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				row.allocated_amount = sales_order.grand_total
 				payment_entry.save()
 
-				payment_entry.add_comment("Comment", frappe._("WC Order Metadata: {0}").format(str(meta_data)))
+				payment_entry.add_comment(
+					"Comment", frappe._("WC Order Metadata: ```\n{0}\n```").format(str(meta_data))
+				)
 
 				# Link created Payment Entry to Sales Order
 				sales_order.woocommerce_payment_entry = payment_entry.name
