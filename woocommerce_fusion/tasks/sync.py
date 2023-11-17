@@ -259,8 +259,8 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 					"party_type": "Customer",
 					"party": sales_order.customer,
 					"posting_date": wc_order["date_paid"],
-					"paid_amount": sales_order.grand_total,
-					"received_amount": sales_order.grand_total,
+					"paid_amount": wc_order["total"],
+					"received_amount": wc_order["total"],
 					"bank_account": company_bank_account,
 					"paid_to": company_gl_account,
 				}

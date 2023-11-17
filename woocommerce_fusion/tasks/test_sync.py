@@ -149,6 +149,7 @@ class TestWooCommerceSync(FrappeTestCase):
 			"date_paid": "2023-01-01",
 			"name": "wc_order_1",
 			"payment_method_title": "PayPal",
+			"total": 100,
 		}
 		sales_order_name = "SO-0001"
 
