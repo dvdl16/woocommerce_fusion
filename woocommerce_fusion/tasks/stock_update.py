@@ -69,13 +69,13 @@ def update_stock_levels_on_woocommerce_site(item_code):
 
 		for wc_site in item.woocommerce_servers:
 			woocommerce_id = wc_site.woocommerce_id
-			woocommerce_site = wc_site.woocommerce_site
+			woocommerce_server = wc_site.woocommerce_server
 
 			wc_server = next(
 				(
 					server
 					for server in wc_additional_settings.servers
-					if woocommerce_site in server.woocommerce_server_url and server.enable_sync
+					if woocommerce_server == server.woocommerce_server and server.enable_sync
 				),
 				None,
 			)

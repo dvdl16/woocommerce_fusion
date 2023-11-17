@@ -6,6 +6,8 @@ from erpnext import get_default_company
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_to_date, now
 
+from woocommerce_fusion.tasks.test_sync import get_woocommerce_server
+
 default_company = get_default_company()
 default_bank = "Test Bank"
 default_bank_account = "Checking Account"
@@ -47,6 +49,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		woocommerce_additional_settings.servers = []
 		row = woocommerce_additional_settings.append("servers")
 		row.enable_sync = 1
+		row.woocommerce_server = get_woocommerce_server(self.wc_url).name
 		row.woocommerce_server_url = self.wc_url
 		row.api_consumer_key = self.wc_consumer_key
 		row.api_consumer_secret = self.wc_consumer_secret

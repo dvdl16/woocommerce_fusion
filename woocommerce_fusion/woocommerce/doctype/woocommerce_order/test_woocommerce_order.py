@@ -204,7 +204,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Check that all order fields are valid
 					for key, value in mocked_super_call.call_args.args[0].items():
 						# Test that Lists and Dicts are in JSON format, except for meta fieds
-						meta_data_fields = ["modified", "woocommerce_site"]
+						meta_data_fields = ["modified", "woocommerce_server"]
 						if key not in meta_data_fields:
 							if isinstance(dummy_wc_order[key], dict) or isinstance(dummy_wc_order[key], list):
 								self.assertEqual(json.loads(value), dummy_wc_order[key])

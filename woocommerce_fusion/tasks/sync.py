@@ -50,15 +50,15 @@ def sync_sales_orders(
 		"Sales Order",
 		filters={
 			"woocommerce_id": ["in", [order["id"] for order in wc_order_list]],
-			"woocommerce_site": ["in", [order["woocommerce_site"] for order in wc_order_list]],
+			"woocommerce_server": ["in", [order["woocommerce_server"] for order in wc_order_list]],
 			"docstatus": 1,
 		},
-		fields=["name", "woocommerce_id", "woocommerce_site", "modified"],
+		fields=["name", "woocommerce_id", "woocommerce_server", "modified"],
 	)
 
 	# Create a dictionary for quick access
 	sales_orders_dict = {
-		generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_site, so.woocommerce_id): so
+		generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_server, so.woocommerce_id): so
 		for so in sales_orders
 	}
 
@@ -90,7 +90,7 @@ def get_list_of_wc_orders_from_sales_order(sales_order_name):
 	"""
 	sales_order = frappe.get_doc("Sales Order", sales_order_name)
 	wc_order_name = generate_woocommerce_order_name_from_domain_and_id(
-		domain=sales_order.woocommerce_site,
+		domain=sales_order.woocommerce_server,
 		order_id=sales_order.woocommerce_id,
 	)
 	wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
@@ -211,12 +211,12 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 			(
 				server
 				for server in woocommerce_additional_settings.servers
-				if sales_order.woocommerce_site in server.woocommerce_server_url
+				if sales_order.woocommerce_server in server.woocommerce_server_url
 			),
 			None,
 		)
 		if not wc_server:
-			raise ValueError("Could not find woocommerce_site in list of servers")
+			raise ValueError("Could not find woocommerce_server in list of servers")
 
 		# Validate that WooCommerce order has been paid, and that sales order doesn't have a linked Payment Entry yet
 		if (
@@ -237,18 +237,20 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				# Create a new Payment Entry
 				company = frappe.get_value("Account", company_gl_account, "company")
 				meta_data = wc_order.get("meta_data", None)
-				payment_reference_no = (
-					next(
-						(
-							data["value"]
-							for data in meta_data
-							if data["key"] in ("_yoco_payment_id", "_transaction_id")
-						),
-						None,
+
+				# Attempt to get Payfast Transaction ID
+				payment_reference_no = wc_order.get("transaction_id", None)
+
+				# Attempt to get Yoco Transaction ID
+				if not payment_reference_no:
+					payment_reference_no = (
+						next(
+							(data["value"] for data in meta_data if data["key"] == "yoco_order_payment_id"),
+							None,
+						)
+						if meta_data and type(meta_data) is list
+						else None
 					)
-					if meta_data and type(meta_data) is list
-					else None
-				)
 				payment_entry_dict = {
 					"company": company,
 					"payment_type": "Receive",
@@ -257,8 +259,8 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 					"party_type": "Customer",
 					"party": sales_order.customer,
 					"posting_date": wc_order["date_paid"],
-					"paid_amount": sales_order.grand_total,
-					"received_amount": sales_order.grand_total,
+					"paid_amount": wc_order["total"],
+					"received_amount": wc_order["total"],
 					"bank_account": company_bank_account,
 					"paid_to": company_gl_account,
 				}
@@ -270,8 +272,6 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				row.total_amount = sales_order.grand_total
 				row.allocated_amount = sales_order.grand_total
 				payment_entry.save()
-
-				payment_entry.add_comment("Comment", frappe._("WC Order Metadata: {0}").format(str(meta_data)))
 
 				# Link created Payment Entry to Sales Order
 				sales_order.woocommerce_payment_entry = payment_entry.name

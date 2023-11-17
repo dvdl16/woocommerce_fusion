@@ -17,9 +17,10 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 			create_custom_fields(
 				{
 					("Customer", "Sales Order", "Item", "Address"): dict(
-						fieldname="woocommerce_site",
-						label="Woocommerce Site",
-						fieldtype="Data",
+						fieldname="woocommerce_server",
+						label="Woocommerce Server",
+						fieldtype="Link",
+						options="WooCommerce Server",
 						read_only=1,
 						print_hide=1,
 					),
@@ -29,7 +30,7 @@ class CustomWoocommerceSettings(WoocommerceSettings):
 						fieldtype="Select",
 						options="\nPending Payment\nOn hold\nFailed\nCancelled"
 						"\nProcessing\nRefunded\nShipped\nReady for Pickup"
-						"\nPicked up\nDelivered\nProcessing LP\nDraft\nQuote Sent\n",
+						"\nPicked up\nDelivered\nProcessing LP\nDraft\nQuote Sent\nTrash\n",
 						allow_on_submit=1,
 					),
 					("Item"): dict(

@@ -35,23 +35,23 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_frappe.get_doc.return_value = Mock()
 		mock_frappe.get_single.return_value = Mock()
 
-		woocommerce_site = "site1.example.com"
+		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
 
 		# Create dummy Sales Order
 		sales_order = frappe.get_doc({"doctype": "Sales Order"})
 		sales_order.name = "SO-0001"
-		sales_order.woocommerce_site = woocommerce_site
+		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-01-01"
 		mock_frappe.get_all.return_value = [sales_order]
 
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
-		wc_order.woocommerce_site = woocommerce_site
+		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
 		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
-			woocommerce_site, woocommerce_id
+			woocommerce_server, woocommerce_id
 		)
 		wc_order.modified = "2023-12-31"
 		mock_get_wc_orders.return_value = [wc_order.__dict__]
@@ -75,23 +75,23 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_frappe.get_doc.return_value = Mock()
 		mock_frappe.get_single.return_value = Mock()
 
-		woocommerce_site = "site1.example.com"
+		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
 
 		# Create dummy Sales Order
 		sales_order = frappe.get_doc({"doctype": "Sales Order"})
 		sales_order.name = "SO-0001"
-		sales_order.woocommerce_site = woocommerce_site
+		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-12-25"
 		mock_frappe.get_all.return_value = [sales_order]
 
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
-		wc_order.woocommerce_site = woocommerce_site
+		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
 		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
-			woocommerce_site, woocommerce_id
+			woocommerce_server, woocommerce_id
 		)
 		wc_order.modified = "2023-01-01"
 		mock_get_wc_orders.return_value = [wc_order.__dict__]
@@ -115,22 +115,22 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_frappe.get_doc.return_value = Mock()
 		mock_frappe.get_single.return_value = Mock()
 
-		woocommerce_site = "site1.example.com"
+		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
 
 		# Create dummy Sales Order
 		sales_order = frappe.get_doc({"doctype": "Sales Order"})
 		sales_order.name = "SO-0001"
-		sales_order.woocommerce_site = woocommerce_site
+		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = 2
 		mock_frappe.get_all.return_value = [sales_order]
 
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
-		wc_order.woocommerce_site = woocommerce_site
+		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
 		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
-			woocommerce_site, woocommerce_id
+			woocommerce_server, woocommerce_id
 		)
 		mock_get_wc_orders.return_value = [wc_order.__dict__]
 
@@ -149,11 +149,12 @@ class TestWooCommerceSync(FrappeTestCase):
 			"date_paid": "2023-01-01",
 			"name": "wc_order_1",
 			"payment_method_title": "PayPal",
+			"total": 100,
 		}
 		sales_order_name = "SO-0001"
 
 		mock_sales_order = MagicMock()
-		mock_sales_order.woocommerce_site = "example.com"
+		mock_sales_order.woocommerce_server = "example.com"
 		mock_sales_order.woocommerce_payment_entry = None
 		mock_sales_order.customer = "customer_1"
 		mock_sales_order.grand_total = 100
@@ -193,7 +194,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		sales_order_name = "SO-0001"
 
 		mock_sales_order = MagicMock()
-		mock_sales_order.woocommerce_site = "example.com"
+		mock_sales_order.woocommerce_server = "example.com"
 		mock_sales_order.woocommerce_payment_entry = None
 		mock_sales_order.customer = "customer_1"
 		mock_sales_order.grand_total = 100
@@ -281,3 +282,15 @@ def create_gl_account_for_bank(account_name="_Test Bank"):
 		pass
 
 	return frappe.get_doc("Account", {"account_name": account_name})
+
+
+def get_woocommerce_server(woocommerce_server_url: str):
+	wc_servers = frappe.get_all(
+		"WooCommerce Server", filters={"woocommerce_server_url": woocommerce_server_url}
+	)
+	wc_server = wc_servers[0] if len(wc_servers) > 0 else None
+	if not wc_server:
+		wc_server = frappe.new_doc("WooCommerce Server")
+		wc_server.woocommerce_server_url = woocommerce_server_url
+		wc_server.save()
+	return wc_server

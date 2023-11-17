@@ -102,7 +102,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "pending\nprocessing\non-hold\ncompleted\ncancelled\nrefunded\nfailed\ntrash"
+   "options": "pending\non-hold\nfailed\ncancelled\nprocessing\nrefunded\ncompleted\nready-pickup\npickup\ndelivered\nprocessing-lp\ncheckout-draft\ngplsquote-req\ntrash"
   },
   {
    "description": "Currency the order was created with, in ISO format.",
@@ -369,7 +369,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2023-10-19 17:06:43.305797",
+ "modified": "2023-11-17 10:35:57.557749",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Order",
