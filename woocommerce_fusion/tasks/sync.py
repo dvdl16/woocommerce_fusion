@@ -273,10 +273,6 @@ def create_and_link_payment_entry(wc_order, sales_order_name):
 				row.allocated_amount = sales_order.grand_total
 				payment_entry.save()
 
-				payment_entry.add_comment(
-					"Comment", frappe._("WC Order Metadata: ```\n{0}\n```").format(str(meta_data))
-				)
-
 				# Link created Payment Entry to Sales Order
 				sales_order.woocommerce_payment_entry = payment_entry.name
 				sales_order.save()
