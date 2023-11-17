@@ -27,15 +27,23 @@ def execute():
 	woocommerce_additional_settings.save()
 
 	# Update Customers
+	# simple sql query, run once in a patch, no need for using frappe.qb
+	# nosemgrep
 	frappe.db.sql("""UPDATE `tabCustomer` SET woocommerce_server=woocommerce_site""")
 
 	# Update Sales Orders
+	# simple sql query, run once in a patch, no need for using frappe.qb
+	# nosemgrep
 	frappe.db.sql("""UPDATE `tabSales Order` SET woocommerce_server=woocommerce_site""")
 
 	# Update Addresses
+	# simple sql query, run once in a patch, no need for using frappe.qb
+	# nosemgrep
 	frappe.db.sql("""UPDATE `tabAddress` SET woocommerce_server=woocommerce_site""")
 
 	# Update Items
+	# simple sql query, run once in a patch, no need for using frappe.qb
+	# nosemgrep
 	frappe.db.sql("""UPDATE `tabItem WooCommerce Server` SET woocommerce_server=woocommerce_site""")
 
 	frappe.db.commit()
