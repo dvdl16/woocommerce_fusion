@@ -6,7 +6,7 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "woocommerce_site",
+  "woocommerce_server",
   "id",
   "parent_id",
   "number",
@@ -359,9 +359,10 @@
    "read_only": 1
   },
   {
-   "fieldname": "woocommerce_site",
-   "fieldtype": "Data",
-   "label": "Woocommerce Site",
+   "fieldname": "woocommerce_server",
+   "fieldtype": "Link",
+   "label": "Woocommerce Server",
+   "options": "WooCommerce Server",
    "read_only": 1,
    "reqd": 1
   }
@@ -369,7 +370,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2023-11-17 10:35:57.557749",
+ "modified": "2023-11-20 10:59:36.925369",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Order",
