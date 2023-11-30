@@ -8,7 +8,7 @@ frappe.ui.form.on('Sales Order', {
 		}
 
 		// Add a table with Shipment Trackings
-		if (frm.doc.woocommerce_id && frm.doc.woocommerce_site){			
+		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server){			
 			frappe.call({
 				method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
 				args: {
@@ -90,7 +90,7 @@ frappe.ui.form.on('Sales Order', {
 				"woocommerce_fusion.woocommerce.doctype.woocommerce_additional_settings"+
 				".woocommerce_additional_settings.get_woocommerce_shipment_providers",
 			args: {
-				woocommerce_server_domain: frm.doc.woocommerce_site
+				woocommerce_server_domain: frm.doc.woocommerce_server
 			},
 			callback: function(r) {
 				const trackingProviders = r.message;

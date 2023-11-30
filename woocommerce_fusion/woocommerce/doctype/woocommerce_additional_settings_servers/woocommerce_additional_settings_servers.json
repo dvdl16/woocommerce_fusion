@@ -35,7 +35,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fetch_from": "woocommerce_site.woocommerce_server_url",
+   "fetch_from": "woocommerce_server.woocommerce_server_url",
    "fieldname": "woocommerce_server_url",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -115,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-11-15 08:07:52.575430",
+ "modified": "2023-11-30 13:25:06.212058",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings Servers",
