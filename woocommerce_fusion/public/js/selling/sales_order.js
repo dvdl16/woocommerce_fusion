@@ -106,7 +106,7 @@ frappe.ui.form.on('Sales Order', {
 							'fieldtype': 'Data',
 							'label': 'Tracking ID',
 							'read_only': 1,
-							'default': shipment_trackings[0].tracking_id
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].tracking_id : null
 						},
 						{
 							'fieldname': 'tracking_provider',
@@ -114,30 +114,30 @@ frappe.ui.form.on('Sales Order', {
 							'label': 'Tracking Provider',
 							'reqd': 1,
 							'options': trackingProviders,
-							'default': shipment_trackings[0].tracking_provider
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].tracking_provider : null
 						},
 						{
 							'fieldname': 'tracking_number',
 							'fieldtype': 'Data',
 							'label': 'Tracking Number',
 							'reqd': 1,
-							'default': shipment_trackings[0].tracking_number
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].tracking_number : null
 						},
 						{
 							'fieldname': 'tracking_link',
 							'fieldtype': 'Data',
 							'label': 'Tracking Link',
 							'read_only': 1,
-							'default': shipment_trackings[0].tracking_link
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].tracking_link : null
 						},
 						{
 							'fieldname': 'date_shipped',
 							'fieldtype': 'Date',
 							'label': 'Date Shipped',
 							'reqd': 1,
-							'default': convert_ship_date_format_to_site_format(
+							'default': shipment_trackings.length > 0 ? convert_ship_date_format_to_site_format(
 								shipment_trackings[0].date_shipped
-							)
+							) : null
 						},
 					],
 					primary_action: function(){
