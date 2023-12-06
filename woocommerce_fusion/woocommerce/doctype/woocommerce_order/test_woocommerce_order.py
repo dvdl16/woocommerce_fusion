@@ -10,7 +10,9 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
+	API,
 	WC_ORDER_DELIMITER,
+	APIWithRequestLogging,
 	WooCommerceAPI,
 	WooCommerceOrder,
 	generate_woocommerce_order_name_from_domain_and_id,
@@ -596,3 +598,38 @@ dummy_wc_order = {
 	"transaction_id": "",
 	"version": "7.7.0",
 }
+
+
+class TestAPIWithRequestLogging(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()  # important to call super() methods when extending TestCase.
+
+	def setUp(self):
+		self.api = APIWithRequestLogging(url="foo", consumer_key="bar", consumer_secret="baz")
+
+	@patch(
+		"woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order.frappe.enqueue"
+	)
+	def test_request_success(self, mock_enqueue):
+		# Mock the parent class's _API__request method
+		with patch.object(API, "_API__request", return_value="success_response") as mock_super:
+			# Make a request
+			response = self.api._API__request("GET", "test_endpoint", {"key": "value"})
+
+			# Verify the parent method was called correctly
+			mock_super.assert_called_once_with("GET", "test_endpoint", {"key": "value"}, None)
+
+			# Verify logging was enqueued
+			mock_enqueue.assert_called_once_with(
+				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
+				url=self.api.url,
+				endpoint="test_endpoint",
+				request_method="GET",
+				params=None,
+				data={"key": "value"},
+				res="success_response",
+			)
+
+			# Verify the response is correct
+			self.assertEqual(response, "success_response")

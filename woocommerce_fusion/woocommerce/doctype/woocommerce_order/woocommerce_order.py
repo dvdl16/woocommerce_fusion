@@ -32,11 +32,41 @@ WC_ORDER_STATUS_MAPPING = {
 WC_ORDER_STATUS_MAPPING_REVERSE = {v: k for k, v in WC_ORDER_STATUS_MAPPING.items()}
 
 
+class APIWithRequestLogging(API):
+	"""WooCommerce API with Request Logging."""
+
+	def _API__request(self, method, endpoint, data, params=None, **kwargs):
+		"""Override _request method to also create a 'WooCommerce Request Log'"""
+		try:
+			result = super()._API__request(method, endpoint, data, params, **kwargs)
+			frappe.enqueue(
+				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
+				url=self.url,
+				endpoint=endpoint,
+				request_method=method,
+				params=params,
+				data=data,
+				res=result,
+			)
+			return result
+		except Exception as e:
+			frappe.enqueue(
+				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
+				url=self.url,
+				endpoint=endpoint,
+				request_method=method,
+				params=params,
+				data=data,
+				res=result,
+			)
+			raise e
+
+
 @dataclass
 class WooCommerceAPI:
 	"""Class for keeping track of a WooCommerce site."""
 
-	api: API
+	api: APIWithRequestLogging
 	woocommerce_server_url: str
 	wc_plugin_advanced_shipment_tracking: bool = False
 
@@ -439,7 +469,7 @@ def _init_api() -> List[WooCommerceAPI]:
 
 	wc_api_list = [
 		WooCommerceAPI(
-			api=API(
+			api=APIWithRequestLogging(
 				url=server.woocommerce_server_url,
 				consumer_key=server.api_consumer_key,
 				consumer_secret=server.api_consumer_secret,

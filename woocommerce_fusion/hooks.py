@@ -172,7 +172,9 @@ override_whitelisted_methods = {
 # Ignore links to specified DocTypes when deleting documents
 # -----------------------------------------------------------
 
-# ignore_links_on_delete = ["Communication", "ToDo"]
+ignore_links_on_delete = [
+	"WooCommerce Request Log",
+]
 
 # Request Events
 # ----------------
