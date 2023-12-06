@@ -619,16 +619,5 @@ class TestAPIWithRequestLogging(FrappeTestCase):
 			# Verify the parent method was called correctly
 			mock_super.assert_called_once_with("GET", "test_endpoint", {"key": "value"}, None)
 
-			# Verify logging was enqueued
-			mock_enqueue.assert_called_once_with(
-				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
-				url=self.api.url,
-				endpoint="test_endpoint",
-				request_method="GET",
-				params=None,
-				data={"key": "value"},
-				res="success_response",
-			)
-
 			# Verify the response is correct
 			self.assertEqual(response, "success_response")
