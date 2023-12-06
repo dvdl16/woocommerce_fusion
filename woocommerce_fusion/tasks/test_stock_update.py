@@ -16,7 +16,7 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
 	@patch("woocommerce_fusion.tasks.stock_update.frappe")
-	@patch("woocommerce_fusion.tasks.stock_update.API", autospec=True)
+	@patch("woocommerce_fusion.tasks.stock_update.APIWithRequestLogging", autospec=True)
 	def test_update_stock_levels_on_woocommerce_site(self, mock_wc_api, mock_frappe):
 		# Set up a dummy item set to sync to two different WC sites
 		some_item = frappe._dict(

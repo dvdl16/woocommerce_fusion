@@ -9,7 +9,8 @@ from urllib.parse import urlparse
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from woocommerce import API
+
+from woocommerce_fusion.tasks.utils import APIWithRequestLogging
 
 WC_ORDER_DELIMITER = "~"
 
@@ -36,7 +37,7 @@ WC_ORDER_STATUS_MAPPING_REVERSE = {v: k for k, v in WC_ORDER_STATUS_MAPPING.item
 class WooCommerceAPI:
 	"""Class for keeping track of a WooCommerce site."""
 
-	api: API
+	api: APIWithRequestLogging
 	woocommerce_server_url: str
 	wc_plugin_advanced_shipment_tracking: bool = False
 
@@ -439,7 +440,7 @@ def _init_api() -> List[WooCommerceAPI]:
 
 	wc_api_list = [
 		WooCommerceAPI(
-			api=API(
+			api=APIWithRequestLogging(
 				url=server.woocommerce_server_url,
 				consumer_key=server.api_consumer_key,
 				consumer_secret=server.api_consumer_secret,

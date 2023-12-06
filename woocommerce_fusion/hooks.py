@@ -134,11 +134,11 @@ scheduler_events = {
 	# 	"all": [
 	# 		"woocommerce_fusion.tasks.all"
 	# 	],
-	# 	"daily": [
+	# 	"weekly": [
 	# 		"woocommerce_fusion.tasks.daily"
 	# 	],
 	"hourly": ["woocommerce_fusion.tasks.sync.sync_sales_orders"],
-	"weekly": [
+	"daily": [
 		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background"
 	],
 	# 	"monthly": [
@@ -172,7 +172,9 @@ override_whitelisted_methods = {
 # Ignore links to specified DocTypes when deleting documents
 # -----------------------------------------------------------
 
-# ignore_links_on_delete = ["Communication", "ToDo"]
+ignore_links_on_delete = [
+	"WooCommerce Request Log",
+]
 
 # Request Events
 # ----------------

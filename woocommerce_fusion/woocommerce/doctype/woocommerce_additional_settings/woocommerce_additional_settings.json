@@ -10,6 +10,7 @@
   "warning_html",
   "servers",
   "wc_last_sync_date",
+  "submit_sales_orders",
   "section_break_nh5tj",
   "minimum_creation_date"
  ],
@@ -44,12 +45,18 @@
    "fieldname": "minimum_creation_date",
    "fieldtype": "Datetime",
    "label": "Minimum Creation Date"
+  },
+  {
+   "default": "1",
+   "fieldname": "submit_sales_orders",
+   "fieldtype": "Check",
+   "label": "Submit Sales Orders during Synchronisation"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2023-10-25 12:28:45.427309",
+ "modified": "2023-12-06 12:25:00.335602",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings",

@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+from woocommerce_fusion.tasks.utils import API, APIWithRequestLogging
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_DELIMITER,
 	WooCommerceAPI,
@@ -596,3 +597,27 @@ dummy_wc_order = {
 	"transaction_id": "",
 	"version": "7.7.0",
 }
+
+
+class TestAPIWithRequestLogging(FrappeTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()  # important to call super() methods when extending TestCase.
+
+	def setUp(self):
+		self.api = APIWithRequestLogging(url="foo", consumer_key="bar", consumer_secret="baz")
+
+	@patch(
+		"woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order.frappe.enqueue"
+	)
+	def test_request_success(self, mock_enqueue):
+		# Mock the parent class's _API__request method
+		with patch.object(API, "_API__request", return_value="success_response") as mock_super:
+			# Make a request
+			response = self.api._API__request("GET", "test_endpoint", {"key": "value"})
+
+			# Verify the parent method was called correctly
+			mock_super.assert_called_once_with("GET", "test_endpoint", {"key": "value"}, None)
+
+			# Verify the response is correct
+			self.assertEqual(response, "success_response")
