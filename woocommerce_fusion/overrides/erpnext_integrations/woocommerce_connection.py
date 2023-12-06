@@ -139,9 +139,14 @@ def custom_create_sales_order(order, woocommerce_settings, customer_docname, sys
 	# new_sales_order.insert()
 	# new_sales_order.submit()
 
+	submit_sales_orders = (
+		frappe.get_single("WooCommerce Additional Settings").submit_sales_orders or 1
+	)
+
 	try:
 		new_sales_order.insert()
-		new_sales_order.submit()
+		if submit_sales_orders:
+			new_sales_order.submit()
 	except Exception:
 		error_message = (
 			f"{frappe.get_traceback()}\n\nSales Order Data: \n{str(new_sales_order.as_dict())})"

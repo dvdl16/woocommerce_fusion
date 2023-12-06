@@ -9,9 +9,8 @@ from urllib.parse import urlparse
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from woocommerce_fusion.tasks.utils import APIWithRequestLogging
+from woocommerce_fusion.tasks.utils import API, APIWithRequestLogging
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	API,
 	WC_ORDER_DELIMITER,
 	WooCommerceAPI,
 	WooCommerceOrder,
