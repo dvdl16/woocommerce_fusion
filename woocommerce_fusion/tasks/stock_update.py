@@ -1,7 +1,8 @@
 import math
 
 import frappe
-from woocommerce import API
+
+from woocommerce_fusion.tasks.utils import APIWithRequestLogging
 
 
 def update_stock_levels_for_woocommerce_item(doc, method):
@@ -83,7 +84,7 @@ def update_stock_levels_on_woocommerce_site(item_code):
 			if not wc_server:
 				continue
 
-			wc_api = API(
+			wc_api = APIWithRequestLogging(
 				url=wc_server.woocommerce_server_url,
 				consumer_key=wc_server.api_consumer_key,
 				consumer_secret=wc_server.api_consumer_secret,

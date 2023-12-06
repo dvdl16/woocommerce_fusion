@@ -9,7 +9,8 @@ from urllib.parse import urlparse
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from woocommerce import API
+
+from woocommerce_fusion.tasks.utils import APIWithRequestLogging
 
 WC_ORDER_DELIMITER = "~"
 
@@ -30,36 +31,6 @@ WC_ORDER_STATUS_MAPPING = {
 	"Trash": "trash",
 }
 WC_ORDER_STATUS_MAPPING_REVERSE = {v: k for k, v in WC_ORDER_STATUS_MAPPING.items()}
-
-
-class APIWithRequestLogging(API):
-	"""WooCommerce API with Request Logging."""
-
-	def _API__request(self, method, endpoint, data, params=None, **kwargs):
-		"""Override _request method to also create a 'WooCommerce Request Log'"""
-		try:
-			result = super()._API__request(method, endpoint, data, params, **kwargs)
-			frappe.enqueue(
-				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
-				url=self.url,
-				endpoint=endpoint,
-				request_method=method,
-				params=params,
-				data=data,
-				res=result,
-			)
-			return result
-		except Exception as e:
-			frappe.enqueue(
-				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
-				url=self.url,
-				endpoint=endpoint,
-				request_method=method,
-				params=params,
-				data=data,
-				res=result,
-			)
-			raise e
 
 
 @dataclass

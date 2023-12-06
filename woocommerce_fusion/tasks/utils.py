@@ -1,5 +1,36 @@
 import frappe
 import requests
+from woocommerce import API
+
+
+class APIWithRequestLogging(API):
+	"""WooCommerce API with Request Logging."""
+
+	def _API__request(self, method, endpoint, data, params=None, **kwargs):
+		"""Override _request method to also create a 'WooCommerce Request Log'"""
+		try:
+			result = super()._API__request(method, endpoint, data, params, **kwargs)
+			frappe.enqueue(
+				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
+				url=self.url,
+				endpoint=endpoint,
+				request_method=method,
+				params=params,
+				data=data,
+				res=result,
+			)
+			return result
+		except Exception as e:
+			frappe.enqueue(
+				"woocommerce_fusion.tasks.utils.log_woocommerce_request",
+				url=self.url,
+				endpoint=endpoint,
+				request_method=method,
+				params=params,
+				data=data,
+				res=result,
+			)
+			raise e
 
 
 def log_woocommerce_request(
