@@ -69,6 +69,8 @@ def sync_sales_orders(
 			if get_datetime(order["date_modified"]) > get_datetime(
 				sales_orders_dict[order["name"]].modified
 			):
+				print(f"{get_datetime(order['date_modified'])=}")
+				print(f"{get_datetime(sales_orders_dict[order['name']].modified)=}")
 				update_sales_order(order, sales_orders_dict[order["name"]].name)
 			if get_datetime(order["date_modified"]) < get_datetime(
 				sales_orders_dict[order["name"]].modified

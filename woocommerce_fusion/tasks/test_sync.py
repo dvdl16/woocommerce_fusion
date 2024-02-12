@@ -93,7 +93,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		wc_order.modified = "2023-01-01"
+		wc_order.date_modified = "2023-01-01"
 		mock_get_wc_orders.return_value = [wc_order.__dict__]
 
 		# Call the method under test

@@ -213,6 +213,16 @@ def create_bank_account(
 		).insert(ignore_if_duplicate=True)
 	except frappe.DuplicateEntryError:
 		pass
+	except frappe.ValidationError:
+		bank_account_doc = frappe.get_all(
+			"Bank Account",
+			{
+				"account_name": default_bank_account,
+				"bank": bank_name,
+				"account": gl_account.name,
+				"company": company,
+			},
+		)[0]
 
 	return bank_account_doc
 
