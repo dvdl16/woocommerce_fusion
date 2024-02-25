@@ -26,7 +26,7 @@ from woocommerce_fusion.woocommerce.woocommerce_api import (
 def run_sales_orders_sync_in_background():
 	# Publish update to websocket if called from UI
 	# frappe.publish_realtime(
-	# 	"omni_sync_items",
+	# 	"wc_sync_items",
 	# 	message={"description": "Sending Background Job to Queue", "count": 0, "total": 0},
 	# 	doctype="Item",
 	# )
@@ -34,8 +34,8 @@ def run_sales_orders_sync_in_background():
 	frappe.enqueue(run_sales_orders_sync, queue="long")
 
 
-def run_sales_orders_sync():
-	sync = SynchroniseSalesOrders()
+def run_sales_orders_sync(sales_order_name: Optional[str] = None):
+	sync = SynchroniseSalesOrders(sales_order_name=sales_order_name)
 	sync.run()
 
 
