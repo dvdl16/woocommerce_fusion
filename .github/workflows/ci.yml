@@ -4,7 +4,7 @@ name: CI
 on:
   push:
     branches:
-      - version-14
+      - version-15
   pull_request:
 
 concurrency:
@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  TEST_AGAINST_FRAPPE_VERSION: v14.45.0
-  TEST_AGAINST_ERPNEXT_VERSION: v14.37.1
+  TEST_AGAINST_FRAPPE_VERSION: v15.13.0
+  TEST_AGAINST_ERPNEXT_VERSION: v15.13.0
 
 jobs:
   tests:
@@ -96,27 +96,10 @@ jobs:
               instawp_domain="$(echo "${{ steps.create-instawp.outputs.instawp_url }}" | sed -e s#https://##)"
               echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
 
-
-      - name: Setup
-        run: |
-          pip install frappe-bench
-          bench init --skip-redis-config-generation --skip-assets --python "$(which python)" --frappe-branch $TEST_AGAINST_FRAPPE_VERSION ~/frappe-bench
-          mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
-          mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
-
       - name: Install
         working-directory: /home/runner/frappe-bench
         run: |
-          bench get-app erpnext --branch $TEST_AGAINST_ERPNEXT_VERSION
-          bench get-app --overwrite woocommerce_fusion "${GITHUB_WORKSPACE}"
-          bench -v setup env --python python3.10
-          bench -v setup requirements --dev
-          bench new-site --db-root-password root --admin-password admin test_site
-          bench --site test_site install-app erpnext
-          bench --site test_site install-app woocommerce_fusion
-          bench build
-        env:
-          CI: 'Yes'
+          bash ${GITHUB_WORKSPACE}/.github/helper/install.sh
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
