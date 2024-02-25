@@ -46,10 +46,9 @@ frappe.ui.form.on('Sales Order', {
 	sync_sales_order: function(frm) {
 		// Sync this Sales Order
 		frappe.call({
-			method: "woocommerce_fusion.tasks.sync.sync_sales_orders",
+			method: "woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync",
 			args: {
-				sales_order_name: frm.doc.name,
-				update_sync_date_in_settings: false
+				sales_order_name: frm.doc.name
 			},
 			callback: function(r) {
 				frm.reload_doc();
@@ -65,7 +64,7 @@ frappe.ui.form.on('Sales Order', {
 				frm.save('Update', function(){
 					// Sync
 					frappe.call({
-						method: "woocommerce_fusion.tasks.sync.sync_sales_orders",
+						method: "woocommerce_fusion.tasks.sync.run_sales_orders_sync",
 						args: {
 							sales_order_name: frm.doc.name
 						},
