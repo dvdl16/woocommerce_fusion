@@ -1,114 +1,53 @@
-import math
+import base64
+import hashlib
+import hmac
+from typing import Optional
 
 import frappe
+from frappe import _, _dict
 
-from woocommerce_fusion.tasks.utils import APIWithRequestLogging
-
-
-def update_stock_levels_for_woocommerce_item(doc, method):
-	if not frappe.flags.in_test:
-		if doc.doctype in ("Stock Entry", "Stock Reconciliation", "Sales Invoice", "Delivery Note"):
-			if doc.doctype == "Sales Invoice":
-				if doc.update_stock == 0:
-					return
-			item_codes = [row.item_code for row in doc.items]
-			for item_code in item_codes:
-				frappe.enqueue(
-					"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
-					enqueue_after_commit=True,
-					item_code=item_code,
-				)
+from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woocommerce_integration_settings import (
+	WooCommerceIntegrationSettings,
+)
 
 
-def update_stock_levels_for_all_enabled_items_in_background():
+class SynchroniseWooCommerce:
 	"""
-	Get all enabled ERPNext Items and post stock updates to WooCommerce
+	Class for managing synchronisation of WooCommerce data with ERPNext data
 	"""
-	erpnext_items = []
-	current_page_length = 500
-	start = 0
 
-	# Get all items, 500 records at a time
-	while current_page_length == 500:
-		items = frappe.db.get_all(
-			doctype="Item",
-			filters={"disabled": 0},
-			fields=["name"],
-			start=start,
-			page_length=500,
-		)
-		erpnext_items.extend(items)
-		current_page_length = len(items)
-		start += current_page_length
+	settings: WooCommerceIntegrationSettings | _dict
 
-	for item in erpnext_items:
-		frappe.enqueue(
-			"woocommerce_fusion.tasks.stock_update.update_stock_levels_on_woocommerce_site",
-			item_code=item.name,
-		)
+	def __init__(self, settings: Optional[WooCommerceIntegrationSettings | _dict] = None) -> None:
+		self.settings = settings if settings else frappe.get_single("WooCommerce Integration Settings")
 
 
-@frappe.whitelist()
-def update_stock_levels_on_woocommerce_site(item_code):
+def log_and_raise_error(err):
 	"""
-	Updates stock levels of an item on all its associated WooCommerce sites.
-
-	This function fetches the item from the database, then for each associated
-	WooCommerce site, it retrieves the current inventory, calculates the new stock quantity,
-	and posts the updated stock levels back to the WooCommerce site.
+	Create an "Error Log" and raise error
 	"""
-	item = frappe.get_doc("Item", item_code)
+	log = frappe.log_error("WooCommerce Error", err)
+	log_link = frappe.utils.get_link_to_form("Error Log", log.name)
+	frappe.throw(
+		msg=_("Something went wrong while connecting to WooCommerce. See Error Log {0}").format(
+			log_link
+		),
+		title=_("WooCommerce Error"),
+	)
+	raise err
 
-	if len(item.woocommerce_servers) == 0:
-		return False
-	else:
-		wc_integration_settings = frappe.get_single("WooCommerce Integration Settings")
 
-		bins = frappe.get_list(
-			"Bin", {"item_code": item_code}, ["name", "warehouse", "reserved_qty", "actual_qty"]
-		)
+def verify_request():
+	woocommerce_integration_settings = frappe.get_doc("WooCommerce Integration Settings")
+	sig = base64.b64encode(
+		hmac.new(
+			woocommerce_integration_settings.secret.encode("utf8"), frappe.request.data, hashlib.sha256
+		).digest()
+	)
 
-		for wc_site in item.woocommerce_servers:
-			woocommerce_id = wc_site.woocommerce_id
-			woocommerce_server = wc_site.woocommerce_server
-
-			wc_server = next(
-				(
-					server
-					for server in wc_integration_settings.servers
-					if woocommerce_server == server.woocommerce_server and server.enable_sync
-				),
-				None,
-			)
-
-			if not wc_server:
-				continue
-
-			wc_api = APIWithRequestLogging(
-				url=wc_server.woocommerce_server_url,
-				consumer_key=wc_server.api_consumer_key,
-				consumer_secret=wc_server.api_consumer_secret,
-				version="wc/v3",
-				timeout=40,
-			)
-
-			# Sum all quantities from all warehouses and round the total down (WooCommerce API doesn't accept float values)
-			data_to_post = {"stock_quantity": math.floor(sum(bin.actual_qty for bin in bins))}
-
-			try:
-				response = wc_api.put(endpoint=f"products/{woocommerce_id}", data=data_to_post)
-			except Exception as err:
-				error_message = f"{frappe.get_traceback()}\n\nData in PUT request: \n{str(data_to_post)}"
-				frappe.log_error("WooCommerce Error", error_message)
-				return False
-			if response.status_code != 200:
-				error_message = f"Status Code not 200\n\nData in PUT request: \n{str(data_to_post)}"
-				error_message += (
-					f"\n\nResponse: \n{response.status_code}\nResponse Text: {response.text}\nRequest URL: {response.request.url}\nRequest Body: {response.request.body}"
-					if response is not None
-					else ""
-				)
-				frappe.log_error("WooCommerce Error", error_message)
-				return False
-
-		return True
+	if (
+		frappe.request.data
+		and not sig == frappe.get_request_header("X-Wc-Webhook-Signature", "").encode()
+	):
+		frappe.throw(_("Unverified Webhook Data"))
+	frappe.set_user(woocommerce_integration_settings.creation_user)
