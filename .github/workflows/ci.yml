@@ -97,7 +97,6 @@ jobs:
               echo "instawp-domain=$(echo $instawp_domain)" >> $GITHUB_OUTPUT
 
       - name: Install
-        working-directory: /home/runner/frappe-bench
         run: |
           bash ${GITHUB_WORKSPACE}/.github/helper/install.sh
 
