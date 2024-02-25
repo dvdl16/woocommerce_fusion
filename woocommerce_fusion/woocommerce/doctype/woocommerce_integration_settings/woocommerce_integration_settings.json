@@ -1,0 +1,179 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-01-25 16:08:56.786439",
+    "default_view": "List",
+    "doctype": "DocType",
+    "editable_grid": 1,
+    "engine": "InnoDB",
+    "field_order": [
+     "warning_html",
+     "servers",
+     "wc_last_sync_date",
+     "submit_sales_orders",
+     "section_break_timespan",
+     "minimum_creation_date",
+     "section_break_accounting",
+     "tax_account",
+     "column_break_4b4vn",
+     "f_n_f_account",
+     "section_break_defaults",
+     "creation_user",
+     "warehouse",
+     "sales_order_series",
+     "column_break_14",
+     "company",
+     "delivery_after_days",
+     "uom",
+     "section_break_endpoints",
+     "endpoint"
+    ],
+    "fields": [
+     {
+      "fieldname": "warning_html",
+      "fieldtype": "HTML",
+      "label": "Warning HTML",
+      "options": "<div class=\"form-message red\">\n\t<div>{{__(\"Enabling Sync for WooCommerce Sites allows ERPNext to modify Stock Levels and Order Statuses on these Sites\")}}</div>\n</div>"
+     },
+     {
+      "fieldname": "servers",
+      "fieldtype": "Table",
+      "label": "Servers",
+      "options": "WooCommerce Additional Settings Servers"
+     },
+     {
+      "fieldname": "wc_last_sync_date",
+      "fieldtype": "Datetime",
+      "in_list_view": 1,
+      "label": "Last Syncronisation Date",
+      "reqd": 1
+     },
+     {
+      "default": "1",
+      "fieldname": "submit_sales_orders",
+      "fieldtype": "Check",
+      "label": "Submit Sales Orders during Synchronisation"
+     },
+     {
+      "collapsible": 1,
+      "fieldname": "section_break_timespan",
+      "fieldtype": "Section Break",
+      "label": "Timespan Settings"
+     },
+     {
+      "description": "WooCommerce Orders with a creation date earlier than this date will be ignored",
+      "fieldname": "minimum_creation_date",
+      "fieldtype": "Datetime",
+      "label": "Minimum Creation Date"
+     },
+     {
+      "fieldname": "section_break_accounting",
+      "fieldtype": "Section Break",
+      "label": "Accounting Details"
+     },
+     {
+      "fieldname": "tax_account",
+      "fieldtype": "Link",
+      "label": "Tax Account",
+      "options": "Account",
+      "reqd": 1
+     },
+     {
+      "fieldname": "column_break_4b4vn",
+      "fieldtype": "Column Break"
+     },
+     {
+      "fieldname": "f_n_f_account",
+      "fieldtype": "Link",
+      "label": "Freight and Forwarding Account",
+      "options": "Account",
+      "reqd": 1
+     },
+     {
+      "fieldname": "section_break_defaults",
+      "fieldtype": "Section Break",
+      "label": "Defaults"
+     },
+     {
+      "description": "The user that will be used to create Customers, Items and Sales Orders. This user should have the relevant permissions.",
+      "fieldname": "creation_user",
+      "fieldtype": "Link",
+      "label": "Creation User",
+      "options": "User"
+     },
+     {
+      "description": "This warehouse will be used to create Sales Orders",
+      "fieldname": "warehouse",
+      "fieldtype": "Link",
+      "label": "Warehouse",
+      "options": "Warehouse",
+      "reqd": 1
+     },
+     {
+      "description": "The fallback series is \"SO-WOO-\".",
+      "fieldname": "sales_order_series",
+      "fieldtype": "Select",
+      "label": "Sales Order Series",
+      "read_only": 1
+     },
+     {
+      "fieldname": "column_break_14",
+      "fieldtype": "Column Break"
+     },
+     {
+      "description": "This company will be used to create Sales Orders.",
+      "fieldname": "company",
+      "fieldtype": "Link",
+      "label": "Company",
+      "options": "Company",
+      "reqd": 1
+     },
+     {
+      "description": "This is the default offset (days) for the Delivery Date in Sales Orders. The fallback offset is 7 days from the order placement date.",
+      "fieldname": "delivery_after_days",
+      "fieldtype": "Int",
+      "label": "Delivery After (Days)"
+     },
+     {
+      "description": "This is the default UOM used for items and Sales orders. The fallback UOM is \"Nos\".",
+      "fieldname": "uom",
+      "fieldtype": "Link",
+      "label": "UOM",
+      "options": "UOM"
+     },
+     {
+      "fieldname": "section_break_endpoints",
+      "fieldtype": "Section Break",
+      "label": "Endpoints"
+     },
+     {
+      "fieldname": "endpoint",
+      "fieldtype": "Code",
+      "label": "Endpoint",
+      "read_only": 1
+     }
+    ],
+    "index_web_pages_for_search": 1,
+    "issingle": 1,
+    "links": [],
+    "modified": "2024-01-25 16:42:02.631038",
+    "modified_by": "Administrator",
+    "module": "WooCommerce",
+    "name": "WooCommerce Integration Settings",
+    "owner": "Administrator",
+    "permissions": [
+     {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+     }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+   }
