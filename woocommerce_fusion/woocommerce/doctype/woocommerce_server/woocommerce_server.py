@@ -4,9 +4,7 @@
 # import frappe
 from frappe.model.document import Document
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	parse_domain_from_url,
-)
+from woocommerce_fusion.woocommerce.woocommerce_api import parse_domain_from_url
 
 
 class WooCommerceServer(Document):

@@ -30,3 +30,11 @@ frappe.ui.form.on('Item', {
 		});
 	},
 })
+
+frappe.ui.form.on('Item WooCommerce Server', {
+	view_product: function(frm, cdt, cdn) {
+		let current_row_doc = locals[cdt][cdn];
+		console.log(current_row_doc);
+		frappe.set_route("Form", "WooCommerce Product", `${current_row_doc.woocommerce_server}~${current_row_doc.woocommerce_id}` );
+	}
+})

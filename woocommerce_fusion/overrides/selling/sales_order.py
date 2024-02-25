@@ -5,8 +5,8 @@ from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 from frappe import _
 from frappe.model.naming import get_default_naming_series, make_autoname
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	generate_woocommerce_order_name_from_domain_and_id,
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
 )
 
 
@@ -74,7 +74,7 @@ def get_woocommerce_order(woocommerce_server, woocommerce_id):
 	Retrieves a specific WooCommerce order based on its site and ID.
 	"""
 	# First verify if the WooCommerce site exits, and it sync is enabled
-	wc_order_name = generate_woocommerce_order_name_from_domain_and_id(
+	wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
 		woocommerce_server, woocommerce_id
 	)
 	wc_integration_settings = frappe.get_cached_doc("WooCommerce Integration Settings")
