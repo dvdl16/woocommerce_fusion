@@ -93,7 +93,6 @@ doctype_list_js = {"Sales Order": "public/js/selling/sales_order_list.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Woocommerce Settings": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_settings.CustomWoocommerceSettings",
 	"Sales Order": "woocommerce_fusion.overrides.selling.sales_order.CustomSalesOrder",
 }
 
@@ -137,7 +136,7 @@ scheduler_events = {
 	# 	"weekly": [
 	# 		"woocommerce_fusion.tasks.daily"
 	# 	],
-	"hourly": ["woocommerce_fusion.tasks.sync.sync_sales_orders"],
+	"hourly": ["woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync"],
 	"daily": [
 		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background"
 	],
@@ -154,9 +153,8 @@ before_tests = "woocommerce_fusion.setup.utils.before_tests"
 # Overriding Methods
 # ------------------------------
 #
-override_whitelisted_methods = {
-	"erpnext.erpnext_integrations.connectors.woocommerce_connection.order": "woocommerce_fusion.overrides.erpnext_integrations.woocommerce_connection.custom_order"
-}
+# override_whitelisted_methods = {
+# }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
@@ -227,12 +225,15 @@ fixtures = [
 				"in",
 				(
 					"Customer-woocommerce_server",
+					"Customer-woocommerce_email",
+					"Sales Order-woocommerce_id",
 					"Sales Order-woocommerce_server",
 					"Sales Order-woocommerce_status",
 					"Sales Order-woocommerce_payment_method",
 					"Sales Order-woocommerce_shipment_tracking_html",
 					"Sales Order-woocommerce_payment_entry",
 					"Address-woocommerce_server",
+					"Address-woocommerce_email",
 					"Item-woocommerce_servers",
 				),
 			]

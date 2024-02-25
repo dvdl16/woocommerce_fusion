@@ -60,11 +60,10 @@ python3 -m pip install semgrep
 git clone --depth 1 https://github.com/frappe/semgrep-rules.git frappe-semgrep-rules
 
 # Run semgrep specifying rules folder as config 
-python3 -m semgrep --config=/workspace/development/frappe-semgrep-rules/rules apps/woocommerce_fusion
+semgrep --config=/workspace/development/frappe-semgrep-rules/rules apps/woocommerce_fusion
 ```
 
 If you use VS Code, you can specify the `.flake8` config file in your `settings.json` file:
 ```shell
 "python.linting.flake8Args": ["--config=frappe-bench-v14/apps/woocommerce_fusion/.flake8_strict"]
-```
 ```

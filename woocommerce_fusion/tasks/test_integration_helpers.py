@@ -6,8 +6,6 @@ from erpnext import get_default_company
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_to_date, now
 
-from woocommerce_fusion.tasks.test_sync import get_woocommerce_server
-
 default_company = get_default_company()
 default_bank = "Test Bank"
 default_bank_account = "Checking Account"
@@ -32,7 +30,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 			raise ValueError("Missing environment variables")
 
 		# Set WooCommerce Settings
-		woocommerce_settings = frappe.get_single("Woocommerce Settings")
+		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
 		woocommerce_settings.enable_sync = 1
 		woocommerce_settings.woocommerce_server_url = self.wc_url
 		woocommerce_settings.api_consumer_key = self.wc_consumer_key
@@ -41,13 +39,11 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		woocommerce_settings.f_n_f_account = "Freight and Forwarding Charges - SC"
 		woocommerce_settings.creation_user = "test@erpnext.com"
 		woocommerce_settings.company = "Some Company (Pty) Ltd"
-		woocommerce_settings.save()
-
-		# Set WooCommerce Additional Settings
-		woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
-		woocommerce_additional_settings.wc_last_sync_date = add_to_date(now(), days=-1)
-		woocommerce_additional_settings.servers = []
-		row = woocommerce_additional_settings.append("servers")
+		woocommerce_settings.item_group = "Products"
+		woocommerce_settings.warehouse = "Stores - SC"
+		woocommerce_settings.wc_last_sync_date = add_to_date(now(), days=-1)
+		woocommerce_settings.servers = []
+		row = woocommerce_settings.append("servers")
 		row.enable_sync = 1
 		row.woocommerce_server = get_woocommerce_server(self.wc_url).name
 		row.woocommerce_server_url = self.wc_url
@@ -58,7 +54,8 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		row.enable_payments_sync = 1
 		row.payment_method_bank_account_mapping = json.dumps({"bacs": bank_account.name})
 		row.payment_method_gl_account_mapping = json.dumps({"bacs": gl_account.name})
-		woocommerce_additional_settings.save()
+
+		woocommerce_settings.save()
 
 	def post_woocommerce_order(
 		self, set_paid: bool = False, payment_method_title: str = "Direct Bank Transfer"
@@ -242,3 +239,15 @@ def create_gl_account_for_bank(account_name="_Test Bank"):
 		pass
 
 	return frappe.get_doc("Account", {"account_name": account_name})
+
+
+def get_woocommerce_server(woocommerce_server_url: str):
+	wc_servers = frappe.get_all(
+		"WooCommerce Server", filters={"woocommerce_server_url": woocommerce_server_url}
+	)
+	wc_server = wc_servers[0] if len(wc_servers) > 0 else None
+	if not wc_server:
+		wc_server = frappe.new_doc("WooCommerce Server")
+		wc_server.woocommerce_server_url = woocommerce_server_url
+		wc_server.save()
+	return wc_server

@@ -436,7 +436,7 @@ def _init_api() -> List[WooCommerceAPI]:
 	"""
 	Initialise the WooCommerce API
 	"""
-	woocommerce_additional_settings = frappe.get_doc("WooCommerce Additional Settings")
+	woocommerce_integration_settings = frappe.get_single("WooCommerce Integration Settings")
 
 	wc_api_list = [
 		WooCommerceAPI(
@@ -450,15 +450,11 @@ def _init_api() -> List[WooCommerceAPI]:
 			woocommerce_server_url=server.woocommerce_server_url,
 			wc_plugin_advanced_shipment_tracking=server.wc_plugin_advanced_shipment_tracking,
 		)
-		for server in woocommerce_additional_settings.servers
+		for server in woocommerce_integration_settings.servers
 		if server.enable_sync == 1
 	]
 
 	return wc_api_list
-
-
-def get_woocommerce_additional_settings():
-	return frappe.get_doc("WooCommerce Additional Settings")
 
 
 def generate_woocommerce_order_name_from_domain_and_id(

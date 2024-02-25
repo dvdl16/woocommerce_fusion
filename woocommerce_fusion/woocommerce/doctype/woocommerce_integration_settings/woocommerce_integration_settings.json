@@ -19,12 +19,13 @@
      "f_n_f_account",
      "section_break_defaults",
      "creation_user",
-     "warehouse",
      "sales_order_series",
+     "warehouse",
      "column_break_14",
      "company",
      "delivery_after_days",
      "uom",
+     "item_group",
      "section_break_endpoints",
      "endpoint"
     ],
@@ -102,14 +103,6 @@
       "options": "User"
      },
      {
-      "description": "This warehouse will be used to create Sales Orders",
-      "fieldname": "warehouse",
-      "fieldtype": "Link",
-      "label": "Warehouse",
-      "options": "Warehouse",
-      "reqd": 1
-     },
-     {
       "description": "The fallback series is \"SO-WOO-\".",
       "fieldname": "sales_order_series",
       "fieldtype": "Select",
@@ -151,12 +144,28 @@
       "fieldtype": "Code",
       "label": "Endpoint",
       "read_only": 1
+     },
+     {
+      "description": "This is the default Item Group used for newly created items.",
+      "fieldname": "item_group",
+      "fieldtype": "Link",
+      "label": "Item Group",
+      "options": "Item Group",
+      "reqd": 1
+     },
+     {
+      "description": "Default warehouse for Sales Orders",
+      "fieldname": "warehouse",
+      "fieldtype": "Link",
+      "label": "Warehouse",
+      "options": "Warehouse",
+      "reqd": 1
      }
     ],
     "index_web_pages_for_search": 1,
     "issingle": 1,
     "links": [],
-    "modified": "2024-01-25 16:42:02.631038",
+    "modified": "2024-02-25 11:15:44.549263",
     "modified_by": "Administrator",
     "module": "WooCommerce",
     "name": "WooCommerce Integration Settings",

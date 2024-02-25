@@ -1,6 +1,6 @@
 import frappe
 
-from woocommerce_fusion.tasks.sync import sync_sales_orders
+from woocommerce_fusion.tasks.sync_sales_orders import run_sales_orders_sync
 from woocommerce_fusion.tasks.test_integration_helpers import TestIntegrationWooCommerce
 
 
@@ -18,7 +18,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge")
 
 		# Run synchronisation
-		sync_sales_orders()
+		run_sales_orders_sync()
 
 		# Expect newly created Sales Order in ERPNext
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
@@ -36,7 +36,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_order_id = self.post_woocommerce_order(set_paid=True)
 
 		# Run synchronisation
-		sync_sales_orders()
+		run_sales_orders_sync()
 
 		# Expect newly created Sales Order in ERPNext
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
