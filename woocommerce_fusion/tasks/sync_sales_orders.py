@@ -16,7 +16,9 @@ from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woo
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING,
 	WC_ORDER_STATUS_MAPPING_REVERSE,
-	generate_woocommerce_order_name_from_domain_and_id,
+)
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
 )
 
 
@@ -142,7 +144,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		# Create a dictionary for quick access
 		sales_orders_dict = {
-			generate_woocommerce_order_name_from_domain_and_id(so.woocommerce_server, so.woocommerce_id): so
+			generate_woocommerce_record_name_from_domain_and_id(
+				so.woocommerce_server, so.woocommerce_id
+			): so
 			for so in self.sales_orders_list
 		}
 
@@ -173,7 +177,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Fetches the associated WooCommerce Order for a given Sales Order name and returns it in a list
 		"""
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
-		wc_order_name = generate_woocommerce_order_name_from_domain_and_id(
+		wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
 			domain=sales_order.woocommerce_server,
 			order_id=sales_order.woocommerce_id,
 		)

@@ -6,8 +6,8 @@ from erpnext import get_default_company
 from frappe.tests.utils import FrappeTestCase
 
 from woocommerce_fusion.tasks.sync_sales_orders import SynchroniseSalesOrders
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	generate_woocommerce_order_name_from_domain_and_id,
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
 )
 
 default_company = get_default_company()
@@ -46,7 +46,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
-		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
+		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-12-31"
@@ -88,7 +88,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
-		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
+		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-01-01"
@@ -129,7 +129,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		wc_order.woocommerce_server = woocommerce_server
 		wc_order.id = woocommerce_id
-		wc_order.name = generate_woocommerce_order_name_from_domain_and_id(
+		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
 		sync.wc_order_list = [wc_order.__dict__]

@@ -5,8 +5,8 @@ import traceback
 import frappe
 from frappe.utils.fixtures import sync_fixtures
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	generate_woocommerce_order_name_from_domain_and_id,
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
 )
 
 
@@ -36,7 +36,7 @@ def execute():
 				wc_order = frappe.get_doc(
 					{
 						"doctype": "WooCommerce Order",
-						"name": generate_woocommerce_order_name_from_domain_and_id(
+						"name": generate_woocommerce_record_name_from_domain_and_id(
 							so.woocommerce_server, so.woocommerce_id
 						),
 					}

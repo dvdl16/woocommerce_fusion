@@ -12,14 +12,16 @@ from frappe.tests.utils import FrappeTestCase
 from woocommerce_fusion.tasks.utils import API, APIWithRequestLogging
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_DELIMITER,
-	WooCommerceAPI,
 	WooCommerceOrder,
-	generate_woocommerce_order_name_from_domain_and_id,
-	get_domain_and_id_from_woocommerce_order_name,
+	WooCommerceOrderAPI,
+)
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
+	get_domain_and_id_from_woocommerce_record_name,
 )
 
 
-@patch("woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order._init_api")
+@patch.object(WooCommerceOrder, "_init_api")
 class TestWooCommerceOrder(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
@@ -34,9 +36,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Create mock API object
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -81,9 +84,15 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Create mock API object list with 3 WooCommerce servers/API's
 		mock_api_list = [
-			WooCommerceAPI(api=Mock(), woocommerce_server_url="site1.example.com"),
-			WooCommerceAPI(api=Mock(), woocommerce_server_url="site2.example.com"),
-			WooCommerceAPI(api=Mock(), woocommerce_server_url="site3.example.com"),
+			WooCommerceOrderAPI(
+				api=Mock(), woocommerce_server_url="site1.example.com", woocommerce_server="site1.example.com"
+			),
+			WooCommerceOrderAPI(
+				api=Mock(), woocommerce_server_url="site2.example.com", woocommerce_server="site1.example.com"
+			),
+			WooCommerceOrderAPI(
+				api=Mock(), woocommerce_server_url="site3.example.com", woocommerce_server="site1.example.com"
+			),
 		]
 
 		mock_init_api.return_value = mock_api_list
@@ -162,9 +171,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -227,8 +237,11 @@ class TestWooCommerceOrder(FrappeTestCase):
 		"""
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
-				api=Mock(), woocommerce_server_url="site1.example.com", wc_plugin_advanced_shipment_tracking=1
+			WooCommerceOrderAPI(
+				api=Mock(),
+				woocommerce_server_url="site1.example.com",
+				woocommerce_server="site1.example.com",
+				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
 		mock_init_api.return_value = mock_api_list
@@ -249,7 +262,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Call db_insert
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		woocommerce_order.status = "Hello World"
-		woocommerce_order.woocommerce_server_url = "site1.example.com"
+		woocommerce_order.woocommerce_server = "site1.example.com"
 		woocommerce_order.db_insert()
 
 		# Check that the API was initialised
@@ -271,8 +284,11 @@ class TestWooCommerceOrder(FrappeTestCase):
 		"""
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
-				api=Mock(), woocommerce_server_url="site1.example.com", wc_plugin_advanced_shipment_tracking=1
+			WooCommerceOrderAPI(
+				api=Mock(),
+				woocommerce_server_url="site1.example.com",
+				woocommerce_server="site1.example.com",
+				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
 		mock_init_api.return_value = mock_api_list
@@ -313,9 +329,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -361,9 +378,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -401,9 +419,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -446,9 +465,10 @@ class TestWooCommerceOrder(FrappeTestCase):
 		woocommerce_server_url = "site1.example.com"
 		# Setup mock API
 		mock_api_list = [
-			WooCommerceAPI(
+			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
+				woocommerce_server=woocommerce_server_url,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -475,23 +495,23 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Check that the API was not called
 		mock_api_list[0].api.post.assert_not_called()
 
-	def test_generate_woocommerce_order_name_from_domain_and_id(self, mock_init_api):
+	def test_generate_woocommerce_record_name_from_domain_and_id(self, mock_init_api):
 		"""
-		Test that generate_woocommerce_order_name_from_domain_and_id function performs as expected
+		Test that generate_woocommerce_record_name_from_domain_and_id function performs as expected
 		"""
 		domain = "site1.example.com"
 		order_id = 4
 		delimiter = "|"
-		result = generate_woocommerce_order_name_from_domain_and_id(domain, order_id, delimiter)
+		result = generate_woocommerce_record_name_from_domain_and_id(domain, order_id, delimiter)
 		self.assertEqual(result, "site1.example.com|4")
 
-	def test_get_domain_and_id_from_woocommerce_order_name(self, mock_init_api):
+	def test_get_domain_and_id_from_woocommerce_record_name(self, mock_init_api):
 		"""
-		Test that get_domain_and_id_from_woocommerce_order_name function performs as expected
+		Test that get_domain_and_id_from_woocommerce_record_name function performs as expected
 		"""
 		delimiter = "$"
 		name = "site2.example.com$3"
-		domain, order_id = get_domain_and_id_from_woocommerce_order_name(name, delimiter)
+		domain, order_id = get_domain_and_id_from_woocommerce_record_name(name, delimiter)
 		self.assertEqual(domain, "site2.example.com")
 		self.assertEqual(order_id, 3)
 
