@@ -1,0 +1,649 @@
+import json
+from datetime import datetime
+from random import randrange
+from typing import Dict, List, Optional
+from urllib.parse import urlparse
+
+import frappe
+from frappe import _, _dict
+from frappe.utils import get_datetime, now
+from frappe.utils.data import cstr
+
+from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
+from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woocommerce_integration_settings import (
+	WooCommerceIntegrationSettings,
+)
+from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
+	WC_ORDER_STATUS_MAPPING,
+	WC_ORDER_STATUS_MAPPING_REVERSE,
+)
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
+)
+
+
+@frappe.whitelist()
+def run_sales_orders_sync_in_background():
+	# Publish update to websocket if called from UI
+	# frappe.publish_realtime(
+	# 	"omni_sync_items",
+	# 	message={"description": "Sending Background Job to Queue", "count": 0, "total": 0},
+	# 	doctype="Item",
+	# )
+
+	frappe.enqueue(run_sales_orders_sync, queue="long")
+
+
+def run_sales_orders_sync():
+	sync = SynchroniseSalesOrders()
+	sync.run()
+
+
+class SynchroniseSalesOrders(SynchroniseWooCommerce):
+	"""
+	Class for managing synchronisation of WooCommerce Orders with ERPNext Sales Orders
+	"""
+
+	wc_order_list: List
+	sales_orders_list: List
+	sales_order_name: Optional[str]
+	date_time_from: str | datetime
+	date_time_to: str | datetime
+
+	def __init__(
+		self,
+		settings: Optional[WooCommerceIntegrationSettings | _dict] = None,
+		sales_order_name: Optional[str] = None,
+		date_time_from: Optional[str | datetime] = None,
+		date_time_to: Optional[str | datetime] = None,
+	) -> None:
+		super().__init__(settings)
+		self.wc_order_list = []
+		self.sales_orders_list = []
+		self.sales_order_name = sales_order_name
+		self.date_time_from = date_time_from
+		self.date_time_to = date_time_to
+
+		self.set_date_range()
+
+	def set_date_range(self):
+		"""
+		Validate date_time_from and date_time_to
+		"""
+		# If no 'Sales Order List' or 'To Date' were supplied, default to synchronise all orders
+		# since last synchronisation
+		if not self.sales_order_name and not self.date_time_to:
+			self.date_time_from = self.settings.wc_last_sync_date
+
+	def run(self):
+		"""
+		Run synchornisation
+		"""
+		self.get_woocommerce_orders()
+		self.get_erpnext_sales_orders()
+		self.sync_wc_orders_with_erpnext_sales_orders()
+
+	def get_woocommerce_orders(self):
+		"""
+		Get list of WooCommerce orders
+		"""
+		if self.sales_order_name:
+			self.wc_order_list = self.get_list_of_wc_orders_from_sales_order(
+				sales_order_name=self.sales_order_name
+			)
+		else:
+			self.wc_order_list = self.get_list_of_all_wc_orders()
+
+	def get_list_of_all_wc_orders(self):
+		"""
+		Fetches a list of WooCommerce Orders within a specified date range using pagination
+		"""
+		wc_records_per_page_limit = 100
+		page_length = wc_records_per_page_limit
+		new_results = True
+		start = 0
+		filters = []
+		minimum_creation_date = self.settings.minimum_creation_date
+
+		filters.append(
+			["WooCommerce Order", "date_modified", ">", self.date_time_from]
+		) if self.date_time_from else None
+		filters.append(
+			["WooCommerce Order", "date_modified", "<", self.date_time_to]
+		) if self.date_time_to else None
+		filters.append(
+			["WooCommerce Order", "date_created", ">", minimum_creation_date]
+		) if minimum_creation_date else None
+
+		while new_results:
+			woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
+			new_results = woocommerce_order.get_list(
+				args={"filters": filters, "page_lenth": page_length, "start": start}
+			)
+			self.wc_order_list.extend(new_results)
+			start += page_length
+		return self.wc_order_list
+
+	def get_erpnext_sales_orders(self):
+		"""
+		Get list of erpnext Sales Orders
+		"""
+		self.sales_orders_list = frappe.get_all(
+			"Sales Order",
+			filters={
+				"woocommerce_id": ["in", [order["id"] for order in self.wc_order_list]],
+				"woocommerce_server": ["in", [order["woocommerce_server"] for order in self.wc_order_list]],
+				"docstatus": 1,
+			},
+			fields=["name", "woocommerce_id", "woocommerce_server", "modified"],
+		)
+
+	def sync_wc_orders_with_erpnext_sales_orders(self):
+		"""
+		Syncronise Sales Orders between ERPNext and WooCommerce
+		"""
+		# Create a dictionary for quick access
+		sales_orders_dict = {
+			generate_woocommerce_record_name_from_domain_and_id(
+				so.woocommerce_server, so.woocommerce_id
+			): so
+			for so in self.sales_orders_list
+		}
+
+		# Loop through each order
+		for wc_order in self.wc_order_list:
+			if wc_order["name"] in sales_orders_dict:
+				# If the Sales Order exists and it has been updated after last_updated, update it
+				if get_datetime(wc_order["date_modified"]) > get_datetime(
+					sales_orders_dict[wc_order["name"]].modified
+				):
+					self.update_sales_order(wc_order, sales_orders_dict[wc_order["name"]].name)
+				if get_datetime(wc_order["date_modified"]) < get_datetime(
+					sales_orders_dict[wc_order["name"]].modified
+				):
+					self.update_woocommerce_order(wc_order, sales_orders_dict[wc_order["name"]].name)
+			else:
+				# If the Sales Order does not exist, create it
+				self.create_sales_order(wc_order)
+
+		# Update Last Sales Order Sync Date Time
+		if not self.sales_order_name:
+			self.settings.wc_last_sync_date = now()
+			self.settings.save()
+
+	@staticmethod
+	def get_list_of_wc_orders_from_sales_order(sales_order_name: str):
+		"""
+		Fetches the associated WooCommerce Order for a given Sales Order name and returns it in a list
+		"""
+		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+		wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
+			domain=sales_order.woocommerce_server,
+			order_id=sales_order.woocommerce_id,
+		)
+		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
+		wc_order.load_from_db()
+		return [wc_order.__dict__]
+
+	def update_sales_order(self, woocommerce_order, sales_order_name):
+		"""
+		Update the ERPNext Sales Order with fields from it's corresponding WooCommerce Order
+		"""
+		# Get the Sales Order doc
+		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+
+		# Get the WooCommerce Order doc
+		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
+		wc_order.load_from_db()
+
+		# Update the woocommerce_status field if necessary
+		wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+		if sales_order.woocommerce_status != wc_order_status:
+			sales_order.woocommerce_status = wc_order_status
+			sales_order.save()
+
+		# Update the payment_method_title field if necessary
+		if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
+			sales_order.woocommerce_payment_method = wc_order.payment_method_title
+
+		if not sales_order.woocommerce_payment_entry:
+			self.create_and_link_payment_entry(woocommerce_order, sales_order_name)
+
+	def create_and_link_payment_entry(self, wc_order_data: Dict, sales_order_name: str) -> None:
+		"""
+		Create a Payment Entry for WooCommerce Orders that have been marked as Paid
+		"""
+		try:
+			sales_order = frappe.get_doc("Sales Order", sales_order_name)
+			wc_server = next(
+				(
+					server
+					for server in self.settings.servers
+					if sales_order.woocommerce_server in server.woocommerce_server_url
+				),
+				None,
+			)
+			if not wc_server:
+				raise ValueError("Could not find woocommerce_server in list of servers")
+
+			# Validate that WooCommerce order has been paid, and that sales order doesn't have a linked Payment Entry yet
+			if (
+				wc_server.enable_payments_sync
+				and wc_order_data["payment_method"]
+				and wc_order_data["date_paid"]
+				and not sales_order.woocommerce_payment_entry
+			):
+				# Get Company Bank Account for this Payment Method
+				payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
+				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
+
+				if company_bank_account:
+					# Get G/L Account for this Payment Method
+					payment_method_gl_account_mapping = json.loads(wc_server.payment_method_gl_account_mapping)
+					company_gl_account = payment_method_gl_account_mapping[wc_order_data["payment_method"]]
+
+					# Create a new Payment Entry
+					company = frappe.get_value("Account", company_gl_account, "company")
+					meta_data = wc_order_data.get("meta_data", None)
+
+					# Attempt to get Payfast Transaction ID
+					payment_reference_no = wc_order_data.get("transaction_id", None)
+
+					# Attempt to get Yoco Transaction ID
+					if not payment_reference_no:
+						payment_reference_no = (
+							next(
+								(data["value"] for data in meta_data if data["key"] == "yoco_order_payment_id"),
+								None,
+							)
+							if meta_data and type(meta_data) is list
+							else None
+						)
+					payment_entry_dict = {
+						"company": company,
+						"payment_type": "Receive",
+						"reference_no": payment_reference_no or wc_order_data["payment_method_title"],
+						"reference_date": wc_order_data["date_paid"],
+						"party_type": "Customer",
+						"party": sales_order.customer,
+						"posting_date": wc_order_data["date_paid"],
+						"paid_amount": float(wc_order_data["total"]),
+						"received_amount": float(wc_order_data["total"]),
+						"bank_account": company_bank_account,
+						"paid_to": company_gl_account,
+					}
+					payment_entry = frappe.new_doc("Payment Entry")
+					payment_entry.update(payment_entry_dict)
+					row = payment_entry.append("references")
+					row.reference_doctype = "Sales Order"
+					row.reference_name = sales_order.name
+					row.total_amount = sales_order.grand_total
+					row.allocated_amount = sales_order.grand_total
+					payment_entry.save()
+
+					# Link created Payment Entry to Sales Order
+					sales_order.woocommerce_payment_entry = payment_entry.name
+					sales_order.save()
+
+		except Exception as e:
+			raise e
+			frappe.log_error(
+				"WooCommerce Sync Task Error",
+				f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
+			)
+			return
+
+	@staticmethod
+	def update_woocommerce_order(wc_order_data: Dict, sales_order_name: str) -> None:
+		"""
+		Update the WooCommerce Order with fields from it's corresponding ERPNext Sales Order
+		"""
+		# Get the Sales Order doc
+		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+
+		# Get the WooCommerce Order doc
+		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_data["name"]})
+		wc_order.load_from_db()
+
+		# Update the woocommerce_status field if necessary
+		sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
+		if sales_order_wc_status != wc_order.status:
+			wc_order.status = sales_order_wc_status
+			try:
+				wc_order.save()
+			except Exception:
+				frappe.log_error(
+					"WooCommerce Sync Task Error",
+					f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
+				)
+
+	def create_sales_order(self, wc_order_data: Dict) -> None:
+		"""
+		Create an ERPNext Sales Order from the given WooCommerce Order
+		"""
+		raw_billing_data = wc_order_data.get("billing")
+		raw_shipping_data = wc_order_data.get("shipping")
+		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
+		customer_docname = self.create_or_link_customer_and_address(
+			raw_billing_data, raw_shipping_data, customer_name
+		)
+		try:
+			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
+		except Exception:
+			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
+			frappe.log_error("WooCommerce Error", error_message)
+			raise
+		self.link_items(wc_order_data.get("line_items"), site_domain)
+
+		new_sales_order = frappe.new_doc("Sales Order")
+		new_sales_order.customer = customer_docname
+		new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order_data.get("id")
+
+		try:
+			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
+			new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[
+				wc_order_data.get("status")
+			]
+		except Exception:
+			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
+			frappe.log_error("WooCommerce Error", error_message)
+			raise
+
+		new_sales_order.woocommerce_server = site_domain
+		new_sales_order.woocommerce_payment_method = wc_order_data.get("payment_method_title", None)
+		new_sales_order.naming_series = self.settings.sales_order_series or "SO-WOO-"
+		created_date = wc_order_data.get("date_created").split("T")
+		new_sales_order.transaction_date = created_date[0]
+		delivery_after = self.settings.delivery_after_days or 7
+		new_sales_order.delivery_date = frappe.utils.add_days(created_date[0], delivery_after)
+		new_sales_order.company = self.settings.company
+		self.set_items_in_sales_order(new_sales_order, wc_order_data)
+		new_sales_order.flags.ignore_mandatory = True
+		try:
+			new_sales_order.insert()
+			if self.settings.submit_sales_orders:
+				new_sales_order.submit()
+		except Exception:
+			error_message = (
+				f"{frappe.get_traceback()}\n\nSales Order Data: \n{str(new_sales_order.as_dict())})"
+			)
+			frappe.log_error("WooCommerce Error", error_message)
+
+		# manually commit, following convention in ERPNext
+		# nosemgrep
+		frappe.db.commit()
+
+		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_data.get("id")})
+		self.create_and_link_payment_entry(wc_order_data, sales_order.name)
+
+	@staticmethod
+	def create_or_link_customer_and_address(
+		raw_billing_data: Dict, raw_shipping_data: Dict, customer_name: str
+	) -> None:
+		"""
+		Create or update Customer and Address records
+		"""
+		customer_woo_com_email = raw_billing_data.get("email")
+		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
+		if not customer_exists:
+			# Create Customer
+			customer = frappe.new_doc("Customer")
+			customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
+			customer.name = customer_docname
+		else:
+			# Edit Customer
+			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
+			old_name = customer.customer_name
+
+		customer.customer_name = customer_name
+		customer.woocommerce_email = customer_woo_com_email
+		customer.flags.ignore_mandatory = True
+
+		try:
+			customer.save()
+		except Exception:
+			error_message = f"{frappe.get_traceback()}\n\nCustomer Data{str(customer.as_dict())}"
+			frappe.log_error("WooCommerce Error", error_message)
+
+		if customer_exists:
+			for address_type in (
+				"Billing",
+				"Shipping",
+			):
+				try:
+					address = frappe.get_doc(
+						"Address", {"woocommerce_email": customer_woo_com_email, "address_type": address_type}
+					)
+					rename_address(address, customer)
+				except (
+					frappe.DoesNotExistError,
+					frappe.DuplicateEntryError,
+					frappe.ValidationError,
+				):
+					pass
+		else:
+			create_address(raw_billing_data, customer, "Billing")
+			create_address(raw_shipping_data, customer, "Shipping")
+			create_contact(raw_billing_data, customer)
+
+		return customer.name
+
+	def link_items(self, items_list, woocommerce_site):
+		"""
+		Searching for items linked to multiple WooCommerce sites
+		"""
+		for item_data in items_list:
+			item_woo_com_id = cstr(item_data.get("product_id"))
+
+			item_codes = frappe.db.get_all(
+				"Item WooCommerce Server",
+				filters={"woocommerce_id": item_woo_com_id, "woocommerce_server": woocommerce_site},
+				fields=["parent"],
+			)
+			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+			if not found_item:
+				# Create Item
+				item = frappe.new_doc("Item")
+				item.item_code = _("woocommerce - {0}").format(item_woo_com_id)
+				item.stock_uom = self.settings.uom or _("Nos")
+				item.item_group = self.settings.item_group
+				item.item_name = item_data.get("name")
+				row = item.append("woocommerce_servers")
+				row.woocommerce_id = item_woo_com_id
+				row.woocommerce_server = woocommerce_site
+				item.flags.ignore_mandatory = True
+				item.save()
+
+	def set_items_in_sales_order(self, new_sales_order, order):
+		"""
+		Customised version of set_items_in_sales_order to allow searching for items linked to
+		multiple WooCommerce sites
+		"""
+		company_abbr = frappe.db.get_value("Company", self.settings.company, "abbr")
+
+		default_warehouse = _("Stores - {0}").format(company_abbr)
+		if not frappe.db.exists("Warehouse", default_warehouse) and not self.settings.warehouse:
+			frappe.throw(_("Please set Warehouse in Woocommerce Settings"))
+
+		for item in order.get("line_items"):
+			woocomm_item_id = item.get("product_id")
+			# ==================================== Custom code starts here ==================================== #
+			# Original code
+			# found_item = frappe.get_doc("Item", {"woocommerce_id": cstr(woocomm_item_id)})
+			item_codes = frappe.db.get_all(
+				"Item WooCommerce Server",
+				filters={
+					"woocommerce_id": cstr(woocomm_item_id),
+					"woocommerce_server": new_sales_order.woocommerce_server,
+				},
+				fields=["parent"],
+			)
+			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+			# ==================================== Custom code ends here ==================================== #
+			ordered_items_tax = item.get("total_tax")
+
+			new_sales_order.append(
+				"items",
+				{
+					"item_code": found_item.name,
+					"item_name": found_item.item_name,
+					"description": found_item.item_name,
+					"delivery_date": new_sales_order.delivery_date,
+					"uom": self.settings.uom or _("Nos"),
+					"qty": item.get("quantity"),
+					"rate": item.get("price"),
+					"warehouse": self.settings.warehouse or default_warehouse,
+				},
+			)
+
+			add_tax_details(
+				new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
+			)
+
+		# shipping_details = order.get("shipping_lines") # used for detailed order
+
+		add_tax_details(
+			new_sales_order, order.get("shipping_tax"), "Shipping Tax", self.settings.f_n_f_account
+		)
+		add_tax_details(
+			new_sales_order,
+			order.get("shipping_total"),
+			"Shipping Total",
+			self.settings.f_n_f_account,
+		)
+
+
+def rename_address(address, customer):
+	old_address_title = address.name
+	new_address_title = customer.name + "-" + address.address_type
+	address.address_title = customer.customer_name
+	address.save()
+
+	frappe.rename_doc("Address", old_address_title, new_address_title)
+
+
+def create_address(raw_data, customer, address_type):
+	address = frappe.new_doc("Address")
+
+	address.address_line1 = raw_data.get("address_1", "Not Provided")
+	address.address_line2 = raw_data.get("address_2", "Not Provided")
+	address.city = raw_data.get("city", "Not Provided")
+	address.woocommerce_email = customer.woocommerce_email
+	address.address_type = address_type
+	address.country = frappe.get_value("Country", {"code": raw_data.get("country", "IN").lower()})
+	address.state = raw_data.get("state")
+	address.pincode = raw_data.get("postcode")
+	address.phone = raw_data.get("phone")
+	address.email_id = customer.woocommerce_email
+	address.append("links", {"link_doctype": "Customer", "link_name": customer.name})
+
+	address.flags.ignore_mandatory = True
+	address.save()
+
+
+def create_contact(data, customer):
+	email = data.get("email", None)
+	phone = data.get("phone", None)
+
+	if not email and not phone:
+		return
+
+	contact = frappe.new_doc("Contact")
+	contact.first_name = data.get("first_name")
+	contact.last_name = data.get("last_name")
+	contact.is_primary_contact = 1
+	contact.is_billing_contact = 1
+
+	if phone:
+		contact.add_phone(phone, is_primary_mobile_no=1, is_primary_phone=1)
+
+	if email:
+		contact.add_email(email, is_primary=1)
+
+	contact.append("links", {"link_doctype": "Customer", "link_name": customer.name})
+
+	contact.flags.ignore_mandatory = True
+	contact.save()
+
+
+def add_tax_details(sales_order, price, desc, tax_account_head):
+	sales_order.append(
+		"taxes",
+		{
+			"charge_type": "Actual",
+			"account_head": tax_account_head,
+			"tax_amount": price,
+			"description": desc,
+		},
+	)
+
+
+# @frappe.whitelist(allow_guest=True)
+# def custom_order(*args, **kwargs):
+# 	"""
+# 	Overrided version of erpnext.erpnext_integrations.connectors.woocommerce_connection.order
+# 	in order to populate our custom fields when a Webhook is received
+# 	"""
+# 	try:
+# 		# ==================================== Custom code starts here ==================================== #
+# 		# Original code
+# 		# _order(*args, **kwargs)
+# 		_custom_order(*args, **kwargs)
+# 		# ==================================== Custom code starts here ==================================== #
+# 	except Exception:
+# 		error_message = (
+# 			# ==================================== Custom code starts here ==================================== #
+# 			# Original Code
+# 			# frappe.get_traceback() + "\n\n Request Data: \n" + json.loads(frappe.request.data).__str__()
+# 			frappe.get_traceback()
+# 			+ "\n\n Request Data: \n"
+# 			+ str(frappe.request.data)
+# 			# ==================================== Custom code starts here ==================================== #
+# 		)
+# 		frappe.log_error("WooCommerce Error", error_message)
+# 		raise
+
+
+# def _custom_order(*args, **kwargs):
+# 	"""
+# 	Overrided version of erpnext.erpnext_integrations.connectors.woocommerce_connection._order
+# 	in order to populate our custom fields when a Webhook is received
+# 	"""
+# 	woocommerce_settings = frappe.get_doc("Woocommerce Settings")
+# 	if frappe.flags.woocomm_test_order_data:
+# 		order = frappe.flags.woocomm_test_order_data
+# 		event = "created"
+
+# 	elif frappe.request and frappe.request.data:
+# 		verify_request()
+# 		try:
+# 			order = json.loads(frappe.request.data)
+# 		except ValueError:
+# 			# woocommerce returns 'webhook_id=value' for the first request which is not JSON
+# 			order = frappe.request.data
+# 		event = frappe.get_request_header("X-Wc-Webhook-Event")
+
+# 	else:
+# 		return "success"
+
+# 	if event == "created":
+# 		sys_lang = frappe.get_single("System Settings").language or "en"
+# 		raw_billing_data = order.get("billing")
+# 		raw_shipping_data = order.get("shipping")
+# 		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
+# 		customer_docname = link_customer_and_address(raw_billing_data, raw_shipping_data, customer_name)
+# 		# ==================================== Custom code starts here ==================================== #
+# 		# Original code
+# 		# link_items(order.get("line_items"), woocommerce_settings, sys_lang)
+# 		# create_sales_order(order, woocommerce_settings, customer_name, sys_lang)
+# 		try:
+# 			site_domain = urlparse(order.get("_links")["self"][0]["href"]).netloc
+# 		except Exception:
+# 			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(order.as_dict())}"
+# 			frappe.log_error("WooCommerce Error", error_message)
+# 			raise
+# 		custom_link_items(
+# 			order.get("line_items"), woocommerce_settings, sys_lang, woocommerce_site=site_domain
+# 		)
+# 		custom_create_sales_order(order, woocommerce_settings, customer_docname, sys_lang)
+# 		# ==================================== Custom code ends here ==================================== #

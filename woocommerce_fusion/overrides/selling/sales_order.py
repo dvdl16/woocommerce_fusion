@@ -5,8 +5,8 @@ from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 from frappe import _
 from frappe.model.naming import get_default_naming_series, make_autoname
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
-	generate_woocommerce_order_name_from_domain_and_id,
+from woocommerce_fusion.woocommerce.woocommerce_api import (
+	generate_woocommerce_record_name_from_domain_and_id,
 )
 
 
@@ -24,11 +24,11 @@ class CustomSalesOrder(SalesOrder):
 		"""
 		if self.woocommerce_id:
 			# Get idx of site
-			woocommerce_additional_settings = frappe.get_single("WooCommerce Additional Settings")
+			woocommerce_integration_settings = frappe.get_single("WooCommerce Integration Settings")
 			wc_server = next(
 				(
 					server
-					for server in woocommerce_additional_settings.servers
+					for server in woocommerce_integration_settings.servers
 					if self.woocommerce_server == server.woocommerce_server
 				),
 				None,
@@ -74,14 +74,14 @@ def get_woocommerce_order(woocommerce_server, woocommerce_id):
 	Retrieves a specific WooCommerce order based on its site and ID.
 	"""
 	# First verify if the WooCommerce site exits, and it sync is enabled
-	wc_order_name = generate_woocommerce_order_name_from_domain_and_id(
+	wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
 		woocommerce_server, woocommerce_id
 	)
-	wc_additional_settings = frappe.get_cached_doc("WooCommerce Additional Settings")
+	wc_integration_settings = frappe.get_cached_doc("WooCommerce Integration Settings")
 	wc_server = next(
 		(
 			server
-			for server in wc_additional_settings.servers
+			for server in wc_integration_settings.servers
 			if woocommerce_server == server.woocommerce_server
 		),
 		None,
@@ -90,14 +90,14 @@ def get_woocommerce_order(woocommerce_server, woocommerce_id):
 	if not wc_server:
 		frappe.throw(
 			_(
-				"This Sales Order is linked to WooCommerce site '{0}', but this site can not be found in 'WooCommerce Additional Settings'"
+				"This Sales Order is linked to WooCommerce site '{0}', but this site can not be found in 'WooCommerce Integration Settings'"
 			).format(woocommerce_server)
 		)
 
 	if not wc_server.enable_sync:
 		frappe.throw(
 			_(
-				"This Sales Order is linked to WooCommerce site '{0}', but Synchronisation for this site is disabled in 'WooCommerce Additional Settings'"
+				"This Sales Order is linked to WooCommerce site '{0}', but Synchronisation for this site is disabled in 'WooCommerce Integration Settings'"
 			).format(woocommerce_server)
 		)
 

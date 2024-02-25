@@ -1,11 +1,12 @@
-# Copyright (c) 2023, Dirk van der Laarse and contributors
+# Copyright (c) 2024, Dirk van der Laarse and contributors
 # For license information, please see license.txt
+
 import frappe
 from frappe.model.document import Document
 from woocommerce import API
 
 
-class WooCommerceAdditionalSettings(Document):
+class WooCommerceIntegrationSettings(Document):
 	def validate(self):
 		# Loop through servers and get Shipment Providers if the "Advanced Shipment Tracking"
 		# woocommerce plugin is used
@@ -41,7 +42,7 @@ def get_woocommerce_shipment_providers(woocommerce_server_domain):
 	"""
 	Return the Shipment Providers for a given WooCommerce Server domain
 	"""
-	wc_settings = frappe.get_single("WooCommerce Additional Settings")
+	wc_settings = frappe.get_single("WooCommerce Integration Settings")
 	return next(
 		(
 			wc_server.wc_ast_shipment_providers

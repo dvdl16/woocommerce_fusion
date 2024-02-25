@@ -6,8 +6,10 @@ from erpnext import get_default_company
 from erpnext.stock.doctype.item.test_item import create_item
 
 from woocommerce_fusion.tasks.stock_update import update_stock_levels_on_woocommerce_site
-from woocommerce_fusion.tasks.test_integration_helpers import TestIntegrationWooCommerce
-from woocommerce_fusion.tasks.test_sync import get_woocommerce_server
+from woocommerce_fusion.tasks.test_integration_helpers import (
+	TestIntegrationWooCommerce,
+	get_woocommerce_server,
+)
 
 
 class TestIntegrationWooCommerceStockSync(TestIntegrationWooCommerce):

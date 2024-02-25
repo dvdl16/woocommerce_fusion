@@ -8,7 +8,8 @@
  "field_order": [
   "woocommerce_id",
   "woocommerce_site",
-  "woocommerce_server"
+  "woocommerce_server",
+  "view_product"
  ],
  "fields": [
   {
@@ -29,12 +30,17 @@
    "in_list_view": 1,
    "label": "WooCommerce Server",
    "options": "WooCommerce Server"
+  },
+  {
+   "fieldname": "view_product",
+   "fieldtype": "Button",
+   "label": "View Product"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-11-15 08:04:57.467249",
+ "modified": "2024-02-25 17:10:30.524855",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "Item WooCommerce Server",
