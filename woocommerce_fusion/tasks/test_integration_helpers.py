@@ -49,6 +49,8 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		row.woocommerce_server_url = self.wc_url
 		row.api_consumer_key = self.wc_consumer_key
 		row.api_consumer_secret = self.wc_consumer_secret
+		row.enable_price_list_sync = 1
+		row.price_list = "_Test Price List"
 		bank_account = create_bank_account()
 		gl_account = create_gl_account_for_bank()
 		row.enable_payments_sync = 1
@@ -113,7 +115,9 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		return response.json()["id"]
 
-	def post_woocommerce_product(self, product_name: str, opening_stock: float = 0) -> int:
+	def post_woocommerce_product(
+		self, product_name: str, opening_stock: float = 0, regular_price: float = 10
+	) -> int:
 		"""
 		Create a dummy product on a WooCommerce testing site
 		"""
@@ -131,7 +135,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 			{
 				"name": product_name,
 				"type": "simple",
-				"regular_price": "10.00",
+				"regular_price": str(regular_price),
 				"description": "This is a new product",
 				"short_description": "New Product",
 				"manage_stock": True,  # Enable stock management
@@ -150,8 +154,6 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		"""
 		Get a products stock quantity from a WooCommerce testing site
 		"""
-		import json
-
 		from requests_oauthlib import OAuth1Session
 
 		# Initialize OAuth1 session
@@ -168,6 +170,27 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		stock_quantity = product_data.get("stock_quantity", "Not available")
 
 		return stock_quantity
+
+	def get_woocommerce_product_price(self, product_id: int) -> float:
+		"""
+		Get a product's price from a WooCommerce testing site
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/products/{product_id}"
+		headers = {"Content-Type": "application/json"}
+
+		# Making the API call
+		response = oauth.get(url, headers=headers)
+
+		product_data = response.json()
+		price = product_data.get("price", "Not available")
+
+		return price
 
 
 def create_bank_account(

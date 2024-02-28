@@ -20,7 +20,10 @@
   "section_payments_sync",
   "enable_payments_sync",
   "payment_method_bank_account_mapping",
-  "payment_method_gl_account_mapping"
+  "payment_method_gl_account_mapping",
+  "section_break_hnji",
+  "enable_price_list_sync",
+  "price_list"
  ],
  "fields": [
   {
@@ -84,7 +87,7 @@
    "default": "0",
    "fieldname": "enable_payments_sync",
    "fieldtype": "Check",
-   "label": "Enably Payments Sync"
+   "label": "Enable Payments Sync"
   },
   {
    "fieldname": "section_payments_sync",
@@ -110,12 +113,30 @@
    "label": "Woocommerce Server",
    "options": "WooCommerce Server",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_break_hnji",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_price_list_sync",
+   "fieldtype": "Check",
+   "label": "Enable Price List Sync"
+  },
+  {
+   "depends_on": "eval: doc.enable_price_list_sync",
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "label": "Price List",
+   "mandatory_depends_on": "eval: doc.enable_price_list_sync",
+   "options": "Price List"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2023-12-06 12:22:29.643614",
+ "modified": "2024-02-28 10:28:00.360226",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings Servers",
