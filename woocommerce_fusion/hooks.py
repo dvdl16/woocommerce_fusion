@@ -124,6 +124,9 @@ doc_events = {
 		"on_submit": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
 		"on_cancel": "woocommerce_fusion.tasks.stock_update.update_stock_levels_for_woocommerce_item",
 	},
+	"Item Price": {
+		"on_update": "woocommerce_fusion.tasks.sync_item_prices.update_item_price_for_woocommerce_item_from_hook"
+	},
 }
 
 # Scheduled Tasks
@@ -138,7 +141,8 @@ scheduler_events = {
 	# 	],
 	"hourly": ["woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync"],
 	"daily": [
-		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background"
+		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background",
+		"woocommerce_fusion.tasks.sync_item_prices.run_item_price_sync",
 	],
 	# 	"monthly": [
 	# 		"woocommerce_fusion.tasks.monthly"
