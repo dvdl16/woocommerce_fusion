@@ -41,6 +41,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		woocommerce_settings.company = "Some Company (Pty) Ltd"
 		woocommerce_settings.item_group = "Products"
 		woocommerce_settings.warehouse = "Stores - SC"
+		woocommerce_settings.submit_sales_orders = 1
 		woocommerce_settings.wc_last_sync_date = add_to_date(now(), days=-1)
 		woocommerce_settings.servers = []
 		row = woocommerce_settings.append("servers")

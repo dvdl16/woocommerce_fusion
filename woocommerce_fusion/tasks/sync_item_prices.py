@@ -98,13 +98,13 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 			)
 			wc_product = frappe.get_doc({"doctype": "WooCommerce Product", "name": wc_product_name})
 
-			# try:
-			wc_product.load_from_db()
+			try:
+				wc_product.load_from_db()
 
-			price_list_rate = self.price_list_rate or item_price.price_list_rate
-			if wc_product.regular_price != price_list_rate:
-				wc_product.regular_price = price_list_rate
-				wc_product.save()
-			# except Exception:
-			# 	error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
-			# 	frappe.log_error("WooCommerce Error: Price List Sync", error_message)
+				price_list_rate = self.price_list_rate or item_price.price_list_rate
+				if wc_product.regular_price != price_list_rate:
+					wc_product.regular_price = price_list_rate
+					wc_product.save()
+			except Exception:
+				error_message = f"{frappe.get_traceback()}\n\n Product Data: \n{str(wc_product.as_dict())}"
+				frappe.log_error("WooCommerce Error: Price List Sync", error_message)
