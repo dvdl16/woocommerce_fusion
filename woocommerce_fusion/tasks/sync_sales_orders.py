@@ -34,6 +34,7 @@ def run_sales_orders_sync_in_background():
 	frappe.enqueue(run_sales_orders_sync, queue="long")
 
 
+@frappe.whitelist()
 def run_sales_orders_sync(sales_order_name: Optional[str] = None):
 	sync = SynchroniseSalesOrders(sales_order_name=sales_order_name)
 	sync.run()
@@ -179,7 +180,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
 		wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
 			domain=sales_order.woocommerce_server,
-			order_id=sales_order.woocommerce_id,
+			resource_id=sales_order.woocommerce_id,
 		)
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
 		wc_order.load_from_db()
@@ -284,9 +285,13 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					# Link created Payment Entry to Sales Order
 					sales_order.woocommerce_payment_entry = payment_entry.name
 					sales_order.save()
+				else:
+					frappe.log_error(
+						"WooCommerce Sync Task Error",
+						f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\nWooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings",
+					)
 
 		except Exception as e:
-			raise e
 			frappe.log_error(
 				"WooCommerce Sync Task Error",
 				f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
@@ -369,12 +374,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			)
 			frappe.log_error("WooCommerce Error", error_message)
 
-		# manually commit, following convention in ERPNext
-		# nosemgrep
-		frappe.db.commit()
-
-		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_data.get("id")})
-		self.create_and_link_payment_entry(wc_order_data, sales_order.name)
+		self.create_and_link_payment_entry(wc_order_data, new_sales_order.name)
 
 	@staticmethod
 	def create_or_link_customer_and_address(
