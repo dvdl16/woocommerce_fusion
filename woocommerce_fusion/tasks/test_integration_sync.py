@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 import frappe
 
 from woocommerce_fusion.tasks.sync_sales_orders import run_sales_orders_sync
@@ -35,7 +36,9 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
 
-	def test_sync_create_new_sales_order_and_pe_when_synchronising_with_woocommerce(self, mock_log_error):
+	def test_sync_create_new_sales_order_and_pe_when_synchronising_with_woocommerce(
+		self, mock_log_error
+	):
 		"""
 		Test that the Sales Order Synchornisation method creates new Sales orders and a Payment Entry
 		when there are new fully paid WooCommerce orders.
@@ -59,7 +62,9 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
 
-	def test_sync_create_new_draft_sales_order_when_synchronising_with_woocommerce(self, mock_log_error):
+	def test_sync_create_new_draft_sales_order_when_synchronising_with_woocommerce(
+		self, mock_log_error
+	):
 		"""
 		Test that the Sales Order Synchornisation method creates new Draft Sales orders without errors
 		when the submit_sales_orders setting is set to 0
@@ -80,7 +85,6 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
 		self.assertIsNotNone(sales_order)
 
-
 		# Teardown
 		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
 		woocommerce_settings.submit_sales_orders = 1
@@ -89,8 +93,9 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
 
-
-	def test_sync_link_payment_entry_after_so_submitted_when_synchronising_with_woocommerce(self, mock_log_error):
+	def test_sync_link_payment_entry_after_so_submitted_when_synchronising_with_woocommerce(
+		self, mock_log_error
+	):
 		"""
 		Test that the Sales Order Synchornisation method creates a linked Payment Entry if there are no linked
 		PE's on a now-submitted Sales Order

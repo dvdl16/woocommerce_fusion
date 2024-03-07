@@ -151,9 +151,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		return response.json()["id"]
 
-	def delete_woocommerce_order(
-		self, wc_order_id: int
-	) -> None:
+	def delete_woocommerce_order(self, wc_order_id: int) -> None:
 		"""
 		Delete an order on a WooCommerce testing site
 		"""

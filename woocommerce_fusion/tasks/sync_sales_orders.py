@@ -135,7 +135,15 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				"woocommerce_id": ["in", [order["id"] for order in self.wc_order_list]],
 				"woocommerce_server": ["in", [order["woocommerce_server"] for order in self.wc_order_list]],
 			},
-			fields=["name", "woocommerce_id", "woocommerce_server", "modified", "docstatus", "woocommerce_payment_entry", "custom_attempted_woocommerce_auto_payment_entry"],
+			fields=[
+				"name",
+				"woocommerce_id",
+				"woocommerce_server",
+				"modified",
+				"docstatus",
+				"woocommerce_payment_entry",
+				"custom_attempted_woocommerce_auto_payment_entry",
+			],
 		)
 
 	def sync_wc_orders_with_erpnext_sales_orders(self):
@@ -155,17 +163,17 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			if wc_order["name"] in sales_orders_dict:
 				so = sales_orders_dict[wc_order["name"]]
 				# If the Sales Order exists and it has been updated after last_updated, update it
-				if get_datetime(wc_order["date_modified"]) > get_datetime(
-					so.modified
-				):
+				if get_datetime(wc_order["date_modified"]) > get_datetime(so.modified):
 					self.update_sales_order(wc_order, so.name)
-				if get_datetime(wc_order["date_modified"]) < get_datetime(
-					so.modified
-				):
+				if get_datetime(wc_order["date_modified"]) < get_datetime(so.modified):
 					self.update_woocommerce_order(wc_order, so.name)
 
 				# If the Sales Order exists and has been submitted in the mean time, sync Payment Entries
-				if so.docstatus == 1 and not so.woocommerce_payment_entry and not so.custom_attempted_woocommerce_auto_payment_entry:
+				if (
+					so.docstatus == 1
+					and not so.woocommerce_payment_entry
+					and not so.custom_attempted_woocommerce_auto_payment_entry
+				):
 					self.create_and_link_payment_entry(wc_order, so.name)
 			else:
 				# If the Sales Order does not exist, create it
@@ -243,7 +251,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
 
 				if wc_order_data["payment_method"] not in payment_method_bank_account_mapping:
-					raise KeyError(f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings")
+					raise KeyError(
+						f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings"
+					)
 
 				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
 
