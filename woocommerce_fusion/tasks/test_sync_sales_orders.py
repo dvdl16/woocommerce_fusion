@@ -162,6 +162,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_order.customer = "customer_1"
 		mock_sales_order.grand_total = 100
 		mock_sales_order.name = "SO-0001"
+		mock_sales_order.docstatus = 1
 
 		sync.settings = MagicMock()
 		sync.settings.servers = [

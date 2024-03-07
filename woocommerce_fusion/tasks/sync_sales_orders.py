@@ -134,9 +134,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters={
 				"woocommerce_id": ["in", [order["id"] for order in self.wc_order_list]],
 				"woocommerce_server": ["in", [order["woocommerce_server"] for order in self.wc_order_list]],
-				"docstatus": 1,
 			},
-			fields=["name", "woocommerce_id", "woocommerce_server", "modified"],
+			fields=["name", "woocommerce_id", "woocommerce_server", "modified", "docstatus", "woocommerce_payment_entry", "custom_attempted_woocommerce_auto_payment_entry"],
 		)
 
 	def sync_wc_orders_with_erpnext_sales_orders(self):
@@ -154,15 +153,20 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		# Loop through each order
 		for wc_order in self.wc_order_list:
 			if wc_order["name"] in sales_orders_dict:
+				so = sales_orders_dict[wc_order["name"]]
 				# If the Sales Order exists and it has been updated after last_updated, update it
 				if get_datetime(wc_order["date_modified"]) > get_datetime(
-					sales_orders_dict[wc_order["name"]].modified
+					so.modified
 				):
-					self.update_sales_order(wc_order, sales_orders_dict[wc_order["name"]].name)
+					self.update_sales_order(wc_order, so.name)
 				if get_datetime(wc_order["date_modified"]) < get_datetime(
-					sales_orders_dict[wc_order["name"]].modified
+					so.modified
 				):
-					self.update_woocommerce_order(wc_order, sales_orders_dict[wc_order["name"]].name)
+					self.update_woocommerce_order(wc_order, so.name)
+
+				# If the Sales Order exists and has been submitted in the mean time, sync Payment Entries
+				if so.docstatus == 1 and not so.woocommerce_payment_entry and not so.custom_attempted_woocommerce_auto_payment_entry:
+					self.create_and_link_payment_entry(wc_order, so.name)
 			else:
 				# If the Sales Order does not exist, create it
 				self.create_sales_order(wc_order)
@@ -233,9 +237,14 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				and wc_order_data["payment_method"]
 				and wc_order_data["date_paid"]
 				and not sales_order.woocommerce_payment_entry
+				and sales_order.docstatus == 1
 			):
 				# Get Company Bank Account for this Payment Method
 				payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
+
+				if wc_order_data["payment_method"] not in payment_method_bank_account_mapping:
+					raise KeyError(f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings")
+
 				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
 
 				if company_bank_account:
@@ -284,12 +293,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 					# Link created Payment Entry to Sales Order
 					sales_order.woocommerce_payment_entry = payment_entry.name
-					sales_order.save()
-				else:
-					frappe.log_error(
-						"WooCommerce Sync Task Error",
-						f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\nWooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings",
-					)
+
+				sales_order.custom_attempted_woocommerce_auto_payment_entry = 1
+				sales_order.save()
 
 		except Exception as e:
 			frappe.log_error(

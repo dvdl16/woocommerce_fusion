@@ -151,6 +151,24 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		return response.json()["id"]
 
+	def delete_woocommerce_order(
+		self, wc_order_id: int
+	) -> None:
+		"""
+		Delete an order on a WooCommerce testing site
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/orders/{wc_order_id}"
+		headers = {"Content-Type": "application/json"}
+
+		# Making the API call
+		oauth.delete(url, headers=headers)
+
 	def get_woocommerce_product_stock_level(self, product_id: int) -> float:
 		"""
 		Get a products stock quantity from a WooCommerce testing site
