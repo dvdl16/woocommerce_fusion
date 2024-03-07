@@ -165,7 +165,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				# If the Sales Order exists and it has been updated after last_updated, update it
 				if get_datetime(wc_order["date_modified"]) > get_datetime(so.modified):
 					self.update_sales_order(wc_order, so.name)
-				if get_datetime(wc_order["date_modified"]) < get_datetime(so.modified):
+				if get_datetime(wc_order["date_modified"]) < get_datetime(so.modified) and so.docstatus == 1:
 					self.update_woocommerce_order(wc_order, so.name)
 
 				# If the Sales Order exists and has been submitted in the mean time, sync Payment Entries

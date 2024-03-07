@@ -82,6 +82,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-12-25"
+		sales_order.docstatus = 1
 		sync.sales_orders_list = [sales_order]
 
 		# Create dummy WooCommerce Order
