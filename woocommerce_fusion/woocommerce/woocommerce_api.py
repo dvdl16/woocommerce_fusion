@@ -297,6 +297,20 @@ class WooCommerceResource(Document):
 
 		record = self.before_db_update(record)
 
+		# Drop fields with values that are unchanged
+		record_data_before_save = self._doc_before_save.to_dict()
+		record_before_save = self.deserialize_attributes_of_type_dict_or_list(record_data_before_save)
+		if self.field_setter_map:
+			for new_key, old_key in self.field_setter_map.items():
+				record_before_save[old_key] = record_before_save[new_key]
+		keys_to_pop = [
+			key
+			for key, value in record.items()
+			if record_before_save.get(key) == value or str(record_before_save.get(key)) == str(value)
+		]
+		for key in keys_to_pop:
+			record.pop(key)
+
 		# Parse the server domain and order_id from the Document name
 		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_record_name(self.name)
 

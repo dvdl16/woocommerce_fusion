@@ -79,16 +79,7 @@ class WooCommerceProduct(WooCommerceResource):
 		# Set corrected properties
 		product["name"] = str(product["woocommerce_name"])
 
-		# Remove the read-only `display_value` and `display_key` attributes as per
-		# https://github.com/woocommerce/woocommerce/issues/32038#issuecomment-1117140390
-		# This avoids HTTP 400 errors when updating orders, e.g. "line_items[0][meta_data][0][display_value] is not of type string"
-		# if "line_items" in order and order["line_items"]:
-		# 	for line in order["line_items"]:
-		# 		if "meta_data" in line:
-		# 			for meta in line["meta_data"]:
-		# 				if "display_key" in meta:
-		# 					meta.pop("display_key")
-		# 				if "display_value" in meta:
-		# 					meta.pop("display_value")
+		# Drop 'related_ids' field
+		product.pop("related_ids")
 
 		return product
