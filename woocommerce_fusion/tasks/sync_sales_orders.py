@@ -34,6 +34,11 @@ def run_sales_orders_sync_in_background():
 	frappe.enqueue(run_sales_orders_sync, queue="long")
 
 
+def run_sales_orders_sync_from_hook(doc, method):
+	if doc == "Sales Order":
+		frappe.enqueue(run_sales_orders_sync, queue="long", sales_order_name=doc.name)
+
+
 @frappe.whitelist()
 def run_sales_orders_sync(sales_order_name: Optional[str] = None):
 	sync = SynchroniseSalesOrders(sales_order_name=sales_order_name)
@@ -337,6 +342,18 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					"WooCommerce Sync Task Error",
 					f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
 				)
+
+		# Update the line_items field if necessary
+		# sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
+		# if sales_order_wc_status != wc_order.status:
+		# 	wc_order.status = sales_order_wc_status
+		# 	try:
+		# 		wc_order.save()
+		# 	except Exception:
+		# 		frappe.log_error(
+		# 			"WooCommerce Sync Task Error",
+		# 			f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
+		# 		)
 
 	def create_sales_order(self, wc_order_data: Dict) -> None:
 		"""
