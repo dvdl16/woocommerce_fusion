@@ -16,22 +16,30 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		"""
 		Test that the Sales Order Synchornisation method creates new Sales orders when there are new
 		WooCommerce orders.
+
+		Assumes that the Wordpress Site we're testing against has:
+		- Tax enabled
+		- Sales prices include tax
 		"""
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge")
+		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=1)
 
 		# Run synchronisation
 		run_sales_orders_sync()
+
+		# Expect no errors logged
+		mock_log_error.assert_not_called()
 
 		# Expect newly created Sales Order in ERPNext
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
 		self.assertIsNotNone(sales_order)
 
-		# Expect no errors logged
-		mock_log_error.assert_not_called()
-
 		# Expect correct payment method title on Sales Order
 		self.assertEqual(sales_order.woocommerce_payment_method, "Doge")
+
+		# Expect correct items in Sales Order
+		self.assertEqual(sales_order.items[0].rate, 8.7)
+		self.assertEqual(sales_order.items[0].qty, 1)
 
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)

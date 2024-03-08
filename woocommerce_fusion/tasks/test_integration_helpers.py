@@ -35,6 +35,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		woocommerce_settings.woocommerce_server_url = self.wc_url
 		woocommerce_settings.api_consumer_key = self.wc_consumer_key
 		woocommerce_settings.api_consumer_secret = self.wc_consumer_secret
+		woocommerce_settings.use_actual_tax_type = 1
 		woocommerce_settings.tax_account = "VAT - SC"
 		woocommerce_settings.f_n_f_account = "Freight and Forwarding Charges - SC"
 		woocommerce_settings.creation_user = "test@erpnext.com"
@@ -61,7 +62,11 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		woocommerce_settings.save()
 
 	def post_woocommerce_order(
-		self, set_paid: bool = False, payment_method_title: str = "Direct Bank Transfer"
+		self,
+		set_paid: bool = False,
+		payment_method_title: str = "Direct Bank Transfer",
+		item_price: float = 10,
+		item_qty: int = 1,
 	) -> int:
 		"""
 		Create a dummy order on a WooCommerce testing site
@@ -71,7 +76,9 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		from requests_oauthlib import OAuth1Session
 
 		# Create a product
-		wc_product_id = self.post_woocommerce_product(product_name="ITEM_FOR_SALES_ORDER")
+		wc_product_id = self.post_woocommerce_product(
+			product_name="ITEM_FOR_SALES_ORDER", regular_price=item_price
+		)
 
 		# Initialize OAuth1 session
 		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
@@ -106,7 +113,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 					"postcode": "12345",
 					"country": "US",
 				},
-				"line_items": [{"product_id": wc_product_id, "quantity": 1}],
+				"line_items": [{"product_id": wc_product_id, "quantity": item_qty}],
 			}
 		)
 		headers = {"Content-Type": "application/json"}

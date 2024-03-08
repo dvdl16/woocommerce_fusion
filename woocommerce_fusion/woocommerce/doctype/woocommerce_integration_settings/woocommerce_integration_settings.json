@@ -14,7 +14,9 @@
   "section_break_timespan",
   "minimum_creation_date",
   "section_break_accounting",
+  "use_actual_tax_type",
   "tax_account",
+  "sales_taxes_and_charges_template",
   "column_break_4b4vn",
   "f_n_f_account",
   "section_break_defaults",
@@ -74,11 +76,12 @@
    "label": "Accounting Details"
   },
   {
+   "depends_on": "eval: doc.use_actual_tax_type;",
    "fieldname": "tax_account",
    "fieldtype": "Link",
    "label": "Tax Account",
-   "options": "Account",
-   "reqd": 1
+   "mandatory_depends_on": "eval: doc.use_actual_tax_type;",
+   "options": "Account"
   },
   {
    "fieldname": "column_break_4b4vn",
@@ -161,12 +164,27 @@
    "label": "Warehouse",
    "options": "Warehouse",
    "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "If checked, a 'Sales Taxes and Charges' line of type 'Actual' will be added for every WooCommerce Line Item with tax",
+   "fieldname": "use_actual_tax_type",
+   "fieldtype": "Check",
+   "label": "Use 'Actual' Tax Type"
+  },
+  {
+   "depends_on": "eval: !doc.use_actual_tax_type;",
+   "fieldname": "sales_taxes_and_charges_template",
+   "fieldtype": "Link",
+   "label": "Sales Taxes and Charges Template",
+   "mandatory_depends_on": "eval: !doc.use_actual_tax_type;",
+   "options": "Sales Taxes and Charges Template"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-06 20:57:14.432971",
+ "modified": "2024-03-08 08:44:19.809214",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
