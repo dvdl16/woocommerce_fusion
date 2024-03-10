@@ -343,18 +343,6 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
 				)
 
-		# Update the line_items field if necessary
-		# sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
-		# if sales_order_wc_status != wc_order.status:
-		# 	wc_order.status = sales_order_wc_status
-		# 	try:
-		# 		wc_order.save()
-		# 	except Exception:
-		# 		frappe.log_error(
-		# 			"WooCommerce Sync Task Error",
-		# 			f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
-		# 		)
-
 	def create_sales_order(self, wc_order_data: Dict) -> None:
 		"""
 		Create an ERPNext Sales Order from the given WooCommerce Order
@@ -371,7 +359,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
 			frappe.log_error("WooCommerce Error", error_message)
 			raise
-		self.link_items(wc_order_data.get("line_items"), site_domain)
+		self.create_missing_items(wc_order_data.get("line_items"), site_domain)
 
 		new_sales_order = frappe.new_doc("Sales Order")
 		new_sales_order.customer = customer_docname
@@ -461,7 +449,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		return customer.name
 
-	def link_items(self, items_list, woocommerce_site):
+	def create_missing_items(self, items_list, woocommerce_site):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
@@ -492,28 +480,28 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Customised version of set_items_in_sales_order to allow searching for items linked to
 		multiple WooCommerce sites
 		"""
-		company_abbr = frappe.db.get_value("Company", self.settings.company, "abbr")
-
-		default_warehouse = _("Stores - {0}").format(company_abbr)
-		if not frappe.db.exists("Warehouse", default_warehouse) and not self.settings.warehouse:
-			frappe.throw(_("Please set Warehouse in Woocommerce Settings"))
+		if not self.settings.warehouse:
+			frappe.throw(_("Please set Warehouse in WooCommerce Integration Settings"))
 
 		for item in order.get("line_items"):
 			woocomm_item_id = item.get("product_id")
-			# ==================================== Custom code starts here ==================================== #
-			# Original code
-			# found_item = frappe.get_doc("Item", {"woocommerce_id": cstr(woocomm_item_id)})
-			item_codes = frappe.db.get_all(
-				"Item WooCommerce Server",
-				filters={
-					"woocommerce_id": cstr(woocomm_item_id),
-					"woocommerce_server": new_sales_order.woocommerce_server,
-				},
-				fields=["parent"],
-			)
+
+			iws = frappe.qb.DocType("Item WooCommerce Server")
+			itm = frappe.qb.DocType("Item")
+			item_codes = (
+				frappe.qb.from_(iws)
+				.join(itm)
+				.on(iws.parent == itm.name)
+				.where(
+					(iws.woocommerce_id == cstr(woocomm_item_id))
+					& (iws.woocommerce_server == new_sales_order.woocommerce_server)
+					& (itm.disabled == 0)
+				)
+				.select(iws.parent)
+				.limit(1)
+			).run(as_dict=True)
+
 			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
-			# ==================================== Custom code ends here ==================================== #
-			ordered_items_tax = item.get("total_tax")
 
 			new_sales_order.append(
 				"items",
@@ -524,16 +512,24 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					"delivery_date": new_sales_order.delivery_date,
 					"uom": self.settings.uom or _("Nos"),
 					"qty": item.get("quantity"),
-					"rate": item.get("price"),
-					"warehouse": self.settings.warehouse or default_warehouse,
+					"rate": item.get("price")
+					if self.settings.use_actual_tax_type
+					else (float(item.get("subtotal")) + float(item.get("subtotal_tax")))
+					/ float(item.get("quantity")),
+					"warehouse": self.settings.warehouse,
 				},
 			)
 
-			add_tax_details(
-				new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
-			)
+			if not self.settings.use_actual_tax_type:
+				new_sales_order.taxes_and_charges = self.settings.sales_taxes_and_charges_template
 
-		# shipping_details = order.get("shipping_lines") # used for detailed order
+				# Trigger taxes calculation
+				new_sales_order.set_missing_lead_customer_details()
+			else:
+				ordered_items_tax = item.get("total_tax")
+				add_tax_details(
+					new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
+				)
 
 		add_tax_details(
 			new_sales_order, order.get("shipping_tax"), "Shipping Tax", self.settings.f_n_f_account
