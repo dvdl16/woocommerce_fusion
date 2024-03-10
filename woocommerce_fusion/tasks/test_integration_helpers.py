@@ -216,6 +216,26 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		return price
 
+	def get_woocommerce_order(self, order_id: int) -> float:
+		"""
+		Get an order from a WooCommerce testing site
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/orders/{order_id}"
+		headers = {"Content-Type": "application/json"}
+
+		# Making the API call
+		response = oauth.get(url, headers=headers)
+
+		order_data = response.json()
+
+		return order_data
+
 
 def create_bank_account(
 	bank_name=default_bank, account_name="_Test Bank", company=default_company

@@ -50,7 +50,7 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-12-31"
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
@@ -93,7 +93,7 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-01-01"
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
@@ -103,7 +103,7 @@ class TestWooCommerceSync(FrappeTestCase):
 
 	@patch("woocommerce_fusion.tasks.sync.frappe")
 	@patch.object(SynchroniseSalesOrders, "create_sales_order")
-	def test_sync_sales_orders_while_passing_sales_order_should_create_so_if__no_so(
+	def test_sync_sales_orders_while_passing_sales_order_should_create_so_if_no_so(
 		self, mock_create_sales_order, mock_frappe
 	):
 		"""
@@ -133,7 +133,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()

@@ -4,7 +4,10 @@ import frappe
 from erpnext import get_default_company
 from erpnext.stock.doctype.item.test_item import create_item
 
-from woocommerce_fusion.tasks.sync_sales_orders import run_sales_orders_sync
+from woocommerce_fusion.tasks.sync_sales_orders import (
+	get_tax_inc_price_for_woocommerce_line_item,
+	run_sales_orders_sync,
+)
 from woocommerce_fusion.tasks.test_integration_helpers import (
 	TestIntegrationWooCommerce,
 	get_woocommerce_server,
@@ -221,6 +224,72 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
 		self.assertIsNotNone(sales_order.woocommerce_payment_entry)
 		self.assertEqual(sales_order.custom_attempted_woocommerce_auto_payment_entry, 1)
+
+		# Delete order in WooCommerce
+		self.delete_woocommerce_order(wc_order_id=wc_order_id)
+
+	def test_sync_updates_woocommerce_order_when_synchronising_with_woocommerce(self, mock_log_error):
+		"""
+		Test that the Sales Order Synchornisation method updates a WooCommerce Order
+		with changed fields from Sales Order
+		"""
+		# Setup
+		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
+		woocommerce_settings.submit_sales_orders = 0
+		for server in woocommerce_settings.servers:
+			server.enable_payments_sync = 0
+		woocommerce_settings.save()
+
+		# Create a new order in WooCommerce
+		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=3)
+
+		# Create an additional item in WooCommerce and in ERPNext, and link them
+		wc_product_id = self.post_woocommerce_product(product_name="ADDITIONAL_ITEM", regular_price=20)
+		# Create the same product in ERPNext and link it
+		item = create_item(
+			"ADDITIONAL_ITEM", valuation_rate=10, warehouse=None, company=get_default_company()
+		)
+		row = item.append("woocommerce_servers")
+		row.woocommerce_id = wc_product_id
+		row.woocommerce_server = get_woocommerce_server(self.wc_url).name
+		item.save()
+
+		# Run synchronisation for the ERPNext Sales Order to be created
+		run_sales_orders_sync()
+
+		# Expect no errors logged
+		mock_log_error.assert_not_called()
+
+		# Expect newly created Sales Order in ERPNext
+		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
+		self.assertIsNotNone(sales_order)
+
+		# In ERPNext, change quantity of first item, and add an additional item
+		sales_order.items[0].qty = 2
+		sales_order.append(
+			"items",
+			{
+				"item_code": item.name,
+				"delivery_date": sales_order.delivery_date,
+				"qty": 1,
+				"rate": 20,
+				"warehouse": woocommerce_settings.warehouse,
+			},
+		)
+		sales_order.save()
+		sales_order.submit()
+
+		# Run synchronisation again, to sync the Sales Order changes
+		run_sales_orders_sync(sales_order_name=sales_order.name)
+		mock_log_error.assert_not_called()
+
+		# Expect WooCommerce Order to have updated items
+		wc_order = self.get_woocommerce_order(order_id=wc_order_id)
+		wc_line_items = wc_order.get("line_items")
+		self.assertEqual(wc_line_items[0].get("quantity"), 2)
+		self.assertEqual(wc_line_items[1].get("name"), item.name)
+		self.assertEqual(wc_line_items[1].get("quantity"), 1)
+		self.assertEqual(get_tax_inc_price_for_woocommerce_line_item(wc_line_items[1]), 20)
 
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)

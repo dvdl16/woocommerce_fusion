@@ -55,7 +55,6 @@
    "default": "1",
    "fieldname": "submit_sales_orders",
    "fieldtype": "Check",
-   "hidden": 1,
    "label": "Submit Sales Orders during Synchronisation"
   },
   {
@@ -184,7 +183,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-08 08:44:19.809214",
+ "modified": "2024-03-10 12:47:50.289084",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",

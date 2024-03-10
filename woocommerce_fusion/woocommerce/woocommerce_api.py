@@ -401,7 +401,7 @@ def get_wc_parameters_from_filters(filters):
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	https://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-products
 	"""
-	supported_filter_fields = ["date_created", "date_modified", "name"]
+	supported_filter_fields = ["date_created", "date_modified", "id", "name"]
 
 	params = {}
 
@@ -424,10 +424,17 @@ def get_wc_parameters_from_filters(filters):
 			# e.g. ['WooCommerce Order', 'date_modified', '>', '2023-01-01']
 			params["modified_after"] = filter[3]
 			continue
-		if filter[1] == "name" and filter[2] == "=":
-			# e.g. ['WooCommerce Order', 'name', '=', '11']
-			# params['include'] = [filter[3]]
-			params["include"] = [13]
+		if filter[1] == "id" and filter[2] == "=":
+			# e.g. ['WooCommerce Order', 'id', '=', '11']
+			params["include"] = [filter[3]]
+			continue
+		if filter[1] == "id" and filter[2] == "in":
+			# e.g. ['WooCommerce Order', 'id', 'in', ['11', '12', '13']]
+			params["include"] = ",".join(filter[3])
+			continue
+		if filter[1] == "name" and filter[2] == "like":
+			# e.g. ['WooCommerce Order', 'name', 'like', '%11%']
+			params["search"] = filter[3].strip("%")
 			continue
 		frappe.throw(f"Unsupported filter '{filter[2]}' for field '{filter[1]}'")
 
