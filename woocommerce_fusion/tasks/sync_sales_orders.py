@@ -261,7 +261,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				self.create_sales_order(wc_order)
 
 		# Update Last Sales Order Sync Date Time
-		if not self.sales_order_name:
+		if not self.sales_order_name or self.woocommerce_order_id:
 			self.settings.wc_last_sync_date = now()
 			self.settings.save()
 
