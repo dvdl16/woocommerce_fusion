@@ -1,9 +1,9 @@
 ## WooCommerce Fusion
 
-![CI workflow](https://github.com/dvdl16/woocommerce_fusion/actions/workflows/ci.yml/badge.svg?branch=version-14)
+![CI workflow](https://github.com/dvdl16/woocommerce_fusion/actions/workflows/ci.yml/badge.svg?branch=version-15)
 [![codecov](https://codecov.io/gh/dvdl16/woocommerce_fusion/graph/badge.svg?token=A5OR5QIOUX)](https://codecov.io/gh/dvdl16/woocommerce_fusion)
 
-WooCommerce connector for ERPNext v14+
+WooCommerce connector for ERPNext v15
 
 #### License
 
@@ -65,5 +65,5 @@ semgrep --config=/workspace/development/frappe-semgrep-rules/rules apps/woocomme
 
 If you use VS Code, you can specify the `.flake8` config file in your `settings.json` file:
 ```shell
-"python.linting.flake8Args": ["--config=frappe-bench-v14/apps/woocommerce_fusion/.flake8_strict"]
+"python.linting.flake8Args": ["--config=frappe-bench-v15/apps/woocommerce_fusion/.flake8_strict"]
 ```
