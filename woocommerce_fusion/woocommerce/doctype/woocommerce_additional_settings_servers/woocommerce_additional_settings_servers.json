@@ -8,10 +8,10 @@
  "field_order": [
   "enable_sync",
   "wc_plugin_advanced_shipment_tracking",
+  "view_webhook_config",
   "section_break",
   "woocommerce_server",
   "woocommerce_server_url",
-  "secret",
   "column_break_7nm4k",
   "api_consumer_key",
   "api_consumer_secret",
@@ -43,12 +43,6 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Woocommerce Server URL",
-   "read_only": 1
-  },
-  {
-   "fieldname": "secret",
-   "fieldtype": "Code",
-   "label": "Secret",
    "read_only": 1
   },
   {
@@ -131,12 +125,17 @@
    "label": "Price List",
    "mandatory_depends_on": "eval: doc.enable_price_list_sync",
    "options": "Price List"
+  },
+  {
+   "fieldname": "view_webhook_config",
+   "fieldtype": "Button",
+   "label": "View WooCommerce Webhook Configuration"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-02-28 10:28:00.360226",
+ "modified": "2024-03-10 15:30:17.779789",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings Servers",

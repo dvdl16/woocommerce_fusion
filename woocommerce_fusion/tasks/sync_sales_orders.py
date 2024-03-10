@@ -34,9 +34,18 @@ def run_sales_orders_sync_in_background():
 	frappe.enqueue(run_sales_orders_sync, queue="long")
 
 
+def run_sales_orders_sync_from_hook(doc, method):
+	if doc == "Sales Order":
+		frappe.enqueue(run_sales_orders_sync, queue="long", sales_order_name=doc.name)
+
+
 @frappe.whitelist()
-def run_sales_orders_sync(sales_order_name: Optional[str] = None):
-	sync = SynchroniseSalesOrders(sales_order_name=sales_order_name)
+def run_sales_orders_sync(
+	sales_order_name: Optional[str] = None, woocommerce_order_id: Optional[str] = None
+):
+	sync = SynchroniseSalesOrders(
+		sales_order_name=sales_order_name, woocommerce_order_id=woocommerce_order_id
+	)
 	sync.run()
 
 
@@ -45,9 +54,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 	Class for managing synchronisation of WooCommerce Orders with ERPNext Sales Orders
 	"""
 
-	wc_order_list: List
+	wc_orders_dict: Dict
 	sales_orders_list: List
 	sales_order_name: Optional[str]
+	woocommerce_order_id: Optional[str]
 	date_time_from: str | datetime
 	date_time_to: str | datetime
 
@@ -55,15 +65,17 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		self,
 		settings: Optional[WooCommerceIntegrationSettings | _dict] = None,
 		sales_order_name: Optional[str] = None,
+		woocommerce_order_id: Optional[str] = None,
 		date_time_from: Optional[str | datetime] = None,
 		date_time_to: Optional[str | datetime] = None,
 	) -> None:
 		super().__init__(settings)
-		self.wc_order_list = []
+		self.wc_orders_dict = {}
 		self.sales_orders_list = []
 		self.sales_order_name = sales_order_name
 		self.date_time_from = date_time_from
 		self.date_time_to = date_time_to
+		self.woocommerce_order_id = woocommerce_order_id
 
 		self.set_date_range()
 
@@ -78,27 +90,114 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 	def run(self):
 		"""
-		Run synchornisation
+		Run synchronisation
 		"""
-		self.get_woocommerce_orders()
-		self.get_erpnext_sales_orders()
+		self.get_woocommerce_orders_modified_since()
+		self.get_erpnext_sales_orders_for_wc_orders()
+		self.get_erpnext_sales_orders_modified_since()
+		self.get_woocommerce_orders_for_erpnext_sales_orders()
 		self.sync_wc_orders_with_erpnext_sales_orders()
 
-	def get_woocommerce_orders(self):
+	def get_woocommerce_orders_modified_since(self):
 		"""
-		Get list of WooCommerce orders
+		Get list of WooCommerce orders modified since date_time_from
+		"""
+		# If this is a sync run for all Sales Orders, get list of WooCommerce orders
+		if not self.sales_order_name:
+			self.get_list_of_wc_orders(date_time_from=self.date_time_from)
+
+	def get_erpnext_sales_orders_for_wc_orders(self):
+		"""
+		Get list of erpnext orders linked to woocommerce orders
 		"""
 		if self.sales_order_name:
-			self.wc_order_list = self.get_list_of_wc_orders_from_sales_order(
-				sales_order_name=self.sales_order_name
-			)
+			self.get_erpnext_sales_orders(sales_order_name=self.sales_order_name)
 		else:
-			self.wc_order_list = self.get_list_of_all_wc_orders()
+			self.get_erpnext_sales_orders(woocommerce_orders=self.wc_orders_dict)
 
-	def get_list_of_all_wc_orders(self):
+	def get_erpnext_sales_orders_modified_since(self):
 		"""
-		Fetches a list of WooCommerce Orders within a specified date range using pagination
+		Get list of erpnext orders modified since date_time_from
 		"""
+		if not self.sales_order_name:
+			self.get_erpnext_sales_orders(date_time_from=self.date_time_from)
+
+	def get_erpnext_sales_orders(
+		self,
+		date_time_from: datetime = None,
+		woocommerce_orders: Dict = None,
+		sales_order_name: str = None,
+	):
+		"""
+		Get list of erpnext orders
+
+		At lease one of date_time_from, woocommerce_orders or sales_order_name is required
+		"""
+		if not any([date_time_from, woocommerce_orders, sales_order_name]):
+			return
+
+		filters = [
+			["Sales Order", "woocommerce_id", "is", "set"],
+			["Sales Order", "woocommerce_server", "is", "set"],
+		]
+		if self.settings.minimum_creation_date:
+			filters.append(["Sales Order", "modified", ">", self.settings.minimum_creation_date])
+		if date_time_from:
+			filters.append(["Sales Order", "modified", ">", self.date_time_from])
+		if woocommerce_orders:
+			filters.append(
+				["Sales Order", "woocommerce_id", "in", [order_id for order_id in woocommerce_orders.keys()]]
+			)
+			filters.append(
+				[
+					"Sales Order",
+					"woocommerce_server",
+					"in",
+					[order["woocommerce_server"] for order in woocommerce_orders.values()],
+				]
+			)
+		if sales_order_name:
+			filters.append(["Sales Order", "name", "=", sales_order_name])
+
+		self.sales_orders_list.extend(
+			frappe.get_all(
+				"Sales Order",
+				filters=filters,
+				fields=[
+					"name",
+					"woocommerce_id",
+					"woocommerce_server",
+					"modified",
+					"docstatus",
+					"woocommerce_payment_entry",
+					"custom_attempted_woocommerce_auto_payment_entry",
+				],
+			)
+		)
+
+	def get_woocommerce_orders_for_erpnext_sales_orders(self):
+		"""
+		Get more WooCommerce orders linked to our Sales Order(s)
+		"""
+		self.get_list_of_wc_orders(
+			sales_orders=self.sales_orders_list, woocommerce_order_id=self.woocommerce_order_id
+		),
+
+	def get_list_of_wc_orders(
+		self,
+		date_time_from: Optional[datetime] = None,
+		date_time_to: Optional[datetime] = None,
+		sales_orders: Optional[List] = None,
+		woocommerce_order_id: Optional[str] = None,
+	):
+		"""
+		Fetches a list of WooCommerce Orders within a specified date range or linked with Sales Orders, using pagination.
+
+		At least one of date_time_from, date_time_to, or sales_orders parameters are required
+		"""
+		if not any([date_time_from, date_time_to, sales_orders, woocommerce_order_id]):
+			return
+
 		wc_records_per_page_limit = 100
 		page_length = wc_records_per_page_limit
 		new_results = True
@@ -106,38 +205,27 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		filters = []
 		minimum_creation_date = self.settings.minimum_creation_date
 
-		filters.append(
-			["WooCommerce Order", "date_modified", ">", self.date_time_from]
-		) if self.date_time_from else None
-		filters.append(
-			["WooCommerce Order", "date_modified", "<", self.date_time_to]
-		) if self.date_time_to else None
-		filters.append(
-			["WooCommerce Order", "date_created", ">", minimum_creation_date]
-		) if minimum_creation_date else None
+		# Build filters
+		if date_time_from:
+			filters.append(["WooCommerce Order", "date_modified", ">", date_time_from])
+		if date_time_to:
+			filters.append(["WooCommerce Order", "date_modified", "<", date_time_to])
+		if minimum_creation_date:
+			filters.append(["WooCommerce Order", "date_created", ">", minimum_creation_date])
+		if sales_orders:
+			wc_order_ids = [sales_order.woocommerce_id for sales_order in sales_orders]
+			filters.append(["WooCommerce Order", "id", "in", wc_order_ids])
+		if woocommerce_order_id:
+			filters.append(["WooCommerce Order", "id", "=", woocommerce_order_id])
 
 		while new_results:
 			woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 			new_results = woocommerce_order.get_list(
 				args={"filters": filters, "page_lenth": page_length, "start": start}
 			)
-			self.wc_order_list.extend(new_results)
+			for wc_order in new_results:
+				self.wc_orders_dict[wc_order["name"]] = wc_order
 			start += page_length
-		return self.wc_order_list
-
-	def get_erpnext_sales_orders(self):
-		"""
-		Get list of erpnext Sales Orders
-		"""
-		self.sales_orders_list = frappe.get_all(
-			"Sales Order",
-			filters={
-				"woocommerce_id": ["in", [order["id"] for order in self.wc_order_list]],
-				"woocommerce_server": ["in", [order["woocommerce_server"] for order in self.wc_order_list]],
-				"docstatus": 1,
-			},
-			fields=["name", "woocommerce_id", "woocommerce_server", "modified"],
-		)
 
 	def sync_wc_orders_with_erpnext_sales_orders(self):
 		"""
@@ -152,17 +240,22 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		}
 
 		# Loop through each order
-		for wc_order in self.wc_order_list:
+		for wc_order in self.wc_orders_dict.values():
 			if wc_order["name"] in sales_orders_dict:
+				so = sales_orders_dict[wc_order["name"]]
 				# If the Sales Order exists and it has been updated after last_updated, update it
-				if get_datetime(wc_order["date_modified"]) > get_datetime(
-					sales_orders_dict[wc_order["name"]].modified
+				if get_datetime(wc_order["date_modified"]) > get_datetime(so.modified):
+					self.update_sales_order(wc_order, so.name)
+				if get_datetime(wc_order["date_modified"]) < get_datetime(so.modified) and so.docstatus == 1:
+					self.update_woocommerce_order(wc_order, so.name)
+
+				# If the Sales Order exists and has been submitted in the mean time, sync Payment Entries
+				if (
+					so.docstatus == 1
+					and not so.woocommerce_payment_entry
+					and not so.custom_attempted_woocommerce_auto_payment_entry
 				):
-					self.update_sales_order(wc_order, sales_orders_dict[wc_order["name"]].name)
-				if get_datetime(wc_order["date_modified"]) < get_datetime(
-					sales_orders_dict[wc_order["name"]].modified
-				):
-					self.update_woocommerce_order(wc_order, sales_orders_dict[wc_order["name"]].name)
+					self.create_and_link_payment_entry(wc_order, so.name)
 			else:
 				# If the Sales Order does not exist, create it
 				self.create_sales_order(wc_order)
@@ -171,20 +264,6 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		if not self.sales_order_name:
 			self.settings.wc_last_sync_date = now()
 			self.settings.save()
-
-	@staticmethod
-	def get_list_of_wc_orders_from_sales_order(sales_order_name: str):
-		"""
-		Fetches the associated WooCommerce Order for a given Sales Order name and returns it in a list
-		"""
-		sales_order = frappe.get_doc("Sales Order", sales_order_name)
-		wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
-			domain=sales_order.woocommerce_server,
-			resource_id=sales_order.woocommerce_id,
-		)
-		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_name})
-		wc_order.load_from_db()
-		return [wc_order.__dict__]
 
 	def update_sales_order(self, woocommerce_order, sales_order_name):
 		"""
@@ -233,9 +312,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				and wc_order_data["payment_method"]
 				and wc_order_data["date_paid"]
 				and not sales_order.woocommerce_payment_entry
+				and sales_order.docstatus == 1
 			):
 				# Get Company Bank Account for this Payment Method
 				payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
+
+				if wc_order_data["payment_method"] not in payment_method_bank_account_mapping:
+					raise KeyError(
+						f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings"
+					)
+
 				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
 
 				if company_bank_account:
@@ -284,12 +370,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 					# Link created Payment Entry to Sales Order
 					sales_order.woocommerce_payment_entry = payment_entry.name
-					sales_order.save()
-				else:
-					frappe.log_error(
-						"WooCommerce Sync Task Error",
-						f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\nWooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings",
-					)
+
+				sales_order.custom_attempted_woocommerce_auto_payment_entry = 1
+				sales_order.save()
 
 		except Exception as e:
 			frappe.log_error(
@@ -303,6 +386,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Update the WooCommerce Order with fields from it's corresponding ERPNext Sales Order
 		"""
+		wc_order_dirty = False
+
 		# Get the Sales Order doc
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
 
@@ -314,6 +399,49 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
 		if sales_order_wc_status != wc_order.status:
 			wc_order.status = sales_order_wc_status
+			wc_order_dirty = True
+
+		# Get the Item WooCommerce ID's
+		for so_item in sales_order.items:
+			so_item.woocommerce_id = frappe.get_value(
+				"Item WooCommerce Server",
+				filters={"parent": so_item.item_code, "woocommerce_server": wc_order.woocommerce_server},
+				fieldname="woocommerce_id",
+			)
+
+		# Update the line_items field if necessary
+		sales_order_items_changed = False
+		line_items = json.loads(wc_order.line_items)
+		# Check if count of line items are different
+		if len(line_items) != len(sales_order.items):
+			sales_order_items_changed = True
+		# Check if any line item properties changed
+		else:
+			for i, so_item in enumerate(sales_order.items):
+				if (
+					int(so_item.woocommerce_id) != line_items[i]["product_id"]
+					or so_item.qty != line_items[i]["quantity"]
+					or so_item.rate != get_tax_inc_price_for_woocommerce_line_item(line_items[i])
+				):
+					sales_order_items_changed = True
+					break
+
+		if sales_order_items_changed:
+			# Set the product_id for existing lines to null, to clear the line items for the WooCommerce order
+			replacement_line_items = [
+				{"id": line_item["id"], "product_id": None} for line_item in json.loads(wc_order.line_items)
+			]
+			# Add the correct lines
+			replacement_line_items.extend(
+				[
+					{"product_id": so_item.woocommerce_id, "quantity": so_item.qty, "price": so_item.rate}
+					for so_item in sales_order.items
+				]
+			)
+			wc_order.line_items = json.dumps(replacement_line_items)
+			wc_order_dirty = True
+
+		if wc_order_dirty:
 			try:
 				wc_order.save()
 			except Exception:
@@ -338,7 +466,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
 			frappe.log_error("WooCommerce Error", error_message)
 			raise
-		self.link_items(wc_order_data.get("line_items"), site_domain)
+		self.create_missing_items(wc_order_data.get("line_items"), site_domain)
 
 		new_sales_order = frappe.new_doc("Sales Order")
 		new_sales_order.customer = customer_docname
@@ -428,7 +556,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		return customer.name
 
-	def link_items(self, items_list, woocommerce_site):
+	def create_missing_items(self, items_list, woocommerce_site):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
@@ -459,28 +587,28 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Customised version of set_items_in_sales_order to allow searching for items linked to
 		multiple WooCommerce sites
 		"""
-		company_abbr = frappe.db.get_value("Company", self.settings.company, "abbr")
-
-		default_warehouse = _("Stores - {0}").format(company_abbr)
-		if not frappe.db.exists("Warehouse", default_warehouse) and not self.settings.warehouse:
-			frappe.throw(_("Please set Warehouse in Woocommerce Settings"))
+		if not self.settings.warehouse:
+			frappe.throw(_("Please set Warehouse in WooCommerce Integration Settings"))
 
 		for item in order.get("line_items"):
 			woocomm_item_id = item.get("product_id")
-			# ==================================== Custom code starts here ==================================== #
-			# Original code
-			# found_item = frappe.get_doc("Item", {"woocommerce_id": cstr(woocomm_item_id)})
-			item_codes = frappe.db.get_all(
-				"Item WooCommerce Server",
-				filters={
-					"woocommerce_id": cstr(woocomm_item_id),
-					"woocommerce_server": new_sales_order.woocommerce_server,
-				},
-				fields=["parent"],
-			)
+
+			iws = frappe.qb.DocType("Item WooCommerce Server")
+			itm = frappe.qb.DocType("Item")
+			item_codes = (
+				frappe.qb.from_(iws)
+				.join(itm)
+				.on(iws.parent == itm.name)
+				.where(
+					(iws.woocommerce_id == cstr(woocomm_item_id))
+					& (iws.woocommerce_server == new_sales_order.woocommerce_server)
+					& (itm.disabled == 0)
+				)
+				.select(iws.parent)
+				.limit(1)
+			).run(as_dict=True)
+
 			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
-			# ==================================== Custom code ends here ==================================== #
-			ordered_items_tax = item.get("total_tax")
 
 			new_sales_order.append(
 				"items",
@@ -491,16 +619,23 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					"delivery_date": new_sales_order.delivery_date,
 					"uom": self.settings.uom or _("Nos"),
 					"qty": item.get("quantity"),
-					"rate": item.get("price"),
-					"warehouse": self.settings.warehouse or default_warehouse,
+					"rate": item.get("price")
+					if self.settings.use_actual_tax_type
+					else get_tax_inc_price_for_woocommerce_line_item(item),
+					"warehouse": self.settings.warehouse,
 				},
 			)
 
-			add_tax_details(
-				new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
-			)
+			if not self.settings.use_actual_tax_type:
+				new_sales_order.taxes_and_charges = self.settings.sales_taxes_and_charges_template
 
-		# shipping_details = order.get("shipping_lines") # used for detailed order
+				# Trigger taxes calculation
+				new_sales_order.set_missing_lead_customer_details()
+			else:
+				ordered_items_tax = item.get("total_tax")
+				add_tax_details(
+					new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
+				)
 
 		add_tax_details(
 			new_sales_order, order.get("shipping_tax"), "Shipping Tax", self.settings.f_n_f_account
@@ -575,6 +710,16 @@ def add_tax_details(sales_order, price, desc, tax_account_head):
 			"tax_amount": price,
 			"description": desc,
 		},
+	)
+
+
+def get_tax_inc_price_for_woocommerce_line_item(line_item: Dict):
+	"""
+	WooCommerce's Line Item "price" field will always show the tax excluding amount.
+	This function calculates the tax inclusive rate for an item
+	"""
+	return (float(line_item.get("subtotal")) + float(line_item.get("subtotal_tax"))) / float(
+		line_item.get("quantity")
 	)
 
 

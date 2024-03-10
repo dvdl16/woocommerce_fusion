@@ -50,7 +50,7 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-12-31"
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
@@ -82,6 +82,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-12-25"
+		sales_order.docstatus = 1
 		sync.sales_orders_list = [sales_order]
 
 		# Create dummy WooCommerce Order
@@ -92,7 +93,7 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-01-01"
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
@@ -102,12 +103,12 @@ class TestWooCommerceSync(FrappeTestCase):
 
 	@patch("woocommerce_fusion.tasks.sync.frappe")
 	@patch.object(SynchroniseSalesOrders, "create_sales_order")
-	def test_sync_sales_orders_while_passing_sales_order_should_create_so_if__no_so(
+	def test_sync_sales_orders_while_passing_sales_order_should_create_so_if_no_so(
 		self, mock_create_sales_order, mock_frappe
 	):
 		"""
 		Test that the 'sync_sales_orders' function should create a Sales Order if
-		there are no corresponding WooCommerce order
+		there are no corresponding Sales orders
 		"""
 		# Initialise class
 		sync = SynchroniseSalesOrders(sales_order_name="SO-0001")
@@ -132,7 +133,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		sync.wc_order_list = [wc_order.__dict__]
+		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
@@ -162,6 +163,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_order.customer = "customer_1"
 		mock_sales_order.grand_total = 100
 		mock_sales_order.name = "SO-0001"
+		mock_sales_order.docstatus = 1
 
 		sync.settings = MagicMock()
 		sync.settings.servers = [

@@ -297,6 +297,20 @@ class WooCommerceResource(Document):
 
 		record = self.before_db_update(record)
 
+		# Drop fields with values that are unchanged
+		record_data_before_save = self._doc_before_save.to_dict()
+		record_before_save = self.deserialize_attributes_of_type_dict_or_list(record_data_before_save)
+		if self.field_setter_map:
+			for new_key, old_key in self.field_setter_map.items():
+				record_before_save[old_key] = record_before_save[new_key]
+		keys_to_pop = [
+			key
+			for key, value in record.items()
+			if record_before_save.get(key) == value or str(record_before_save.get(key)) == str(value)
+		]
+		for key in keys_to_pop:
+			record.pop(key)
+
 		# Parse the server domain and order_id from the Document name
 		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_record_name(self.name)
 
@@ -387,7 +401,7 @@ def get_wc_parameters_from_filters(filters):
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	https://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-products
 	"""
-	supported_filter_fields = ["date_created", "date_modified", "name"]
+	supported_filter_fields = ["date_created", "date_modified", "id", "name"]
 
 	params = {}
 
@@ -410,10 +424,17 @@ def get_wc_parameters_from_filters(filters):
 			# e.g. ['WooCommerce Order', 'date_modified', '>', '2023-01-01']
 			params["modified_after"] = filter[3]
 			continue
-		if filter[1] == "name" and filter[2] == "=":
-			# e.g. ['WooCommerce Order', 'name', '=', '11']
-			# params['include'] = [filter[3]]
-			params["include"] = [13]
+		if filter[1] == "id" and filter[2] == "=":
+			# e.g. ['WooCommerce Order', 'id', '=', '11']
+			params["include"] = [filter[3]]
+			continue
+		if filter[1] == "id" and filter[2] == "in":
+			# e.g. ['WooCommerce Order', 'id', 'in', ['11', '12', '13']]
+			params["include"] = ",".join(filter[3])
+			continue
+		if filter[1] == "name" and filter[2] == "like":
+			# e.g. ['WooCommerce Order', 'name', 'like', '%11%']
+			params["search"] = filter[3].strip("%")
 			continue
 		frappe.throw(f"Unsupported filter '{filter[2]}' for field '{filter[1]}'")
 

@@ -127,6 +127,9 @@ doc_events = {
 	"Item Price": {
 		"on_update": "woocommerce_fusion.tasks.sync_item_prices.update_item_price_for_woocommerce_item_from_hook"
 	},
+	"Sales Order": {
+		"on_submit": "woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync_from_hook"
+	},
 }
 
 # Scheduled Tasks
@@ -236,6 +239,7 @@ fixtures = [
 					"Sales Order-woocommerce_payment_method",
 					"Sales Order-woocommerce_shipment_tracking_html",
 					"Sales Order-woocommerce_payment_entry",
+					"Sales Order-custom_attempted_woocommerce_auto_payment_entry",
 					"Address-woocommerce_server",
 					"Address-woocommerce_email",
 					"Item-woocommerce_servers",

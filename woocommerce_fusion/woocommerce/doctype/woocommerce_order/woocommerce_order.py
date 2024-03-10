@@ -94,9 +94,9 @@ class WooCommerceOrder(WooCommerceResource):
 	def before_db_update(self, order: Dict):
 		cleaned_order = self.clean_up_order(order)
 
-		# Drop all fields except for 'status' and 'shipment_trackings'
+		# Drop all fields except for 'status', 'shipment_trackings' and 'line_items'
 		keys_to_pop = [
-			key for key in cleaned_order.keys() if key not in ("status", "shipment_trackings")
+			key for key in cleaned_order.keys() if key not in ("status", "shipment_trackings", "line_items")
 		]
 		for key in keys_to_pop:
 			cleaned_order.pop(key)

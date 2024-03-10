@@ -354,6 +354,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Call db_update
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
+		woocommerce_order._doc_before_save = deepcopy(woocommerce_order)
 		woocommerce_order.status = "Hello World"
 		woocommerce_order.db_update()
 

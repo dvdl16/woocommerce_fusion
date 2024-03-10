@@ -14,6 +14,9 @@ class WooCommerceIntegrationSettings(Document):
 			if wc_server.wc_plugin_advanced_shipment_tracking:
 				wc_server.wc_ast_shipment_providers = get_shipment_providers(wc_server)
 
+		if not self.secret:
+			self.secret = frappe.generate_hash()
+
 
 def get_shipment_providers(server):
 	"""

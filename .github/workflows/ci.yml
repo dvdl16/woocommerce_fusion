@@ -78,7 +78,7 @@ jobs:
           with:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               INSTAWP_TOKEN: ${{ secrets.INSTAWP_TOKEN }}
-              INSTAWP_TEMPLATE_SLUG: woocommerce-with-cactus-products
+              INSTAWP_TEMPLATE_SLUG: woocommerce-with-tax-enabled
               REPO_ID: 291
               INSTAWP_ACTION: create-site-template
 
