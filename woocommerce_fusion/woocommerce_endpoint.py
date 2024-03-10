@@ -10,7 +10,7 @@ from woocommerce_fusion.tasks.sync_sales_orders import run_sales_orders_sync
 
 
 def verify_request():
-	woocommerce_settings = frappe.get_doc("Woocommerce Integration Settings")
+	woocommerce_settings = frappe.get_doc("WooCommerce Integration Settings")
 	sig = base64.b64encode(
 		hmac.new(
 			woocommerce_settings.secret.encode("utf8"), frappe.request.data, hashlib.sha256
