@@ -40,8 +40,12 @@ def run_sales_orders_sync_from_hook(doc, method):
 
 
 @frappe.whitelist()
-def run_sales_orders_sync(sales_order_name: Optional[str] = None):
-	sync = SynchroniseSalesOrders(sales_order_name=sales_order_name)
+def run_sales_orders_sync(
+	sales_order_name: Optional[str] = None, woocommerce_order_id: Optional[str] = None
+):
+	sync = SynchroniseSalesOrders(
+		sales_order_name=sales_order_name, woocommerce_order_id=woocommerce_order_id
+	)
 	sync.run()
 
 
@@ -53,6 +57,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 	wc_orders_dict: Dict
 	sales_orders_list: List
 	sales_order_name: Optional[str]
+	woocommerce_order_id: Optional[str]
 	date_time_from: str | datetime
 	date_time_to: str | datetime
 
@@ -60,6 +65,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		self,
 		settings: Optional[WooCommerceIntegrationSettings | _dict] = None,
 		sales_order_name: Optional[str] = None,
+		woocommerce_order_id: Optional[str] = None,
 		date_time_from: Optional[str | datetime] = None,
 		date_time_to: Optional[str | datetime] = None,
 	) -> None:
@@ -69,6 +75,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		self.sales_order_name = sales_order_name
 		self.date_time_from = date_time_from
 		self.date_time_to = date_time_to
+		self.woocommerce_order_id = woocommerce_order_id
 
 		self.set_date_range()
 
@@ -172,20 +179,23 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Get more WooCommerce orders linked to our Sales Order(s)
 		"""
-		self.get_list_of_wc_orders(sales_orders=self.sales_orders_list)
+		self.get_list_of_wc_orders(
+			sales_orders=self.sales_orders_list, woocommerce_order_id=self.woocommerce_order_id
+		),
 
 	def get_list_of_wc_orders(
 		self,
 		date_time_from: Optional[datetime] = None,
 		date_time_to: Optional[datetime] = None,
 		sales_orders: Optional[List] = None,
+		woocommerce_order_id: Optional[str] = None,
 	):
 		"""
 		Fetches a list of WooCommerce Orders within a specified date range or linked with Sales Orders, using pagination.
 
 		At least one of date_time_from, date_time_to, or sales_orders parameters are required
 		"""
-		if not any([date_time_from, date_time_to, sales_orders]):
+		if not any([date_time_from, date_time_to, sales_orders, woocommerce_order_id]):
 			return
 
 		wc_records_per_page_limit = 100
@@ -205,6 +215,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		if sales_orders:
 			wc_order_ids = [sales_order.woocommerce_id for sales_order in sales_orders]
 			filters.append(["WooCommerce Order", "id", "in", wc_order_ids])
+		if woocommerce_order_id:
+			filters.append(["WooCommerce Order", "id", "=", woocommerce_order_id])
 
 		while new_results:
 			woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})

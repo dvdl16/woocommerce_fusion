@@ -108,7 +108,7 @@ class TestWooCommerceSync(FrappeTestCase):
 	):
 		"""
 		Test that the 'sync_sales_orders' function should create a Sales Order if
-		there are no corresponding WooCommerce order
+		there are no corresponding Sales orders
 		"""
 		# Initialise class
 		sync = SynchroniseSalesOrders(sales_order_name="SO-0001")

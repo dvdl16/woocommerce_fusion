@@ -293,3 +293,26 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
+
+	def test_sync_creates_woocommerce_order_with_woo_id_when_synchronising_with_woocommerce(
+		self, mock_log_error
+	):
+		"""
+		Test that the Sales Order Synchornisation method creates a WooCommerce Order
+		when only a WooCommerce Order ID is passed
+		"""
+		# Create a new order in WooCommerce
+		wc_order_id = self.post_woocommerce_order()
+
+		# Run synchronisation for the ERPNext Sales Order to be created
+		run_sales_orders_sync(woocommerce_order_id=str(wc_order_id))
+
+		# Expect no errors logged
+		mock_log_error.assert_not_called()
+
+		# Expect newly created Sales Order in ERPNext
+		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
+		self.assertIsNotNone(sales_order)
+
+		# Delete order in WooCommerce
+		self.delete_woocommerce_order(wc_order_id=wc_order_id)

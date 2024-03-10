@@ -29,7 +29,8 @@
   "uom",
   "item_group",
   "section_break_endpoints",
-  "endpoint"
+  "secret",
+  "view_webhook_config"
  ],
  "fields": [
   {
@@ -143,12 +144,6 @@
    "label": "Endpoints"
   },
   {
-   "fieldname": "endpoint",
-   "fieldtype": "Code",
-   "label": "Endpoint",
-   "read_only": 1
-  },
-  {
    "description": "This is the default Item Group used for newly created items.",
    "fieldname": "item_group",
    "fieldtype": "Link",
@@ -178,12 +173,23 @@
    "label": "Sales Taxes and Charges Template",
    "mandatory_depends_on": "eval: !doc.use_actual_tax_type;",
    "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "fieldname": "secret",
+   "fieldtype": "Code",
+   "label": "Secret",
+   "read_only": 1
+  },
+  {
+   "fieldname": "view_webhook_config",
+   "fieldtype": "Button",
+   "label": "View WooCommerce Webhook Configuration"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-10 12:47:50.289084",
+ "modified": "2024-03-10 15:32:25.916325",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
