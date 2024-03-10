@@ -92,16 +92,14 @@ class WooCommerceOrder(WooCommerceResource):
 		return WooCommerceOrder.get_count_of_records(args)
 
 	def before_db_update(self, order: Dict):
-		cleaned_order = self.clean_up_order(order)
-
 		# Drop all fields except for 'status', 'shipment_trackings' and 'line_items'
 		keys_to_pop = [
-			key for key in cleaned_order.keys() if key not in ("status", "shipment_trackings", "line_items")
+			key for key in order.keys() if key not in ("status", "shipment_trackings", "line_items")
 		]
 		for key in keys_to_pop:
-			cleaned_order.pop(key)
+			order.pop(key)
 
-		return cleaned_order
+		return order
 
 	def after_db_update(self):
 		self.update_shipment_tracking()
@@ -170,32 +168,3 @@ class WooCommerceOrder(WooCommerceResource):
 					log_and_raise_error(err, error_text="update_shipment_tracking failed")
 				if response.status_code != 201:
 					log_and_raise_error(error_text="update_shipment_tracking failed", response=response)
-
-	@staticmethod
-	def clean_up_order(order):
-		"""
-		Perform some tasks to make sure that an order is in the correct format for the WC API
-		"""
-		# Remove the 'parent_name' attribute if it has a None value,
-		# and set the line item's 'image' attribute
-		if "line_items" in order and order["line_items"]:
-			for line in order["line_items"]:
-				if "parent_name" in line and not line["parent_name"]:
-					line.pop("parent_name")
-				if "image" in line:
-					if "id" in line["image"] and line["image"]["id"] == "":
-						line.pop("image")
-
-		# Remove the read-only `display_value` and `display_key` attributes as per
-		# https://github.com/woocommerce/woocommerce/issues/32038#issuecomment-1117140390
-		# This avoids HTTP 400 errors when updating orders, e.g. "line_items[0][meta_data][0][display_value] is not of type string"
-		if "line_items" in order and order["line_items"]:
-			for line in order["line_items"]:
-				if "meta_data" in line:
-					for meta in line["meta_data"]:
-						if "display_key" in meta:
-							meta.pop("display_key")
-						if "display_value" in meta:
-							meta.pop("display_value")
-
-		return order
