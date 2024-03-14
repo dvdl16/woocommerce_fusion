@@ -146,7 +146,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters.append(["Sales Order", "modified", ">", self.date_time_from])
 		if woocommerce_orders:
 			filters.append(
-				["Sales Order", "woocommerce_id", "in", [order_id for order_id in woocommerce_orders.keys()]]
+				["Sales Order", "woocommerce_id", "in", [order["id"] for order in woocommerce_orders.values()]]
 			)
 			filters.append(
 				[
