@@ -401,7 +401,7 @@ def get_wc_parameters_from_filters(filters):
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	https://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-products
 	"""
-	supported_filter_fields = ["date_created", "date_modified", "id", "name"]
+	supported_filter_fields = ["date_created", "date_modified", "id", "name", "status"]
 
 	params = {}
 
@@ -435,6 +435,10 @@ def get_wc_parameters_from_filters(filters):
 		if filter[1] == "name" and filter[2] == "like":
 			# e.g. ['WooCommerce Order', 'name', 'like', '%11%']
 			params["search"] = filter[3].strip("%")
+			continue
+		if filter[1] == "status" and filter[2] == "=":
+			# e.g. ['WooCommerce Order', 'status', '=', 'trash']
+			params["status"] = filter[3]
 			continue
 		frappe.throw(f"Unsupported filter '{filter[2]}' for field '{filter[1]}'")
 
