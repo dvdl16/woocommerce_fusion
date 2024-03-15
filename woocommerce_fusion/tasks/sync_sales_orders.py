@@ -104,7 +104,11 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		# If this is a sync run for all Sales Orders, get list of WooCommerce orders
 		if not self.sales_order_name:
+			# Get active WooCommerce orders
 			self.get_list_of_wc_orders(date_time_from=self.date_time_from)
+
+			# Get trashed WooCommerce orders
+			self.get_list_of_wc_orders(date_time_from=self.date_time_from, status="trash")
 
 	def get_erpnext_sales_orders_for_wc_orders(self):
 		"""
@@ -189,6 +193,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		date_time_to: Optional[datetime] = None,
 		sales_orders: Optional[List] = None,
 		woocommerce_order_id: Optional[str] = None,
+		status: Optional[str] = None,
 	):
 		"""
 		Fetches a list of WooCommerce Orders within a specified date range or linked with Sales Orders, using pagination.
@@ -217,6 +222,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters.append(["WooCommerce Order", "id", "in", wc_order_ids])
 		if woocommerce_order_id:
 			filters.append(["WooCommerce Order", "id", "=", woocommerce_order_id])
+		if status:
+			filters.append(["WooCommerce Order", "status", "=", status])
 
 		while new_results:
 			woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
