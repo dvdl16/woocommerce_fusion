@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  TEST_AGAINST_FRAPPE_VERSION: v15.13.0
-  TEST_AGAINST_ERPNEXT_VERSION: v15.13.0
+  TEST_AGAINST_FRAPPE_VERSION: v15.17.3
+  TEST_AGAINST_ERPNEXT_VERSION: v15.17.1
 
 jobs:
   tests:
