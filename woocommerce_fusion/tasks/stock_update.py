@@ -59,7 +59,7 @@ def update_stock_levels_on_woocommerce_site(item_code):
 	"""
 	item = frappe.get_doc("Item", item_code)
 
-	if len(item.woocommerce_servers) == 0:
+	if len(item.woocommerce_servers) == 0 or not item.is_stock_item or item.disabled:
 		return False
 	else:
 		wc_integration_settings = frappe.get_single("WooCommerce Integration Settings")

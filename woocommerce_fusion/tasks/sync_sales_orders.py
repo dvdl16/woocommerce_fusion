@@ -353,6 +353,23 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 							if meta_data and type(meta_data) is list
 							else None
 						)
+
+					# Determine if the reference should be Sales Order or Sales Invoice
+					reference_doctype = "Sales Order"
+					reference_name = sales_order.name
+					total_amount = sales_order.grand_total
+					if sales_order.per_billed > 0:
+						si_item_details = frappe.get_all(
+							"Sales Invoice Item",
+							fields=["name", "parent"],
+							filters={"sales_order": sales_order.name},
+						)
+						if len(si_item_details) > 0:
+							reference_doctype = "Sales Invoice"
+							reference_name = si_item_details[0].parent
+							total_amount = sales_order.grand_total
+
+					# Create Payment Entry
 					payment_entry_dict = {
 						"company": company,
 						"payment_type": "Receive",
@@ -369,10 +386,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					payment_entry = frappe.new_doc("Payment Entry")
 					payment_entry.update(payment_entry_dict)
 					row = payment_entry.append("references")
-					row.reference_doctype = "Sales Order"
-					row.reference_name = sales_order.name
-					row.total_amount = sales_order.grand_total
-					row.allocated_amount = sales_order.grand_total
+					row.reference_doctype = reference_doctype
+					row.reference_name = reference_name
+					row.total_amount = total_amount
+					row.allocated_amount = total_amount
 					payment_entry.save()
 
 					# Link created Payment Entry to Sales Order

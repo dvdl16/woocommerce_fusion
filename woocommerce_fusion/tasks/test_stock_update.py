@@ -23,7 +23,9 @@ class TestWooCommerceStockSync(FrappeTestCase):
 			woocommerce_servers=[
 				frappe._dict(woocommerce_id=1, woocommerce_server="woo1.example.com"),
 				frappe._dict(woocommerce_id=2, woocommerce_server="woo2.example.com"),
-			]
+			],
+			is_stock_item=1,
+			disabled=0,
 		)
 		mock_frappe.get_doc.return_value = some_item
 
