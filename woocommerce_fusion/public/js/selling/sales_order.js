@@ -6,9 +6,10 @@ frappe.ui.form.on('Sales Order', {
 				frm.trigger("sync_sales_order");
 			}, __('Actions'));
 		}
-
+	},
+	onload_post_render: function(frm) {
 		// Add a table with Shipment Trackings
-		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server){			
+		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server && ["Shipped", "Delivered"].includes(frm.doc.woocommerce_status)){			
 			frappe.call({
 				method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
 				args: {
@@ -129,9 +130,7 @@ frappe.ui.form.on('Sales Order', {
 							'fieldtype': 'Date',
 							'label': 'Date Shipped',
 							'reqd': 1,
-							'default': shipment_trackings.length > 0 ? convert_ship_date_format_to_site_format(
-								shipment_trackings[0].date_shipped
-							) : null
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].date_shipped : null
 						},
 					],
 					primary_action: function(){
@@ -173,24 +172,3 @@ frappe.ui.form.on('Sales Order', {
 	}
 	
 });
-
-
-function convert_ship_date_format_to_site_format(epochTime){
-	// Create a new Date object from epoch time in seconds
-	let dateObj = new Date(epochTime * 1000);
-
-	// Format the date
-	let year = dateObj.getFullYear();
-	let month = dateObj.getMonth() + 1; // getMonth() is zero-based
-	let day = dateObj.getDate();
-
-	// Ensure it's two digits. For example, 1 becomes 01
-	if (month < 10) month = '0' + month;
-	if (day < 10) day = '0' + day;
-
-	// Concatenate in YYY-MM-DD format
-	let formattedDate = `${year}-${month}-${day}`;
-
-	return formattedDate; // Outputs: 2023-05-26
-
-}
