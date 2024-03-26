@@ -57,10 +57,10 @@ class TestIntegrationWooCommerceItemPriceSync(TestIntegrationWooCommerce):
 		Test that the Item Price Synchornisation method does not post a price to a WooCommerce website when the item is disabled.
 		"""
 		# Create a new product in WooCommerce, set regular price to 10
-		wc_product_id = self.post_woocommerce_product(product_name="ITEM002", regular_price=10)
+		wc_product_id = self.post_woocommerce_product(product_name="ITEM003", regular_price=10)
 
 		# Create the same product in ERPNext (with opening stock of 5, not 1) and link it
-		item = create_item("ITEM002", valuation_rate=10, warehouse=None, company=get_default_company())
+		item = create_item("ITEM003", valuation_rate=10, warehouse=None, company=get_default_company())
 		item.woocommerce_servers = []
 		row = item.append("woocommerce_servers")
 		row.woocommerce_id = wc_product_id
@@ -74,9 +74,9 @@ class TestIntegrationWooCommerceItemPriceSync(TestIntegrationWooCommerce):
 		item_price = frappe.get_doc(
 			{
 				"doctype": "Item Price",
-				"item_code": "ITEM002",
+				"item_code": "ITEM003",
 				"price_list": "_Test Price List",
-				"price_list_rate": 5000,
+				"price_list_rate": 6000,
 			}
 		)
 		item_price.insert()
