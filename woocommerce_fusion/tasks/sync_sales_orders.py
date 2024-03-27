@@ -105,10 +105,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		# If this is a sync run for all Sales Orders, get list of WooCommerce orders
 		if not self.sales_order_name:
 			# Get active WooCommerce orders
-			self.get_list_of_wc_orders(date_time_from=self.date_time_from)
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from, woocommerce_order_id=self.woocommerce_order_id
+			)
 
 			# Get trashed WooCommerce orders
-			self.get_list_of_wc_orders(date_time_from=self.date_time_from, status="trash")
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from,
+				status="trash",
+				woocommerce_order_id=self.woocommerce_order_id,
+			)
 
 	def get_erpnext_sales_orders_for_wc_orders(self):
 		"""
@@ -123,7 +129,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Get list of erpnext orders modified since date_time_from
 		"""
-		if not self.sales_order_name:
+		if not self.sales_order_name and not self.woocommerce_order_id:
 			self.get_erpnext_sales_orders(date_time_from=self.date_time_from)
 
 	def get_erpnext_sales_orders(
@@ -287,7 +293,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
 		if sales_order.woocommerce_status != wc_order_status:
 			sales_order.woocommerce_status = wc_order_status
-			sales_order.save()
+			try:
+				sales_order.save()
+			except frappe.exceptions.ValidationError:
+				error_message = f"{frappe.get_traceback()}\n\nSales Order Data{str(sales_order.as_dict())}"
+				frappe.log_error("WooCommerce Error", error_message)
+				return
 
 		# Update the payment_method_title field if necessary
 		if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
