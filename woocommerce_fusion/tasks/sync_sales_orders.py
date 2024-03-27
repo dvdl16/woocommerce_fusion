@@ -105,10 +105,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		# If this is a sync run for all Sales Orders, get list of WooCommerce orders
 		if not self.sales_order_name:
 			# Get active WooCommerce orders
-			self.get_list_of_wc_orders(date_time_from=self.date_time_from)
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from, woocommerce_order_id=self.woocommerce_order_id
+			)
 
 			# Get trashed WooCommerce orders
-			self.get_list_of_wc_orders(date_time_from=self.date_time_from, status="trash")
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from,
+				status="trash",
+				woocommerce_order_id=self.woocommerce_order_id,
+			)
 
 	def get_erpnext_sales_orders_for_wc_orders(self):
 		"""
@@ -123,7 +129,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Get list of erpnext orders modified since date_time_from
 		"""
-		if not self.sales_order_name:
+		if not self.sales_order_name and not self.woocommerce_order_id:
 			self.get_erpnext_sales_orders(date_time_from=self.date_time_from)
 
 	def get_erpnext_sales_orders(
