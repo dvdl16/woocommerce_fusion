@@ -6,41 +6,21 @@ frappe.ui.form.on('Sales Order', {
 				frm.trigger("sync_sales_order");
 			}, __('Actions'));
 		}
-	},
-	onload_post_render: function(frm) {
-		// Add a table with Shipment Trackings
-		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server && ["Shipped", "Delivered"].includes(frm.doc.woocommerce_status)){			
-			frappe.call({
-				method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
-				args: {
-					doc: frm.doc
-				},
-				callback: function(r) {
-					frappe.show_alert({
-						indicator: "green",
-						message: __("Retrieved WooCommerce Shipment Trackings"),
-					});
-					frm.doc.woocommerce_shipment_trackings = r.message;
-
-					let trackingsHTML = `<b>WooCommerce Shipments:</b><br><table class="table table-striped">`+
-					`<tr><th>Date Shipped</th><th>Provider</th><th>Tracking Number</th>`;
-					frm.doc.woocommerce_shipment_trackings.forEach(tracking => {
-						trackingsHTML += `<tr><td>${tracking.date_shipped}</td>`+
-											`<td>${tracking.tracking_provider}</td>`+
-											`<td><a href="${tracking.tracking_link}">${tracking.tracking_number}</a></td></tr>`
-					});
-					trackingsHTML += `</table>`
-					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', trackingsHTML);
-					frm.refresh_field('woocommerce_shipment_tracking_html');
-				}
-			});
-		}
-
+		
 		// Add a custom button to allow adding or editing Shipment Trackings
 		if (frm.doc.woocommerce_id){
 			frm.add_custom_button(__("Edit WooCommerce Shipment Trackings"), function () {
 				frm.trigger("prompt_user_for_shipment_trackings");
 			}, __('Actions'));
+		}
+		
+		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server && ["Shipped", "Delivered"].includes(frm.doc.woocommerce_status)){
+			frm.trigger("load_shipment_trackings_table");
+		}
+		else {
+			// Clean up Shipment Tracking HTML
+			frm.doc.woocommerce_shipment_trackings = [];
+			frm.set_df_property('woocommerce_shipment_tracking_html', 'options', " ");
 		}
 	},
 
@@ -76,6 +56,42 @@ frappe.ui.form.on('Sales Order', {
 				frm.reload_doc();
 			}
 		);
+	},
+
+	load_shipment_trackings_table: function(frm) {
+		// Add a table with Shipment Trackings	
+		frm.set_df_property('woocommerce_shipment_tracking_html', 'options', '🚚 <i>Loading Shipments...</i><br><br><br><br>');
+		frm.refresh_field('woocommerce_shipment_tracking_html');
+		frappe.call({
+			method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
+			args: {
+				doc: frm.doc
+			},
+			callback: function(r) {
+				if (r.message) {
+					frappe.show_alert({
+						indicator: "green",
+						message: __("Retrieved WooCommerce Shipment Trackings"),
+					});
+					frm.doc.woocommerce_shipment_trackings = r.message;
+
+					let trackingsHTML = `<b>WooCommerce Shipments:</b><br><table class="table table-striped">`+
+					`<tr><th>Date Shipped</th><th>Provider</th><th>Tracking Number</th>`;
+					frm.doc.woocommerce_shipment_trackings.forEach(tracking => {
+						trackingsHTML += `<tr><td>${tracking.date_shipped}</td>`+
+											`<td>${tracking.tracking_provider}</td>`+
+											`<td><a href="${tracking.tracking_link}">${tracking.tracking_number}</a></td></tr>`
+					});
+					trackingsHTML += `</table>`
+					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', trackingsHTML);
+					frm.refresh_field('woocommerce_shipment_tracking_html');
+				}
+				else {
+					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', '');
+					frm.refresh_field('woocommerce_shipment_tracking_html');
+				}
+			}
+		});		
 	},
 
 	prompt_user_for_shipment_trackings: function(frm){
