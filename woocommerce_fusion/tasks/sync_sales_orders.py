@@ -328,7 +328,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			if (
 				wc_server.enable_payments_sync
 				and wc_order_data["payment_method"]
-				and wc_order_data["date_paid"]
+				and (
+					(wc_server.ignore_date_paid)
+					or (not wc_server.ignore_date_paid and wc_order_data["date_paid"])
+				)
 				and not sales_order.woocommerce_payment_entry
 				and sales_order.docstatus == 1
 			):
