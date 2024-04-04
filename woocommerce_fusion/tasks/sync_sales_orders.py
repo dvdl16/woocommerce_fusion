@@ -606,11 +606,11 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				filters={"woocommerce_id": item_woo_com_id, "woocommerce_server": woocommerce_site},
 				fields=["parent"],
 			)
-			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+			found_item = frappe.get_doc("Item", item_woo_com_id) if item_codes else None
 			if not found_item:
 				# Create Item
 				item = frappe.new_doc("Item")
-				item.item_code = _("woocommerce - {0}").format(item_woo_com_id)
+				item.item_code = _("{0}").format(item_woo_com_id)
 				item.stock_uom = self.settings.uom or _("Nos")
 				item.item_group = self.settings.item_group
 				item.item_name = item_data.get("name")
