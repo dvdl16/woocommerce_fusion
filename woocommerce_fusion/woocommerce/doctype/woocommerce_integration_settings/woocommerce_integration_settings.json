@@ -30,7 +30,9 @@
   "item_group",
   "section_break_endpoints",
   "secret",
-  "view_webhook_config"
+  "view_webhook_config",
+  "item_naming_settings",
+  "name_by"
  ],
  "fields": [
   {
@@ -184,12 +186,26 @@
    "fieldname": "view_webhook_config",
    "fieldtype": "Button",
    "label": "View WooCommerce Webhook Configuration"
+  },
+  {
+   "fieldname": "item_naming_settings",
+   "fieldtype": "Heading",
+   "label": "Item naming settings"
+  },
+  {
+   "default": "Product ID",
+   "description": "The naming series of an item ",
+   "fieldname": "name_by",
+   "fieldtype": "Select",
+   "label": "Name By",
+   "options": "Product ID\nSKU",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-10 18:39:35.790960",
+ "modified": "2024-04-05 10:02:02.646511",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
