@@ -606,7 +606,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 			item_codes = frappe.db.get_all(
 				"Item WooCommerce Server",
-				filters={"woocommerce_id": item_woo_com_id, "woocommerce_server": woocommerce_site},
+				filters={"woocommerce_id": cstr(item_data.get("product_id")), "woocommerce_server": woocommerce_site},
 				fields=["parent"],
 			)
 			found_item = frappe.get_doc("Item", item_woo_com_id) if item_codes else None
