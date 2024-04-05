@@ -601,7 +601,6 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		settings = frappe.get_doc('WooCommerce Integration Settings', "WooCommerce Integration Settings")
 
 		for item_data in items_list:
-			# item_woo_com_id = cstr(item_data.get("product_id"))
 			item_woo_com_id = cstr(item_data.get("product_id")) if settings.name_by.lower() == "product id" else cstr(item_data.get("sku"))
 
 
@@ -614,13 +613,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			if not found_item:
 				# Create Item
 				item = frappe.new_doc("Item")
-				# item.item_code = _("{0}").format(item_woo_com_id)
 				item.item_code = item_woo_com_id
 				item.stock_uom = self.settings.uom or _("Nos")
 				item.item_group = self.settings.item_group
 				item.item_name = item_data.get("name")
 				row = item.append("woocommerce_servers")
-				row.woocommerce_id = item_woo_com_id
+				row.woocommerce_id = cstr(item_data.get("product_id"))
 				row.woocommerce_server = woocommerce_site
 				item.flags.ignore_mandatory = True
 				item.save()

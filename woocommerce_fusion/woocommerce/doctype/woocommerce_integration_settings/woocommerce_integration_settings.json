@@ -31,7 +31,7 @@
   "section_break_endpoints",
   "secret",
   "view_webhook_config",
-  "item_naming_settings",
+  "item_naming_section_section",
   "name_by"
  ],
  "fields": [
@@ -188,24 +188,24 @@
    "label": "View WooCommerce Webhook Configuration"
   },
   {
-   "fieldname": "item_naming_settings",
-   "fieldtype": "Heading",
-   "label": "Item naming settings"
-  },
-  {
    "default": "Product ID",
-   "description": "The naming series of an item ",
+   "description": "Choose how to name Woocommerce items when imported into ERPNext on synchronization",
    "fieldname": "name_by",
    "fieldtype": "Select",
    "label": "Name By",
    "options": "Product ID\nSKU",
    "reqd": 1
+  },
+  {
+   "fieldname": "item_naming_section_section",
+   "fieldtype": "Section Break",
+   "label": "Item Naming Section"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-05 10:02:02.646511",
+ "modified": "2024-04-05 16:14:29.285250",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
