@@ -567,6 +567,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		try:
 			customer.save()
+		except frappe.DuplicateEntryError:
+			pass
 		except Exception:
 			error_message = f"{frappe.get_traceback()}\n\nCustomer Data{str(customer.as_dict())}"
 			frappe.log_error("WooCommerce Error", error_message)
@@ -598,10 +600,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
-		settings = frappe.get_doc('WooCommerce Integration Settings', "WooCommerce Integration Settings")
+		self.settings = frappe.get_doc('WooCommerce Integration Settings', "WooCommerce Integration Settings")
 
 		for item_data in items_list:
-			item_woo_com_id = cstr(item_data.get("product_id")) if settings.name_by.lower() == "product id" else cstr(item_data.get("sku"))
+			item_woo_com_id = cstr(item_data.get("product_id")) if self.settings.name_by.lower() == "product id" else cstr(item_data.get("sku"))
 
 
 			item_codes = frappe.db.get_all(
@@ -609,7 +611,13 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				filters={"woocommerce_id": cstr(item_data.get("product_id")), "woocommerce_server": woocommerce_site},
 				fields=["parent"],
 			)
-			found_item = frappe.get_doc("Item", item_woo_com_id) if item_codes else None
+
+			found_item = None
+			if self.settings.name_by.lower() == "product id":
+				found_item = frappe.get_doc("Item", item_woo_com_id) if item_codes else None
+			else:
+				found_item = frappe.db.exists("Item", item_woo_com_id)
+				
 			if not found_item:
 				# Create Item
 				item = frappe.new_doc("Item")
@@ -633,23 +641,27 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		for item in order.get("line_items"):
 			woocomm_item_id = item.get("product_id")
+			sku = item.get("sku")
+			found_item = None
 
-			iws = frappe.qb.DocType("Item WooCommerce Server")
-			itm = frappe.qb.DocType("Item")
-			item_codes = (
-				frappe.qb.from_(iws)
-				.join(itm)
-				.on(iws.parent == itm.name)
-				.where(
-					(iws.woocommerce_id == cstr(woocomm_item_id))
-					& (iws.woocommerce_server == new_sales_order.woocommerce_server)
-					& (itm.disabled == 0)
-				)
-				.select(iws.parent)
-				.limit(1)
-			).run(as_dict=True)
-
-			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+			if self.settings.name_by.lower() == "product_id":
+				iws = frappe.qb.DocType("Item WooCommerce Server")
+				itm = frappe.qb.DocType("Item")
+				item_codes = (
+					frappe.qb.from_(iws)
+					.join(itm)
+					.on(iws.parent == itm.name)
+					.where(
+						(iws.woocommerce_id == cstr(woocomm_item_id))
+						& (iws.woocommerce_server == new_sales_order.woocommerce_server)
+						& (itm.disabled == 0)
+					)
+					.select(iws.parent)
+					.limit(1)
+				).run(as_dict=True)
+				found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
+			else:
+				found_item = frappe.get_doc("Item", sku)
 
 			new_sales_order.append(
 				"items",
