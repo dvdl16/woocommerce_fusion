@@ -205,7 +205,7 @@
    "label": "Item Naming Section"
   },
   {
-   "description": "Set Items as Delivered By Supplier",
+   "description": "Choose the default supplier that will be linked to items created from the woocommerce site",
    "fieldname": "default_supplier",
    "fieldtype": "Link",
    "label": "Default Supplier",
@@ -220,13 +220,13 @@
    "default": "0",
    "fieldname": "delivered_by_supplier_drop_ship",
    "fieldtype": "Check",
-   "label": "Delivered by Supplier (Drop Ship)"
+   "label": "Set Items as Delivered By Supplier"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-09 19:24:12.757573",
+ "modified": "2024-04-09 19:43:40.664285",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
