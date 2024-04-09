@@ -208,7 +208,7 @@
    "description": "Choose the default supplier that will be linked to items created from the woocommerce site ",
    "fieldname": "default_supplier",
    "fieldtype": "Link",
-   "label": "Default Supplier",
+   "label": "Set Items as Delivered By Supplier",
    "options": "Supplier"
   },
   {
@@ -226,7 +226,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-09 17:00:05.010803",
+ "modified": "2024-04-09 18:15:18.392387",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",

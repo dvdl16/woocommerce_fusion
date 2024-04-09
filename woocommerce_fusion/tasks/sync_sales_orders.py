@@ -629,9 +629,15 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				row.woocommerce_id = cstr(item_data.get("product_id"))
 				row.woocommerce_server = woocommerce_site
 				item.flags.ignore_mandatory = True
-				item.supplier_items = [
-							{'supplier': self.settings.default_supplier},
+				if item.item_defaults:
+					item.item_defaults.default_supplier = self.settings.default_supplier
+				else:
+					item.item_defaults = [
+							{'company': self.settings.company},
+							{'default_warehouse': self.settings.warehouse},
+							{'default_supplier': self.settings.default_supplier},
 						]
+
 				item.delivered_by_supplier =  self.settings.delivered_by_supplier_drop_ship
 				item.save()
 
