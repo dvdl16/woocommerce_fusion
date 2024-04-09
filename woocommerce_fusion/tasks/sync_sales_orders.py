@@ -630,7 +630,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				row.woocommerce_server = woocommerce_site
 				item.flags.ignore_mandatory = True
 				if item.item_defaults:
-					item.item_defaults.default_supplier = self.settings.default_supplier
+					item.item_defaults[0]['default_supplier'] = self.settings.default_supplier
 				else:
 					item.item_defaults = [
 							{'company': self.settings.company},
