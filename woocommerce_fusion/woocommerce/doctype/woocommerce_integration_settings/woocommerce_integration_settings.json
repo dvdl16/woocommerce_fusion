@@ -32,7 +32,10 @@
   "secret",
   "view_webhook_config",
   "item_naming_section_section",
-  "name_by"
+  "name_by",
+  "supplier_and_shipping_section_section",
+  "default_supplier",
+  "delivered_by_supplier_drop_ship"
  ],
  "fields": [
   {
@@ -200,12 +203,30 @@
    "fieldname": "item_naming_section_section",
    "fieldtype": "Section Break",
    "label": "Item Naming Section"
+  },
+  {
+   "description": "Choose the default supplier that will be linked to items created from the woocommerce site ",
+   "fieldname": "default_supplier",
+   "fieldtype": "Link",
+   "label": "Default Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "supplier_and_shipping_section_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier and Shipping Section"
+  },
+  {
+   "default": "0",
+   "fieldname": "delivered_by_supplier_drop_ship",
+   "fieldtype": "Check",
+   "label": "Delivered by Supplier (Drop Ship)"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-04-05 16:14:29.285250",
+ "modified": "2024-04-09 17:00:05.010803",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",

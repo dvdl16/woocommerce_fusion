@@ -629,6 +629,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				row.woocommerce_id = cstr(item_data.get("product_id"))
 				row.woocommerce_server = woocommerce_site
 				item.flags.ignore_mandatory = True
+				item.supplier_items = [
+							{'supplier': self.settings.default_supplier},
+						]
+				item.delivered_by_supplier =  self.settings.delivered_by_supplier_drop_ship
 				item.save()
 
 	def set_items_in_sales_order(self, new_sales_order, order):
