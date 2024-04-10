@@ -632,12 +632,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				if item.item_defaults:
 					item.item_defaults[0]['default_supplier'] = self.settings.default_supplier
 				else:
-					item.item_defaults = [
-							{'company': self.settings.company},
-							{'default_warehouse': self.settings.warehouse},
-							{'default_supplier': self.settings.default_supplier},
-						]
-
+					item.append(
+						"Item Default", 
+							{'company': self.settings.company,
+							'default_warehouse': self.settings.warehouse,
+							'default_supplier': self.settings.default_supplier},
+					)
 				item.delivered_by_supplier =  self.settings.delivered_by_supplier_drop_ship
 				item.save()
 
