@@ -633,7 +633,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					item.item_defaults[0]['default_supplier'] = self.settings.default_supplier
 				else:
 					item.append(
-						"Item Default", {
+						"item_defaults", {
 							'company': self.settings.company,
 							'default_warehouse': self.settings.warehouse,
 							'default_supplier': self.settings.default_supplier
