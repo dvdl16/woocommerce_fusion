@@ -550,12 +550,22 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Create or update Customer and Address records
 		"""
 		customer_woo_com_email = raw_billing_data.get("email")
+		address_title = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}-Billing"
 		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
-		if not customer_exists:
+		address_exists = frappe.get_value("Address", {"address_line1": raw_billing_data.get("address_1"), "title":address_title})
+		if not customer_exists and address_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
 			customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
 			customer.name = customer_docname
+
+		elif address_exists:
+			doc = frappe.get_doc("Address", address_exists)
+			for link in doc.links:
+				if link.link_doctype == "Customer":
+					customer = frappe.get_doc("Customer", link.name)
+					break
+				
 		else:
 			# Edit Customer
 			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
