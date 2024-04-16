@@ -272,22 +272,25 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		# Get the Sales Order doc
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
 
-		# Get the WooCommerce Order doc
-		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
-		wc_order.load_from_db()
+		# Ignore cancelled Sales Orders
+		if sales_order.docstatus != 2:
 
-		# Update the woocommerce_status field if necessary
-		wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
-		if sales_order.woocommerce_status != wc_order_status:
-			sales_order.woocommerce_status = wc_order_status
-			sales_order.save()
+			# Get the WooCommerce Order doc
+			wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
+			wc_order.load_from_db()
 
-		# Update the payment_method_title field if necessary
-		if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
-			sales_order.woocommerce_payment_method = wc_order.payment_method_title
+			# Update the woocommerce_status field if necessary
+			wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+			if sales_order.woocommerce_status != wc_order_status:
+				sales_order.woocommerce_status = wc_order_status
+				sales_order.save()
 
-		if not sales_order.woocommerce_payment_entry:
-			self.create_and_link_payment_entry(woocommerce_order, sales_order_name)
+			# Update the payment_method_title field if necessary
+			if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
+				sales_order.woocommerce_payment_method = wc_order.payment_method_title
+
+			if not sales_order.woocommerce_payment_entry:
+				self.create_and_link_payment_entry(woocommerce_order, sales_order_name)
 
 	def create_and_link_payment_entry(self, wc_order_data: Dict, sales_order_name: str) -> None:
 		"""
