@@ -565,6 +565,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				if link.link_doctype == "Customer":
 					customer = frappe.get_doc("Customer", link.link_name)
 					break
+			if not customer:
+				customer = frappe.new_doc("Customer")
+				customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
+				customer.name = customer_docname
 				
 		else:
 			# Edit Customer
