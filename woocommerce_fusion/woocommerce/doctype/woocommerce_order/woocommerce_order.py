@@ -3,6 +3,7 @@
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List
 
 import frappe
@@ -120,6 +121,27 @@ class WooCommerceOrder(WooCommerceResource):
 					order["shipment_trackings"] = self.current_wc_api.api.get(
 						f"orders/{order_id}/shipment-trackings"
 					).json()
+
+					# Attempt to fix broken date in date_shipped field from /shipment-trackings endpoint
+					if "meta_data" in order:
+						shipment_trackings_meta_data = next(
+							(entry for entry in order["meta_data"] if entry["key"] == "_wc_shipment_tracking_items"),
+							None,
+						)
+						if shipment_trackings_meta_data:
+							for shipment_tracking in order["shipment_trackings"]:
+								shipment_tracking_meta_data = next(
+									(
+										entry
+										for entry in shipment_trackings_meta_data["value"]
+										if entry["tracking_id"] == shipment_tracking["tracking_id"]
+									),
+									None,
+								)
+								if shipment_tracking_meta_data:
+									date_shipped = datetime.fromtimestamp(int(shipment_tracking_meta_data["date_shipped"]))
+									shipment_tracking["date_shipped"] = date_shipped.strftime("%Y-%m-%d")
+
 				except Exception as err:
 					log_and_raise_error(err)
 

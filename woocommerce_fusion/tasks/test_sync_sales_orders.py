@@ -164,6 +164,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_order.grand_total = 100
 		mock_sales_order.name = "SO-0001"
 		mock_sales_order.docstatus = 1
+		mock_sales_order.per_billed = 0
 
 		sync.settings = MagicMock()
 		sync.settings.servers = [
@@ -225,6 +226,59 @@ class TestWooCommerceSync(FrappeTestCase):
 		# Assert
 		self.assertIsNone(mock_sales_order.woocommerce_payment_entry)
 		mock_frappe.new_doc.assert_not_called()
+
+	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
+	def test_payment_entry_created_with_sales_invoice_as_reference(self, mock_frappe):
+		"""
+		Test that the created Payment Entry's reference is set to the linked Sales Invoice when
+		a Sales Invoice is already created for the Sales Order
+		"""
+		# Initialise class
+		sync = SynchroniseSalesOrders()
+
+		# Arrange
+		wc_order = {
+			"payment_method": "PayPal",
+			"date_paid": "2023-01-01",
+			"name": "wc_order_1",
+			"payment_method_title": "PayPal",
+			"total": 100,
+		}
+		sales_order_name = "SO-0001"
+
+		mock_sales_order = MagicMock()
+		mock_sales_order.woocommerce_server = "example.com"
+		mock_sales_order.woocommerce_payment_entry = None
+		mock_sales_order.customer = "customer_1"
+		mock_sales_order.grand_total = 100
+		mock_sales_order.name = "SO-0001"
+		mock_sales_order.docstatus = 1
+		mock_sales_order.per_billed = 1
+
+		mock_sales_invoice_item = MagicMock()
+		mock_sales_invoice_item.parent = "INVOICE-12345"
+
+		sync.settings = MagicMock()
+		sync.settings.servers = [
+			frappe._dict(
+				enable_payments_sync=1,
+				woocommerce_server_url="http://example.com",
+				payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
+				payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
+			)
+		]
+
+		mock_frappe.get_doc.return_value = mock_sales_order
+		mock_frappe.get_all.return_value = [mock_sales_invoice_item]
+		mock_frappe.get_value.return_value = "Test Company"
+		mock_frappe.new_doc.return_value = MagicMock()
+
+		# Act
+		sync.create_and_link_payment_entry(wc_order, sales_order_name)
+
+		# Assert
+		self.assertIsNotNone(mock_sales_order.woocommerce_payment_entry)
+		mock_frappe.new_doc.assert_called_once_with("Payment Entry")
 
 
 def create_bank_account(

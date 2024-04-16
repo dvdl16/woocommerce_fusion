@@ -104,7 +104,17 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		# If this is a sync run for all Sales Orders, get list of WooCommerce orders
 		if not self.sales_order_name:
-			self.get_list_of_wc_orders(date_time_from=self.date_time_from)
+			# Get active WooCommerce orders
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from, woocommerce_order_id=self.woocommerce_order_id
+			)
+
+			# Get trashed WooCommerce orders
+			self.get_list_of_wc_orders(
+				date_time_from=self.date_time_from,
+				status="trash",
+				woocommerce_order_id=self.woocommerce_order_id,
+			)
 
 	def get_erpnext_sales_orders_for_wc_orders(self):
 		"""
@@ -119,7 +129,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Get list of erpnext orders modified since date_time_from
 		"""
-		if not self.sales_order_name:
+		if not self.sales_order_name and not self.woocommerce_order_id:
 			self.get_erpnext_sales_orders(date_time_from=self.date_time_from)
 
 	def get_erpnext_sales_orders(
@@ -146,7 +156,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters.append(["Sales Order", "modified", ">", self.date_time_from])
 		if woocommerce_orders:
 			filters.append(
-				["Sales Order", "woocommerce_id", "in", [order_id for order_id in woocommerce_orders.keys()]]
+				["Sales Order", "woocommerce_id", "in", [order["id"] for order in woocommerce_orders.values()]]
 			)
 			filters.append(
 				[
@@ -189,6 +199,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		date_time_to: Optional[datetime] = None,
 		sales_orders: Optional[List] = None,
 		woocommerce_order_id: Optional[str] = None,
+		status: Optional[str] = None,
 	):
 		"""
 		Fetches a list of WooCommerce Orders within a specified date range or linked with Sales Orders, using pagination.
@@ -217,6 +228,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters.append(["WooCommerce Order", "id", "in", wc_order_ids])
 		if woocommerce_order_id:
 			filters.append(["WooCommerce Order", "id", "=", woocommerce_order_id])
+		if status:
+			filters.append(["WooCommerce Order", "status", "=", status])
 
 		while new_results:
 			woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
@@ -279,11 +292,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
 			wc_order.load_from_db()
 
-			# Update the woocommerce_status field if necessary
-			wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
-			if sales_order.woocommerce_status != wc_order_status:
-				sales_order.woocommerce_status = wc_order_status
-				sales_order.save()
+      # Update the woocommerce_status field if necessary
+      wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+      if sales_order.woocommerce_status != wc_order_status:
+        sales_order.woocommerce_status = wc_order_status
+        try:
+          sales_order.save()
+        except frappe.exceptions.ValidationError:
+          error_message = f"{frappe.get_traceback()}\n\nSales Order Data{str(sales_order.as_dict())}"
+          frappe.log_error("WooCommerce Error", error_message)
+          return
 
 			# Update the payment_method_title field if necessary
 			if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
@@ -313,7 +331,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			if (
 				wc_server.enable_payments_sync
 				and wc_order_data["payment_method"]
-				and wc_order_data["date_paid"]
+				and (
+					(wc_server.ignore_date_paid)
+					or (not wc_server.ignore_date_paid and wc_order_data["date_paid"])
+				)
 				and not sales_order.woocommerce_payment_entry
 				and sales_order.docstatus == 1
 			):
@@ -349,14 +370,31 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 							if meta_data and type(meta_data) is list
 							else None
 						)
+
+					# Determine if the reference should be Sales Order or Sales Invoice
+					reference_doctype = "Sales Order"
+					reference_name = sales_order.name
+					total_amount = sales_order.grand_total
+					if sales_order.per_billed > 0:
+						si_item_details = frappe.get_all(
+							"Sales Invoice Item",
+							fields=["name", "parent"],
+							filters={"sales_order": sales_order.name},
+						)
+						if len(si_item_details) > 0:
+							reference_doctype = "Sales Invoice"
+							reference_name = si_item_details[0].parent
+							total_amount = sales_order.grand_total
+
+					# Create Payment Entry
 					payment_entry_dict = {
 						"company": company,
 						"payment_type": "Receive",
 						"reference_no": payment_reference_no or wc_order_data["payment_method_title"],
-						"reference_date": wc_order_data["date_paid"],
+						"reference_date": wc_order_data["date_paid"] or sales_order.transaction_date,
 						"party_type": "Customer",
 						"party": sales_order.customer,
-						"posting_date": wc_order_data["date_paid"],
+						"posting_date": wc_order_data["date_paid"] or sales_order.transaction_date,
 						"paid_amount": float(wc_order_data["total"]),
 						"received_amount": float(wc_order_data["total"]),
 						"bank_account": company_bank_account,
@@ -365,10 +403,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					payment_entry = frappe.new_doc("Payment Entry")
 					payment_entry.update(payment_entry_dict)
 					row = payment_entry.append("references")
-					row.reference_doctype = "Sales Order"
-					row.reference_name = sales_order.name
-					row.total_amount = sales_order.grand_total
-					row.allocated_amount = sales_order.grand_total
+					row.reference_doctype = reference_doctype
+					row.reference_name = reference_name
+					row.total_amount = total_amount
+					row.allocated_amount = total_amount
 					payment_entry.save()
 
 					# Link created Payment Entry to Sales Order

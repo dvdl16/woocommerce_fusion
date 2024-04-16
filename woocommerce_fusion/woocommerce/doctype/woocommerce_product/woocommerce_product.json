@@ -102,8 +102,7 @@
    "fieldname": "slug",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Slug",
-   "reqd": 1
+   "label": "Slug"
   },
   {
    "fieldname": "permalink",
@@ -495,7 +494,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2024-03-07 14:39:52.955886",
+ "modified": "2024-03-27 11:21:37.095673",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Product",

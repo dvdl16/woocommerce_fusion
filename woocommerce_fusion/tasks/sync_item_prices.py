@@ -72,9 +72,11 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 		if self.wc_server.enable_price_list_sync and self.wc_server.price_list:
 			ip = qb.DocType("Item Price")
 			iwc = qb.DocType("Item WooCommerce Server")
+			item = qb.DocType("Item")
 			and_conditions = []
 			and_conditions.append(ip.price_list == self.wc_server.price_list)
 			and_conditions.append(iwc.woocommerce_server == self.wc_server.woocommerce_server)
+			and_conditions.append(item.disabled == 0)
 			if self.item_code:
 				and_conditions.append(ip.item_code == self.item_code)
 
@@ -82,6 +84,8 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 				qb.from_(ip)
 				.inner_join(iwc)
 				.on(iwc.parent == ip.item_code)
+				.inner_join(item)
+				.on(item.name == ip.item_code)
 				.select(ip.name, ip.item_code, ip.price_list_rate, iwc.woocommerce_server, iwc.woocommerce_id)
 				.where(Criterion.all(and_conditions))
 				.run(as_dict=True)

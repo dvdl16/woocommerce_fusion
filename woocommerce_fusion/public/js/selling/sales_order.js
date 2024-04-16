@@ -6,40 +6,21 @@ frappe.ui.form.on('Sales Order', {
 				frm.trigger("sync_sales_order");
 			}, __('Actions'));
 		}
-
-		// Add a table with Shipment Trackings
-		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server){			
-			frappe.call({
-				method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
-				args: {
-					doc: frm.doc
-				},
-				callback: function(r) {
-					frappe.show_alert({
-						indicator: "green",
-						message: __("Retrieved WooCommerce Shipment Trackings"),
-					});
-					frm.doc.woocommerce_shipment_trackings = r.message;
-
-					let trackingsHTML = `<b>WooCommerce Shipments:</b><br><table class="table table-striped">`+
-					`<tr><th>Date Shipped</th><th>Provider</th><th>Tracking Number</th>`;
-					frm.doc.woocommerce_shipment_trackings.forEach(tracking => {
-						trackingsHTML += `<tr><td>${tracking.date_shipped}</td>`+
-											`<td>${tracking.tracking_provider}</td>`+
-											`<td><a href="${tracking.tracking_link}">${tracking.tracking_number}</a></td></tr>`
-					});
-					trackingsHTML += `</table>`
-					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', trackingsHTML);
-					frm.refresh_field('woocommerce_shipment_tracking_html');
-				}
-			});
-		}
-
+		
 		// Add a custom button to allow adding or editing Shipment Trackings
 		if (frm.doc.woocommerce_id){
 			frm.add_custom_button(__("Edit WooCommerce Shipment Trackings"), function () {
 				frm.trigger("prompt_user_for_shipment_trackings");
 			}, __('Actions'));
+		}
+		
+		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server && ["Shipped", "Delivered"].includes(frm.doc.woocommerce_status)){
+			frm.trigger("load_shipment_trackings_table");
+		}
+		else {
+			// Clean up Shipment Tracking HTML
+			frm.doc.woocommerce_shipment_trackings = [];
+			frm.set_df_property('woocommerce_shipment_tracking_html', 'options', " ");
 		}
 	},
 
@@ -75,6 +56,42 @@ frappe.ui.form.on('Sales Order', {
 				frm.reload_doc();
 			}
 		);
+	},
+
+	load_shipment_trackings_table: function(frm) {
+		// Add a table with Shipment Trackings	
+		frm.set_df_property('woocommerce_shipment_tracking_html', 'options', '🚚 <i>Loading Shipments...</i><br><br><br><br>');
+		frm.refresh_field('woocommerce_shipment_tracking_html');
+		frappe.call({
+			method: "woocommerce_fusion.overrides.selling.sales_order.get_woocommerce_order_shipment_trackings",
+			args: {
+				doc: frm.doc
+			},
+			callback: function(r) {
+				if (r.message) {
+					frappe.show_alert({
+						indicator: "green",
+						message: __("Retrieved WooCommerce Shipment Trackings"),
+					});
+					frm.doc.woocommerce_shipment_trackings = r.message;
+
+					let trackingsHTML = `<b>WooCommerce Shipments:</b><br><table class="table table-striped">`+
+					`<tr><th>Date Shipped</th><th>Provider</th><th>Tracking Number</th>`;
+					frm.doc.woocommerce_shipment_trackings.forEach(tracking => {
+						trackingsHTML += `<tr><td>${tracking.date_shipped}</td>`+
+											`<td>${tracking.tracking_provider}</td>`+
+											`<td><a href="${tracking.tracking_link}">${tracking.tracking_number}</a></td></tr>`
+					});
+					trackingsHTML += `</table>`
+					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', trackingsHTML);
+					frm.refresh_field('woocommerce_shipment_tracking_html');
+				}
+				else {
+					frm.set_df_property('woocommerce_shipment_tracking_html', 'options', '');
+					frm.refresh_field('woocommerce_shipment_tracking_html');
+				}
+			}
+		});		
 	},
 
 	prompt_user_for_shipment_trackings: function(frm){
@@ -129,9 +146,7 @@ frappe.ui.form.on('Sales Order', {
 							'fieldtype': 'Date',
 							'label': 'Date Shipped',
 							'reqd': 1,
-							'default': shipment_trackings.length > 0 ? convert_ship_date_format_to_site_format(
-								shipment_trackings[0].date_shipped
-							) : null
+							'default': shipment_trackings.length > 0 ? shipment_trackings[0].date_shipped : null
 						},
 					],
 					primary_action: function(){
@@ -173,24 +188,3 @@ frappe.ui.form.on('Sales Order', {
 	}
 	
 });
-
-
-function convert_ship_date_format_to_site_format(epochTime){
-	// Create a new Date object from epoch time in seconds
-	let dateObj = new Date(epochTime * 1000);
-
-	// Format the date
-	let year = dateObj.getFullYear();
-	let month = dateObj.getMonth() + 1; // getMonth() is zero-based
-	let day = dateObj.getDate();
-
-	// Ensure it's two digits. For example, 1 becomes 01
-	if (month < 10) month = '0' + month;
-	if (day < 10) day = '0' + day;
-
-	// Concatenate in YYY-MM-DD format
-	let formattedDate = `${year}-${month}-${day}`;
-
-	return formattedDate; // Outputs: 2023-05-26
-
-}
