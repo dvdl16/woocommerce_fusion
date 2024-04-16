@@ -550,9 +550,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Create or update Customer and Address records
 		"""
 		customer_woo_com_email = raw_billing_data.get("email")
-		address_title = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}-Billing"
 		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
-		address_exists = frappe.get_value("Address", {"address_line1": raw_billing_data.get("address_1"), "title":address_title})
+		address_exists = frappe.get_value("Address", {"address_line1": raw_billing_data.get("address_1"), "state": raw_billing_data.get("state"),
+											"city": raw_billing_data('city')})
 		if not customer_exists and address_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
@@ -732,7 +732,7 @@ def rename_address(address, customer):
 
 def create_address(raw_data, customer, address_type):
 	address = frappe.new_doc("Address")
-
+	address.address_title = f"{raw_data.get('address_line_1')} {raw_data.get('state')} {raw_data.get('city')}"
 	address.address_line1 = raw_data.get("address_1", "Not Provided")
 	address.address_line2 = raw_data.get("address_2", "Not Provided")
 	address.city = raw_data.get("city", "Not Provided")
