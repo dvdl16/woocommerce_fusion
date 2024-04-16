@@ -552,8 +552,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		customer_woo_com_email = raw_billing_data.get("email")
 		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
 		address_exists = frappe.get_value("Address", {"address_line1": raw_billing_data.get("address_1"), "state": raw_billing_data.get("state"),
-											"city": raw_billing_data('city')})
-		if not customer_exists and address_exists:
+											"city": raw_billing_data.get('city')})
+		if not customer_exists and not address_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
 			customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
@@ -563,14 +563,13 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			doc = frappe.get_doc("Address", address_exists)
 			for link in doc.links:
 				if link.link_doctype == "Customer":
-					customer = frappe.get_doc("Customer", link.name)
+					customer = frappe.get_doc("Customer", link.link_name)
 					break
 				
 		else:
 			# Edit Customer
 			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
 			old_name = customer.customer_name
-
 		customer.customer_name = customer_name
 		customer.woocommerce_email = customer_woo_com_email
 		customer.flags.ignore_mandatory = True
@@ -732,7 +731,7 @@ def rename_address(address, customer):
 
 def create_address(raw_data, customer, address_type):
 	address = frappe.new_doc("Address")
-	address.address_title = f"{raw_data.get('address_line_1')} {raw_data.get('state')} {raw_data.get('city')}"
+	address.address_title = f"{raw_data.get('address_1')} {raw_data.get('state')} {raw_data.get('city')}"
 	address.address_line1 = raw_data.get("address_1", "Not Provided")
 	address.address_line2 = raw_data.get("address_2", "Not Provided")
 	address.city = raw_data.get("city", "Not Provided")
