@@ -292,16 +292,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
 			wc_order.load_from_db()
 
-      # Update the woocommerce_status field if necessary
-      wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
-      if sales_order.woocommerce_status != wc_order_status:
-        sales_order.woocommerce_status = wc_order_status
-        try:
-          sales_order.save()
-        except frappe.exceptions.ValidationError:
-          error_message = f"{frappe.get_traceback()}\n\nSales Order Data{str(sales_order.as_dict())}"
-          frappe.log_error("WooCommerce Error", error_message)
-          return
+			# Update the woocommerce_status field if necessary
+			wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+			if sales_order.woocommerce_status != wc_order_status:
+				sales_order.woocommerce_status = wc_order_status
+				try:
+					sales_order.save()
+				except frappe.exceptions.ValidationError:
+					error_message = f"{frappe.get_traceback()}\n\nSales Order Data{str(sales_order.as_dict())}"
+					frappe.log_error("WooCommerce Error", error_message)
+					return
 
 			# Update the payment_method_title field if necessary
 			if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
