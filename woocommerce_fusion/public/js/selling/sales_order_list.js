@@ -70,7 +70,8 @@ frappe.listview_settings['Sales Order'] = {
 				'Processing LP': 'purple',
 				'Draft': 'grey',
 				'Quote Sent': 'grey',
-				'Trash': 'red'
+				'Trash': 'red',
+				'Partially Shipped': 'light-blue',
 			}
 			const color = statusToColorMap[val] || ""
 			return `
