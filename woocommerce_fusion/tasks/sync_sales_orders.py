@@ -570,7 +570,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			# Edit Customer
 			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
 			old_name = customer.customer_name
-		if not customer.name:
+		if not customer.customer_name:
 			customer.customer_name = customer_name
 			customer.woocommerce_email = customer_woo_com_email
 		customer.flags.ignore_mandatory = True
