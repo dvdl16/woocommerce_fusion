@@ -508,7 +508,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		new_sales_order = frappe.new_doc("Sales Order")
 		new_sales_order.customer = customer_docname
-		new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order_data.get("id")
+		#new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order_data.get("id")
 
 		try:
 			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
@@ -570,8 +570,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			# Edit Customer
 			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
 			old_name = customer.customer_name
-		customer.customer_name = customer_name
-		customer.woocommerce_email = customer_woo_com_email
+		if not customer.name:
+			customer.customer_name = customer_name
+			customer.woocommerce_email = customer_woo_com_email
 		customer.flags.ignore_mandatory = True
 
 		try:
