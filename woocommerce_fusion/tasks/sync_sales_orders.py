@@ -508,7 +508,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		new_sales_order = frappe.new_doc("Sales Order")
 		new_sales_order.customer = customer_docname
-		#new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order_data.get("id")
+		new_sales_order.po_no = wc_order_data.get("purchase_order")
+		new_sales_order.woocommerce_id = wc_order_data.get("id")
+		new_sales_order.po_no = self._get_customer_po_number(wc_order_data)
 
 		try:
 			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
@@ -719,6 +721,19 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			"Shipping Total",
 			self.settings.f_n_f_account,
 		)
+
+	def _get_customer_po_number(self, wc_order_data):
+		"""
+		returns the data from the woocommerce `purchase_order` custom field
+		"""
+		meta_data = wc_order_data.get("meta_data")
+		purchase_order = None
+		if meta_data:
+			for data in meta_data:
+				if data.get("key") == "purchase_order":
+					purchase_order = data.get("value")
+					break
+		return purchase_order
 
 
 def rename_address(address, customer):
