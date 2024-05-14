@@ -24,7 +24,8 @@
   "ignore_date_paid",
   "section_break_hnji",
   "enable_price_list_sync",
-  "price_list"
+  "price_list",
+  "price_list_delay_per_item"
  ],
  "fields": [
   {
@@ -138,12 +139,20 @@
    "fieldname": "ignore_date_paid",
    "fieldtype": "Check",
    "label": "Ignore empty 'Date Paid' field on WooCommerce Orders"
+  },
+  {
+   "default": "2",
+   "depends_on": "eval: doc.enable_price_list_sync",
+   "description": "In seconds. Increase if WC server can't handle the load.",
+   "fieldname": "price_list_delay_per_item",
+   "fieldtype": "Int",
+   "label": "Delay per POST Request"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-03-28 12:55:32.842385",
+ "modified": "2024-05-14 17:56:25.735861",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Additional Settings Servers",
