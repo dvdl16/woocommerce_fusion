@@ -109,12 +109,13 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 			try:
 				wc_product.load_from_db()
 
+				# If self.item_price_doc is set, set the price_list_rate accordingly, else use the price_list_rate from the price list
 				price_list_rate = (
 					self.item_price_doc.price_list_rate
 					if self.item_price_doc and self.item_price_doc.price_list == self.wc_server.price_list
 					else item_price.price_list_rate
 				)
-				if wc_product.regular_price != price_list_rate:
+				if float(wc_product.regular_price) != price_list_rate:
 					wc_product.regular_price = price_list_rate
 					wc_product.save()
 			except Exception:

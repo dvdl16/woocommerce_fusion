@@ -71,7 +71,7 @@ class WooCommerceProduct(WooCommerceResource):
 		product["regular_price"] = str(product["regular_price"])
 
 		# Do not post Sale Price if it is 0
-		if product["sale_price"] and product["sale_price"] > 0:
+		if product["sale_price"] and float(product["sale_price"]) > 0:
 			product["sale_price"] = str(product["sale_price"])
 		else:
 			product.pop("sale_price")
