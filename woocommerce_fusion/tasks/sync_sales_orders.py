@@ -664,6 +664,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					if self.settings.use_actual_tax_type
 					else get_tax_inc_price_for_woocommerce_line_item(item),
 					"warehouse": self.settings.warehouse,
+					"discount_percentage": 100 if item.get("price") == 0 else 0,
 				},
 			)
 
