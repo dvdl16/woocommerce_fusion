@@ -356,7 +356,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-06-05 10:04:26.819798",
+ "modified": "2024-06-05 11:40:30.903418",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
@@ -375,7 +375,6 @@
    "write": 1
   }
  ],
- "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
