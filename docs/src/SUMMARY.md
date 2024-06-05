@@ -2,4 +2,8 @@
 
 [Features](README.md)
 
-- [Two-way Sales Order Synchronisation](features/sales-order.md)
+[⚙️ Configure WooCommerce Fusion](configure.md)
+- [Sales Order Synchronisation](features/sales-order.md)
+- [Sync Item Stock Levels](features/item-stock-levels.md)
+- [Sync Item Prices](features/item-prices.md)
+- [Integration with WooCommerce Plugins](features/woocommerce-plugins.md)
