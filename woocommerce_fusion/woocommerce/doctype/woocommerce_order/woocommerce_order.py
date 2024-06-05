@@ -57,7 +57,8 @@ class WooCommerceOrder(WooCommerceResource):
 		"""
 		Initialise the WooCommerce API
 		"""
-		woocommerce_integration_settings = frappe.get_single("WooCommerce Integration Settings")
+		wc_servers = frappe.get_all("WooCommerce Server")
+		wc_servers = [frappe.get_doc("WooCommerce Server", server.name) for server in wc_servers]
 
 		wc_api_list = [
 			WooCommerceOrderAPI(
@@ -69,10 +70,10 @@ class WooCommerceOrder(WooCommerceResource):
 					timeout=40,
 				),
 				woocommerce_server_url=server.woocommerce_server_url,
-				woocommerce_server=server.woocommerce_server,
+				woocommerce_server=server.name,
 				wc_plugin_advanced_shipment_tracking=server.wc_plugin_advanced_shipment_tracking,
 			)
-			for server in woocommerce_integration_settings.servers
+			for server in wc_servers
 			if server.enable_sync == 1
 		]
 

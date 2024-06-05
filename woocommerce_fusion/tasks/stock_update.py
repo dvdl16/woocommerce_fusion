@@ -62,8 +62,6 @@ def update_stock_levels_on_woocommerce_site(item_code):
 	if len(item.woocommerce_servers) == 0 or not item.is_stock_item or item.disabled:
 		return False
 	else:
-		wc_integration_settings = frappe.get_single("WooCommerce Integration Settings")
-
 		bins = frappe.get_list(
 			"Bin", {"item_code": item_code}, ["name", "warehouse", "reserved_qty", "actual_qty"]
 		)
@@ -71,17 +69,9 @@ def update_stock_levels_on_woocommerce_site(item_code):
 		for wc_site in item.woocommerce_servers:
 			woocommerce_id = wc_site.woocommerce_id
 			woocommerce_server = wc_site.woocommerce_server
+			wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_server)
 
-			wc_server = next(
-				(
-					server
-					for server in wc_integration_settings.servers
-					if woocommerce_server == server.woocommerce_server and server.enable_sync
-				),
-				None,
-			)
-
-			if not wc_server:
+			if not wc_server or not wc_server.enable_sync:
 				continue
 
 			wc_api = APIWithRequestLogging(

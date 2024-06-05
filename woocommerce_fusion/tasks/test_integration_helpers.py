@@ -16,12 +16,13 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 	Intended to be used as a Base class for integration tests with a WooCommerce website
 	"""
 
+	wc_server = None
+
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
 	def setUp(self):
-
 		# Add WooCommerce Test Instance details
 		self.wc_url = os.getenv("WOO_INTEGRATION_TESTS_WEBSERVER")
 		self.wc_consumer_key = os.getenv("WOO_API_CONSUMER_KEY")
@@ -30,36 +31,40 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 			raise ValueError("Missing environment variables")
 
 		# Set WooCommerce Settings
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
-		woocommerce_settings.enable_sync = 1
-		woocommerce_settings.woocommerce_server_url = self.wc_url
-		woocommerce_settings.api_consumer_key = self.wc_consumer_key
-		woocommerce_settings.api_consumer_secret = self.wc_consumer_secret
-		woocommerce_settings.use_actual_tax_type = 1
-		woocommerce_settings.tax_account = "VAT - SC"
-		woocommerce_settings.f_n_f_account = "Freight and Forwarding Charges - SC"
-		woocommerce_settings.creation_user = "test@erpnext.com"
-		woocommerce_settings.company = "Some Company (Pty) Ltd"
-		woocommerce_settings.item_group = "Products"
-		woocommerce_settings.warehouse = "Stores - SC"
-		woocommerce_settings.submit_sales_orders = 1
-		woocommerce_settings.wc_last_sync_date = add_to_date(now(), days=-1)
-		woocommerce_settings.servers = []
-		row = woocommerce_settings.append("servers")
-		row.enable_sync = 1
-		row.woocommerce_server = get_woocommerce_server(self.wc_url).name
-		row.woocommerce_server_url = self.wc_url
-		row.api_consumer_key = self.wc_consumer_key
-		row.api_consumer_secret = self.wc_consumer_secret
-		row.enable_price_list_sync = 1
-		row.price_list = "_Test Price List"
+		wc_servers = frappe.get_all(
+			"WooCommerce Server", filters={"woocommerce_server_url": self.wc_url}
+		)
+		if len(wc_servers) == 0:
+			wc_server = frappe.new_doc("WooCommerce Server")
+		else:
+			wc_server = frappe.get_doc("WooCommerce Server", wc_servers[0].name)
+		wc_server.enable_sync = 1
+		wc_server.woocommerce_server_url = self.wc_url
+		wc_server.api_consumer_key = self.wc_consumer_key
+		wc_server.api_consumer_secret = self.wc_consumer_secret
+		wc_server.use_actual_tax_type = 1
+		wc_server.tax_account = "VAT - SC"
+		wc_server.f_n_f_account = "Freight and Forwarding Charges - SC"
+		wc_server.creation_user = "test@erpnext.com"
+		wc_server.company = "Some Company (Pty) Ltd"
+		wc_server.item_group = "Products"
+		wc_server.warehouse = "Stores - SC"
+		wc_server.submit_sales_orders = 1
+		wc_server.servers = []
+		wc_server.enable_sync = 1
+		wc_server.woocommerce_server_url = self.wc_url
+		wc_server.api_consumer_key = self.wc_consumer_key
+		wc_server.api_consumer_secret = self.wc_consumer_secret
+		wc_server.enable_price_list_sync = 1
+		wc_server.price_list = "_Test Price List"
 		bank_account = create_bank_account()
 		gl_account = create_gl_account_for_bank()
-		row.enable_payments_sync = 1
-		row.payment_method_bank_account_mapping = json.dumps({"bacs": bank_account.name})
-		row.payment_method_gl_account_mapping = json.dumps({"bacs": gl_account.name})
+		wc_server.enable_payments_sync = 1
+		wc_server.payment_method_bank_account_mapping = json.dumps({"bacs": bank_account.name})
+		wc_server.payment_method_gl_account_mapping = json.dumps({"bacs": gl_account.name})
 
-		woocommerce_settings.save()
+		wc_server.save()
+		self.wc_server = wc_server
 
 	def post_woocommerce_order(
 		self,
@@ -313,8 +318,4 @@ def get_woocommerce_server(woocommerce_server_url: str):
 		"WooCommerce Server", filters={"woocommerce_server_url": woocommerce_server_url}
 	)
 	wc_server = wc_servers[0] if len(wc_servers) > 0 else None
-	if not wc_server:
-		wc_server = frappe.new_doc("WooCommerce Server")
-		wc_server.woocommerce_server_url = woocommerce_server_url
-		wc_server.save()
 	return wc_server

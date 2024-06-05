@@ -3,3 +3,4 @@ woocommerce_fusion.patches.v0.update_sales_order_woocommerce_payment_method_fiel
 woocommerce_fusion.patches.v0.change_woocommerce_site_to_link_field
 woocommerce_fusion.patches.v0.update_log_settings
 woocommerce_fusion.patches.v1.migrate_woocommerce_settings
+woocommerce_fusion.patches.v1.migrate_woocommerce_settings_v1_4

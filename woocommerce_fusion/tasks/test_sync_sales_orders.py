@@ -29,7 +29,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		if the sales order is older than the corresponding WooCommerce order
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders(settings=Mock())
+		sync = SynchroniseSalesOrders(servers=Mock())
 
 		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
@@ -68,7 +68,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		if the sales order is newer than the corresponding WooCommerce order
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders(settings=Mock())
+		sync = SynchroniseSalesOrders(servers=Mock())
 
 		mock_frappe.get_doc.return_value = Mock()
 		mock_frappe.get_single.return_value = Mock()
@@ -166,15 +166,12 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_order.docstatus = 1
 		mock_sales_order.per_billed = 0
 
-		sync.settings = MagicMock()
-		sync.settings.servers = [
-			frappe._dict(
-				enable_payments_sync=1,
-				woocommerce_server_url="http://example.com",
-				payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
-				payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
-			)
-		]
+		mock_frappe.get_cached_doc.return_value = frappe._dict(
+			enable_payments_sync=1,
+			woocommerce_server_url="http://example.com",
+			payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
+			payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
+		)
 
 		mock_frappe.get_doc.return_value = mock_sales_order
 		mock_frappe.get_value.return_value = "Test Company"
@@ -206,15 +203,12 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_order.grand_total = 100
 		mock_sales_order.name = "SO-0001"
 
-		sync.settings = MagicMock()
-		sync.settings.servers = [
-			frappe._dict(
-				enable_payments_sync=1,
-				woocommerce_server_url="http://example.com",
-				payment_method_bank_account_mapping=json.dumps({"EFT": None}),
-				payment_method_gl_account_mapping=json.dumps({"EFT": None}),
-			)
-		]
+		mock_frappe.get_cached_doc.return_value = frappe._dict(
+			enable_payments_sync=1,
+			woocommerce_server_url="http://example.com",
+			payment_method_bank_account_mapping=json.dumps({"EFT": None}),
+			payment_method_gl_account_mapping=json.dumps({"EFT": None}),
+		)
 
 		mock_frappe.get_doc.return_value = mock_sales_order
 		mock_frappe.get_value.return_value = "Test Company"
@@ -258,15 +252,12 @@ class TestWooCommerceSync(FrappeTestCase):
 		mock_sales_invoice_item = MagicMock()
 		mock_sales_invoice_item.parent = "INVOICE-12345"
 
-		sync.settings = MagicMock()
-		sync.settings.servers = [
-			frappe._dict(
-				enable_payments_sync=1,
-				woocommerce_server_url="http://example.com",
-				payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
-				payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
-			)
-		]
+		mock_frappe.get_cached_doc.return_value = frappe._dict(
+			enable_payments_sync=1,
+			woocommerce_server_url="http://example.com",
+			payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
+			payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
+		)
 
 		mock_frappe.get_doc.return_value = mock_sales_order
 		mock_frappe.get_all.return_value = [mock_sales_invoice_item]

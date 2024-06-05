@@ -7,8 +7,8 @@ from frappe import qb
 from frappe.query_builder import Criterion
 
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
-from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woocommerce_integration_settings import (
-	WooCommerceIntegrationSettings,
+from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_server import (
+	WooCommerceServer,
 )
 from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
@@ -50,11 +50,11 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 
 	def __init__(
 		self,
-		settings: Optional[WooCommerceIntegrationSettings | frappe._dict] = None,
+		servers: List[WooCommerceServer | frappe._dict] = None,
 		item_code: Optional[str] = None,
 		item_price_doc: Optional[ItemPrice] = None,
 	) -> None:
-		super().__init__(settings)
+		super().__init__(servers)
 		self.item_code = item_code
 		self.item_price_doc = item_price_doc
 		self.wc_server = None
@@ -64,7 +64,7 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 		"""
 		Run synchornisation
 		"""
-		for server in self.settings.servers:
+		for server in self.servers:
 			self.wc_server = server
 			self.get_erpnext_item_prices()
 			self.sync_items_with_woocommerce_products()
@@ -79,7 +79,7 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 			item = qb.DocType("Item")
 			and_conditions = []
 			and_conditions.append(ip.price_list == self.wc_server.price_list)
-			and_conditions.append(iwc.woocommerce_server == self.wc_server.woocommerce_server)
+			and_conditions.append(iwc.woocommerce_server == self.wc_server.name)
 			and_conditions.append(item.disabled == 0)
 			if self.item_code:
 				and_conditions.append(ip.item_code == self.item_code)

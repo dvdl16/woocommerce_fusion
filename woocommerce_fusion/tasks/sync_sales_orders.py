@@ -10,12 +10,12 @@ from frappe.utils import get_datetime, now
 from frappe.utils.data import cstr
 
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
-from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woocommerce_integration_settings import (
-	WooCommerceIntegrationSettings,
-)
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING,
 	WC_ORDER_STATUS_MAPPING_REVERSE,
+)
+from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_server import (
+	WooCommerceServer,
 )
 from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
@@ -63,19 +63,20 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 	def __init__(
 		self,
-		settings: Optional[WooCommerceIntegrationSettings | _dict] = None,
+		servers: List[WooCommerceServer | _dict] = None,
 		sales_order_name: Optional[str] = None,
 		woocommerce_order_id: Optional[str] = None,
 		date_time_from: Optional[str | datetime] = None,
 		date_time_to: Optional[str | datetime] = None,
 	) -> None:
-		super().__init__(settings)
+		super().__init__(servers)
 		self.wc_orders_dict = {}
 		self.sales_orders_list = []
 		self.sales_order_name = sales_order_name
 		self.date_time_from = date_time_from
 		self.date_time_to = date_time_to
 		self.woocommerce_order_id = woocommerce_order_id
+		self.settings = frappe.get_cached_doc("WooCommerce Integration Settings")
 
 		self.set_date_range()
 
@@ -275,8 +276,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		# Update Last Sales Order Sync Date Time
 		if not self.sales_order_name or self.woocommerce_order_id:
-			self.settings.wc_last_sync_date = now()
-			self.settings.save()
+			wc_settings = frappe.get_doc("WooCommerce Integration Settings")
+			wc_settings.wc_last_sync_date = now()
+			wc_settings.save()
 
 	def update_sales_order(self, woocommerce_order, sales_order_name):
 		"""
@@ -316,14 +318,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		try:
 			sales_order = frappe.get_doc("Sales Order", sales_order_name)
-			wc_server = next(
-				(
-					server
-					for server in self.settings.servers
-					if sales_order.woocommerce_server in server.woocommerce_server_url
-				),
-				None,
-			)
+			wc_server = frappe.get_cached_doc("WooCommerce Server", sales_order.woocommerce_server)
 			if not wc_server:
 				raise ValueError("Could not find woocommerce_server in list of servers")
 
@@ -343,7 +338,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 				if wc_order_data["payment_method"] not in payment_method_bank_account_mapping:
 					raise KeyError(
-						f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Integration Settings"
+						f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Server"
 					)
 
 				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
@@ -518,6 +513,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[
 				wc_order_data.get("status")
 			]
+			wc_server = frappe.get_cached_doc("WooCommerce Server", site_domain)
 		except Exception:
 			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
 			frappe.log_error("WooCommerce Error", error_message)
@@ -525,17 +521,16 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		new_sales_order.woocommerce_server = site_domain
 		new_sales_order.woocommerce_payment_method = wc_order_data.get("payment_method_title", None)
-		new_sales_order.naming_series = self.settings.sales_order_series or "SO-WOO-"
 		created_date = wc_order_data.get("date_created").split("T")
 		new_sales_order.transaction_date = created_date[0]
-		delivery_after = self.settings.delivery_after_days or 7
+		delivery_after = wc_server.delivery_after_days or 7
 		new_sales_order.delivery_date = frappe.utils.add_days(created_date[0], delivery_after)
-		new_sales_order.company = self.settings.company
+		new_sales_order.company = wc_server.company
 		self.set_items_in_sales_order(new_sales_order, wc_order_data)
 		new_sales_order.flags.ignore_mandatory = True
 		try:
 			new_sales_order.insert()
-			if self.settings.submit_sales_orders:
+			if wc_server.submit_sales_orders:
 				new_sales_order.submit()
 		except Exception:
 			error_message = (
@@ -601,6 +596,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
+		wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_site)
 		for item_data in items_list:
 			item_woo_com_id = cstr(item_data.get("product_id"))
 
@@ -614,8 +610,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				# Create Item
 				item = frappe.new_doc("Item")
 				item.item_code = _("woocommerce - {0}").format(item_woo_com_id)
-				item.stock_uom = self.settings.uom or _("Nos")
-				item.item_group = self.settings.item_group
+				item.stock_uom = wc_server.uom or _("Nos")
+				item.item_group = wc_server.item_group
 				item.item_name = item_data.get("name")
 				row = item.append("woocommerce_servers")
 				row.woocommerce_id = item_woo_com_id
@@ -628,8 +624,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		Customised version of set_items_in_sales_order to allow searching for items linked to
 		multiple WooCommerce sites
 		"""
-		if not self.settings.warehouse:
-			frappe.throw(_("Please set Warehouse in WooCommerce Integration Settings"))
+		wc_server = frappe.get_cached_doc("WooCommerce Server", new_sales_order.woocommerce_server)
+		if not wc_server.warehouse:
+			frappe.throw(_("Please set Warehouse in WooCommerce Server"))
 
 		for item in order.get("line_items"):
 			woocomm_item_id = item.get("product_id")
@@ -658,35 +655,33 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					"item_name": found_item.item_name,
 					"description": found_item.item_name,
 					"delivery_date": new_sales_order.delivery_date,
-					"uom": self.settings.uom or _("Nos"),
+					"uom": wc_server.uom or _("Nos"),
 					"qty": item.get("quantity"),
 					"rate": item.get("price")
-					if self.settings.use_actual_tax_type
+					if wc_server.use_actual_tax_type
 					else get_tax_inc_price_for_woocommerce_line_item(item),
-					"warehouse": self.settings.warehouse,
+					"warehouse": wc_server.warehouse,
 					"discount_percentage": 100 if item.get("price") == 0 else 0,
 				},
 			)
 
-			if not self.settings.use_actual_tax_type:
-				new_sales_order.taxes_and_charges = self.settings.sales_taxes_and_charges_template
+			if not wc_server.use_actual_tax_type:
+				new_sales_order.taxes_and_charges = wc_server.sales_taxes_and_charges_template
 
 				# Trigger taxes calculation
 				new_sales_order.set_missing_lead_customer_details()
 			else:
 				ordered_items_tax = item.get("total_tax")
-				add_tax_details(
-					new_sales_order, ordered_items_tax, "Ordered Item tax", self.settings.tax_account
-				)
+				add_tax_details(new_sales_order, ordered_items_tax, "Ordered Item tax", wc_server.tax_account)
 
 		add_tax_details(
-			new_sales_order, order.get("shipping_tax"), "Shipping Tax", self.settings.f_n_f_account
+			new_sales_order, order.get("shipping_tax"), "Shipping Tax", wc_server.f_n_f_account
 		)
 		add_tax_details(
 			new_sales_order,
 			order.get("shipping_total"),
 			"Shipping Total",
-			self.settings.f_n_f_account,
+			wc_server.f_n_f_account,
 		)
 
 

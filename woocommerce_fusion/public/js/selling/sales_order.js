@@ -95,11 +95,11 @@ frappe.ui.form.on('Sales Order', {
 	},
 
 	prompt_user_for_shipment_trackings: function(frm){
-		//Get the shipment providers from 'WooCommerce Integration Settings'
+		//Get the shipment providers from 'WooCommerce Server'
 		frappe.call({
 			method: 
-				"woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings"+
-				".woocommerce_integration_settings.get_woocommerce_shipment_providers",
+				"woocommerce_fusion.woocommerce.doctype.woocommerce_server"+
+				".woocommerce_server.get_woocommerce_shipment_providers",
 			args: {
 				woocommerce_server_domain: frm.doc.woocommerce_server
 			},
