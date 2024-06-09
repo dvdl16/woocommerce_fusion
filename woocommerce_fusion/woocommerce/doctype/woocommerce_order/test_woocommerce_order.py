@@ -249,6 +249,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Define the mock response from the post method
 		mock_post_response = Mock()
 		mock_post_response.status_code = 201
+		mock_post_response.json.return_value = {"id": 69, "date_modified": "2020-01-01"}
 
 		# Set the mock response to be returned when POST is called on the mock API
 		mock_api_list[0].api.post.return_value = mock_post_response

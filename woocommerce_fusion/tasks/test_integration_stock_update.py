@@ -19,7 +19,7 @@ class TestIntegrationWooCommerceStockSync(TestIntegrationWooCommerce):
 
 	def test_stock_sync_when_synchronising_with_woocommerce(self):
 		"""
-		Test that the Stock Synchornisation method posts the correct stock level to a WooCommerce website.
+		Test that the Stock Synchronisation method posts the correct stock level to a WooCommerce website.
 		"""
 		# Create a new product in WooCommerce, set opening stock to 1
 		wc_product_id = self.post_woocommerce_product(product_name="ITEM001", opening_stock=1)
@@ -46,7 +46,7 @@ class TestIntegrationWooCommerceStockSync(TestIntegrationWooCommerce):
 
 	# def test_stock_sync_with_decimal_when_synchronising_with_woocommerce(self):
 	# 	"""
-	# 	Test that the Stock Synchornisation method posts the correct stock level to a WooCommerce website
+	# 	Test that the Stock Synchronisation method posts the correct stock level to a WooCommerce website
 	# 	while handling decimals.
 	# 	"""
 	# 	# Create a new product in WooCommerce, set opening stock to 1

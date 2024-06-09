@@ -20,13 +20,25 @@ class WooCommerceProduct(WooCommerceResource):
 	"""
 
 	resource: str = "products"
+	child_resource: str = "variations"
 	field_setter_map = {"woocommerce_name": "name", "woocommerce_id": "id"}
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
 	# nosemgrep
 	@staticmethod
 	def get_list(args):
-		return WooCommerceProduct.get_list_of_records(args)
+		products = WooCommerceProduct.get_list_of_records(args)
+
+		# Extend the list with product variants
+		product_ids_with_variants = [
+			product["id"] for product in products if product["type"] == "variable"
+		]
+		for id in product_ids_with_variants:
+			args["endpoint"] = f"products/{id}/variations"
+			variants = WooCommerceProduct.get_list_of_records(args)
+			products.extend(variants)
+
+		return products
 
 	def after_load_from_db(self, product: Dict):
 		product.pop("name")

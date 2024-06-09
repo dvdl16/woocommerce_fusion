@@ -130,6 +130,10 @@ doc_events = {
 	"Sales Order": {
 		"on_submit": "woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync_from_hook"
 	},
+	"Item": {
+		"on_update": "woocommerce_fusion.tasks.sync_items.run_item_sync_from_hook",
+		"after_insert": "woocommerce_fusion.tasks.sync_items.run_item_sync_from_hook",
+	},
 }
 
 # Scheduled Tasks
@@ -142,7 +146,10 @@ scheduler_events = {
 	# 	"weekly": [
 	# 		"woocommerce_fusion.tasks.daily"
 	# 	],
-	"hourly": ["woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync"],
+	"hourly": [
+		"woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync",
+		"woocommerce_fusion.tasks.sync_items.sync_woocommerce_products_modified_since",
+	],
 	"daily": [
 		"woocommerce_fusion.tasks.stock_update.update_stock_levels_for_all_enabled_items_in_background",
 		"woocommerce_fusion.tasks.sync_item_prices.run_item_price_sync",

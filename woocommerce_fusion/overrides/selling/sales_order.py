@@ -19,24 +19,24 @@ class CustomSalesOrder(SalesOrder):
 
 	def autoname(self):
 		"""
-		If this is a WooCommerce-linked order, name should be WEB[WooCommerce Order ID], e.g. WEB012142
-		else, name it normally.
+		If this is a WooCommerce-linked order, use the naming series defined in "WooCommerce Server"
+		or default to WEB[WooCommerce Order ID], e.g. WEB012142.
+		Else, name it normally.
 		"""
-		if self.woocommerce_id:
-			# Get idx of site
-			woocommerce_integration_settings = frappe.get_single("WooCommerce Integration Settings")
-			wc_server = next(
-				(
-					server
-					for server in woocommerce_integration_settings.servers
-					if self.woocommerce_server == server.woocommerce_server
-				),
-				None,
-			)
-			idx = wc_server.idx if wc_server else 0
-			self.name = "WEB{}-{:06}".format(
-				idx, int(self.woocommerce_id)
-			)  # Format with leading zeros to make it 6 digits
+		if self.woocommerce_id and self.woocommerce_server:
+			wc_server = frappe.get_cached_doc("WooCommerce Server", self.woocommerce_server)
+			if wc_server.sales_order_series:
+				self.name = make_autoname(key=wc_server.sales_order_series)
+			else:
+				# Get idx of site
+				wc_servers = frappe.get_all("WooCommerce Server", fields=["name", "creation"])
+				sorted_list = sorted(wc_servers, key=lambda server: server.creation)
+				idx = next(
+					(index for (index, d) in enumerate(sorted_list) if d["name"] == self.woocommerce_server), None
+				)
+				self.name = "WEB{}-{:06}".format(
+					idx + 1, int(self.woocommerce_id)
+				)  # Format with leading zeros to make it 6 digits
 		else:
 			naming_series = get_default_naming_series("Sales Order")
 			self.name = make_autoname(key=naming_series)
@@ -77,27 +77,19 @@ def get_woocommerce_order(woocommerce_server, woocommerce_id):
 	wc_order_name = generate_woocommerce_record_name_from_domain_and_id(
 		woocommerce_server, woocommerce_id
 	)
-	wc_integration_settings = frappe.get_cached_doc("WooCommerce Integration Settings")
-	wc_server = next(
-		(
-			server
-			for server in wc_integration_settings.servers
-			if woocommerce_server == server.woocommerce_server
-		),
-		None,
-	)
+	wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_server)
 
 	if not wc_server:
 		frappe.throw(
 			_(
-				"This Sales Order is linked to WooCommerce site '{0}', but this site can not be found in 'WooCommerce Integration Settings'"
+				"This Sales Order is linked to WooCommerce site '{0}', but this site can not be found in 'WooCommerce Servers'"
 			).format(woocommerce_server)
 		)
 
 	if not wc_server.enable_sync:
 		frappe.throw(
 			_(
-				"This Sales Order is linked to WooCommerce site '{0}', but Synchronisation for this site is disabled in 'WooCommerce Integration Settings'"
+				"This Sales Order is linked to WooCommerce site '{0}', but Synchronisation for this site is disabled in 'WooCommerce Server'"
 			).format(woocommerce_server)
 		)
 

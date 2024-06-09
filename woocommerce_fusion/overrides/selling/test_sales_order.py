@@ -86,12 +86,20 @@ class TestCustomSalesOrder(FrappeTestCase):
 		"""
 		Test that the Sales Order gets named with "WEBx-xxxxx if it is linked to a WooCommerce Order
 		"""
-		mock_frappe.get_single.return_value = frappe._dict(
-			{"servers": [frappe._dict({"idx": 1, "woocommerce_server_url": "somesite"})]}
-		)
-		sales_order = create_so(woocommerce_id="123", woocommerce_server_url="somesite")
+		mock_frappe.get_all.return_value = [
+			frappe._dict(
+				{
+					"creation": "2024-01-01",
+					"woocommerce_server_url": "https://somesite.co",
+					"name": "somesite.co",
+				}
+			)
+		]
+		mock_frappe.get_cached_doc.return_value = frappe._dict({"sales_order_series": ""})
 
-		# Expect WEB[x]-[yyyyyy] where x = 1 because it's the first row in the servers list, and yyy = 000123 because the woocommerce id = 123
+		sales_order = create_so(woocommerce_id="123", woocommerce_server_url="https://somesite.co")
+
+		# Expect WEB[x]-[yyyyyy] where x = 1 because it's the first item servers list, and yyy = 000123 because the woocommerce id = 123
 		self.assertEqual(sales_order.name, "WEB1-000123")
 
 
@@ -108,7 +116,8 @@ def create_so(woocommerce_id: str = None, woocommerce_server_url: str = None):
 		if not wc_server:
 			wc_server = frappe.new_doc("WooCommerce Server")
 			wc_server.woocommerce_server_url = woocommerce_server_url
-			wc_server.save()
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 		so.woocommerce_server = wc_server.name
 
 	so.customer = "_Test Customer"

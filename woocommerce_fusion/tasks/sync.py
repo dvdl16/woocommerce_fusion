@@ -1,13 +1,13 @@
 import base64
 import hashlib
 import hmac
-from typing import Optional
+from typing import List
 
 import frappe
 from frappe import _, _dict
 
-from woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings.woocommerce_integration_settings import (
-	WooCommerceIntegrationSettings,
+from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_server import (
+	WooCommerceServer,
 )
 
 
@@ -16,10 +16,15 @@ class SynchroniseWooCommerce:
 	Class for managing synchronisation of WooCommerce data with ERPNext data
 	"""
 
-	settings: WooCommerceIntegrationSettings | _dict
+	servers: List[WooCommerceServer | _dict]
 
-	def __init__(self, settings: Optional[WooCommerceIntegrationSettings | _dict] = None) -> None:
-		self.settings = settings if settings else frappe.get_single("WooCommerce Integration Settings")
+	def __init__(self, servers: List[WooCommerceServer | _dict] = None) -> None:
+		self.servers = servers if servers else self.get_wc_servers()
+
+	@staticmethod
+	def get_wc_servers():
+		wc_servers = frappe.get_all("WooCommerce Server")
+		return [frappe.get_doc("WooCommerce Server", server.name) for server in wc_servers]
 
 
 def log_and_raise_error(err):
@@ -38,7 +43,7 @@ def log_and_raise_error(err):
 
 
 def verify_request():
-	woocommerce_integration_settings = frappe.get_doc("WooCommerce Integration Settings")
+	woocommerce_integration_settings = frappe.get_doc("WooCommerce Server")
 	sig = base64.b64encode(
 		hmac.new(
 			woocommerce_integration_settings.secret.encode("utf8"), frappe.request.data, hashlib.sha256

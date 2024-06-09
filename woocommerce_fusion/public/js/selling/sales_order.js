@@ -6,14 +6,14 @@ frappe.ui.form.on('Sales Order', {
 				frm.trigger("sync_sales_order");
 			}, __('Actions'));
 		}
-		
+
 		// Add a custom button to allow adding or editing Shipment Trackings
 		if (frm.doc.woocommerce_id){
 			frm.add_custom_button(__("Edit WooCommerce Shipment Trackings"), function () {
 				frm.trigger("prompt_user_for_shipment_trackings");
 			}, __('Actions'));
 		}
-		
+
 		if (frm.doc.woocommerce_id && frm.doc.woocommerce_server && ["Shipped", "Delivered"].includes(frm.doc.woocommerce_status)){
 			frm.trigger("load_shipment_trackings_table");
 		}
@@ -59,7 +59,7 @@ frappe.ui.form.on('Sales Order', {
 	},
 
 	load_shipment_trackings_table: function(frm) {
-		// Add a table with Shipment Trackings	
+		// Add a table with Shipment Trackings
 		frm.set_df_property('woocommerce_shipment_tracking_html', 'options', '🚚 <i>Loading Shipments...</i><br><br><br><br>');
 		frm.refresh_field('woocommerce_shipment_tracking_html');
 		frappe.call({
@@ -91,15 +91,15 @@ frappe.ui.form.on('Sales Order', {
 					frm.refresh_field('woocommerce_shipment_tracking_html');
 				}
 			}
-		});		
+		});
 	},
 
 	prompt_user_for_shipment_trackings: function(frm){
-		//Get the shipment providers from 'WooCommerce Integration Settings'
+		//Get the shipment providers from 'WooCommerce Server'
 		frappe.call({
-			method: 
-				"woocommerce_fusion.woocommerce.doctype.woocommerce_integration_settings"+
-				".woocommerce_integration_settings.get_woocommerce_shipment_providers",
+			method:
+				"woocommerce_fusion.woocommerce.doctype.woocommerce_server"+
+				".woocommerce_server.get_woocommerce_shipment_providers",
 			args: {
 				woocommerce_server_domain: frm.doc.woocommerce_server
 			},
@@ -107,7 +107,7 @@ frappe.ui.form.on('Sales Order', {
 				const trackingProviders = r.message;
 				let shipment_trackings = frm.doc.woocommerce_shipment_trackings
 
-				
+
 				//Prompt the use to update the Tracking Details
 				let d = new frappe.ui.Dialog({
 					title: __('Enter Shipment Tracking details'),
@@ -174,7 +174,7 @@ frappe.ui.form.on('Sales Order', {
 	update_shipment_trackings: function(frm){
 		//Call method to update the Shipment Trackings
 		frappe.call({
-			method: 
+			method:
 				"woocommerce_fusion.overrides.selling.sales_order.update_woocommerce_order_shipment_trackings",
 			args: {
 				doc: frm.doc,
@@ -186,5 +186,5 @@ frappe.ui.form.on('Sales Order', {
 		})
 
 	}
-	
+
 });

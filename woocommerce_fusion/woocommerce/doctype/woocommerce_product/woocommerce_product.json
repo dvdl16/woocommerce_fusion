@@ -136,11 +136,10 @@
    "read_only": 1
   },
   {
-   "default": "simple",
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "simple\ngrouped\nexternal\nvariable",
+   "options": "\nsimple\ngrouped\nexternal\nvariable\nvariation",
    "reqd": 1
   },
   {
@@ -494,7 +493,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2024-03-27 11:21:37.095673",
+ "modified": "2024-06-05 14:21:48.330989",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Product",

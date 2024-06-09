@@ -1,68 +1,21 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2024-01-25 16:08:56.786439",
- "default_view": "List",
+ "creation": "2024-06-05 09:57:33.712292",
  "doctype": "DocType",
- "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "warning_html",
-  "servers",
   "wc_last_sync_date",
-  "submit_sales_orders",
-  "section_break_timespan",
-  "minimum_creation_date",
-  "section_break_accounting",
-  "use_actual_tax_type",
-  "tax_account",
-  "sales_taxes_and_charges_template",
-  "column_break_4b4vn",
-  "f_n_f_account",
-  "section_break_defaults",
-  "creation_user",
-  "sales_order_series",
-  "warehouse",
-  "column_break_14",
-  "company",
-  "delivery_after_days",
-  "uom",
-  "item_group",
-  "section_break_endpoints",
-  "secret",
-  "view_webhook_config"
+  "wc_last_sync_date_items",
+  "minimum_creation_date"
  ],
  "fields": [
-  {
-   "fieldname": "warning_html",
-   "fieldtype": "HTML",
-   "label": "Warning HTML",
-   "options": "<div class=\"form-message red\">\n\t<div>{{__(\"Enabling Sync for WooCommerce Sites allows ERPNext to modify Stock Levels and Order Statuses on these Sites\")}}</div>\n</div>"
-  },
-  {
-   "fieldname": "servers",
-   "fieldtype": "Table",
-   "label": "Servers",
-   "options": "WooCommerce Additional Settings Servers"
-  },
   {
    "fieldname": "wc_last_sync_date",
    "fieldtype": "Datetime",
    "in_list_view": 1,
-   "label": "Last Syncronisation Date",
+   "label": "Last Sales Orders Syncronisation Date",
    "reqd": 1
-  },
-  {
-   "default": "1",
-   "fieldname": "submit_sales_orders",
-   "fieldtype": "Check",
-   "label": "Submit Sales Orders during Synchronisation"
-  },
-  {
-   "collapsible": 1,
-   "fieldname": "section_break_timespan",
-   "fieldtype": "Section Break",
-   "label": "Timespan Settings"
   },
   {
    "description": "WooCommerce Orders with a creation date earlier than this date will be ignored",
@@ -71,125 +24,17 @@
    "label": "Minimum Creation Date"
   },
   {
-   "fieldname": "section_break_accounting",
-   "fieldtype": "Section Break",
-   "label": "Accounting Details"
-  },
-  {
-   "depends_on": "eval: doc.use_actual_tax_type;",
-   "fieldname": "tax_account",
-   "fieldtype": "Link",
-   "label": "Tax Account",
-   "mandatory_depends_on": "eval: doc.use_actual_tax_type;",
-   "options": "Account"
-  },
-  {
-   "fieldname": "column_break_4b4vn",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "f_n_f_account",
-   "fieldtype": "Link",
-   "label": "Freight and Forwarding Account",
-   "options": "Account",
+   "fieldname": "wc_last_sync_date_items",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Items Syncronisation Date",
    "reqd": 1
-  },
-  {
-   "fieldname": "section_break_defaults",
-   "fieldtype": "Section Break",
-   "label": "Defaults"
-  },
-  {
-   "description": "The user that will be used to create Customers, Items and Sales Orders. This user should have the relevant permissions.",
-   "fieldname": "creation_user",
-   "fieldtype": "Link",
-   "label": "Creation User",
-   "options": "User"
-  },
-  {
-   "description": "The fallback series is \"SO-WOO-\".",
-   "fieldname": "sales_order_series",
-   "fieldtype": "Select",
-   "label": "Sales Order Series",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_14",
-   "fieldtype": "Column Break"
-  },
-  {
-   "description": "This company will be used to create Sales Orders.",
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company",
-   "reqd": 1
-  },
-  {
-   "description": "This is the default offset (days) for the Delivery Date in Sales Orders. The fallback offset is 7 days from the order placement date.",
-   "fieldname": "delivery_after_days",
-   "fieldtype": "Int",
-   "label": "Delivery After (Days)"
-  },
-  {
-   "description": "This is the default UOM used for items and Sales orders. The fallback UOM is \"Nos\".",
-   "fieldname": "uom",
-   "fieldtype": "Link",
-   "label": "UOM",
-   "options": "UOM"
-  },
-  {
-   "fieldname": "section_break_endpoints",
-   "fieldtype": "Section Break",
-   "label": "Endpoints"
-  },
-  {
-   "description": "This is the default Item Group used for newly created items.",
-   "fieldname": "item_group",
-   "fieldtype": "Link",
-   "label": "Item Group",
-   "options": "Item Group",
-   "reqd": 1
-  },
-  {
-   "description": "Default warehouse for Sales Orders",
-   "fieldname": "warehouse",
-   "fieldtype": "Link",
-   "label": "Warehouse",
-   "options": "Warehouse",
-   "reqd": 1
-  },
-  {
-   "default": "1",
-   "description": "If checked, a 'Sales Taxes and Charges' line of type 'Actual' will be added for every WooCommerce Line Item with tax",
-   "fieldname": "use_actual_tax_type",
-   "fieldtype": "Check",
-   "label": "Use 'Actual' Tax Type"
-  },
-  {
-   "depends_on": "eval: !doc.use_actual_tax_type;",
-   "fieldname": "sales_taxes_and_charges_template",
-   "fieldtype": "Link",
-   "label": "Sales Taxes and Charges Template",
-   "mandatory_depends_on": "eval: !doc.use_actual_tax_type;",
-   "options": "Sales Taxes and Charges Template"
-  },
-  {
-   "fieldname": "secret",
-   "fieldtype": "Code",
-   "label": "Secret",
-   "read_only": 1
-  },
-  {
-   "fieldname": "view_webhook_config",
-   "fieldtype": "Button",
-   "label": "View WooCommerce Webhook Configuration"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-03-10 18:39:35.790960",
+ "modified": "2024-06-07 06:26:26.940482",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",
@@ -208,6 +53,5 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
- "track_changes": 1
+ "states": []
 }

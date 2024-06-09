@@ -21,15 +21,15 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
 	def _create_sales_taxes_and_charges_template(
-		self, settings, rate: float, included_in_rate: bool = False
+		self, wc_server, rate: float, included_in_rate: bool = False
 	) -> str:
 		taxes_and_charges_template = frappe.get_doc(
 			{
-				"company": settings.company,
+				"company": wc_server.company,
 				"doctype": "Sales Taxes and Charges Template",
 				"taxes": [
 					{
-						"account_head": settings.tax_account,
+						"account_head": wc_server.tax_account,
 						"charge_type": "On Net Total",
 						"description": "VAT",
 						"doctype": "Sales Taxes and Charges",
@@ -45,7 +45,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 	def test_sync_create_new_sales_order_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders when there are new
+		Test that the Sales Order Synchronisation method creates new Sales orders when there are new
 		WooCommerce orders.
 
 		Assumes that the Wordpress Site we're testing against has:
@@ -86,7 +86,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders with a Tax Template
+		Test that the Sales Order Synchronisation method creates new Sales orders with a Tax Template
 		when there are new WooCommerce orders and a Sales Taxes and Charges template has been set in settings.
 
 		Assumes that the Wordpress Site we're testing against has:
@@ -94,13 +94,14 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		- Sales prices include tax
 		"""
 		# Setup
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
 		template_name = self._create_sales_taxes_and_charges_template(
-			woocommerce_settings, rate=15, included_in_rate=1
+			wc_server, rate=15, included_in_rate=1
 		)
-		woocommerce_settings.use_actual_tax_type = 0
-		woocommerce_settings.sales_taxes_and_charges_template = template_name
-		woocommerce_settings.save()
+		wc_server.use_actual_tax_type = 0
+		wc_server.sales_taxes_and_charges_template = template_name
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Create a new order in WooCommerce
 		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=2)
@@ -136,7 +137,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders and a Payment Entry
+		Test that the Sales Order Synchronisation method creates new Sales orders and a Payment Entry
 		when there are new fully paid WooCommerce orders.
 		"""
 		# Create a new order in WooCommerce
@@ -162,13 +163,14 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Draft Sales orders without errors
+		Test that the Sales Order Synchronisation method creates new Draft Sales orders without errors
 		when the submit_sales_orders setting is set to 0
 		"""
 		# Setup
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
-		woocommerce_settings.submit_sales_orders = 0
-		woocommerce_settings.save()
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 0
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Create a new order in WooCommerce
 		wc_order_id = self.post_woocommerce_order(set_paid=True)
@@ -182,9 +184,10 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self.assertIsNotNone(sales_order)
 
 		# Teardown
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
-		woocommerce_settings.submit_sales_orders = 1
-		woocommerce_settings.save()
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 1
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
@@ -193,13 +196,14 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates a linked Payment Entry if there are no linked
+		Test that the Sales Order Synchronisation method creates a linked Payment Entry if there are no linked
 		PE's on a now-submitted Sales Order
 		"""
 		# Setup
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
-		woocommerce_settings.submit_sales_orders = 0
-		woocommerce_settings.save()
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 0
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Create a new order in WooCommerce
 		wc_order_id = self.post_woocommerce_order(set_paid=True)
@@ -230,15 +234,15 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 	def test_sync_updates_woocommerce_order_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
-		Test that the Sales Order Synchornisation method updates a WooCommerce Order
+		Test that the Sales Order Synchronisation method updates a WooCommerce Order
 		with changed fields from Sales Order
 		"""
 		# Setup
-		woocommerce_settings = frappe.get_single("WooCommerce Integration Settings")
-		woocommerce_settings.submit_sales_orders = 0
-		for server in woocommerce_settings.servers:
-			server.enable_payments_sync = 0
-		woocommerce_settings.save()
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 0
+		wc_server.enable_payments_sync = 0
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Create a new order in WooCommerce
 		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=3)
@@ -273,7 +277,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 				"delivery_date": sales_order.delivery_date,
 				"qty": 1,
 				"rate": 20,
-				"warehouse": woocommerce_settings.warehouse,
+				"warehouse": "Stores - SC",
 			},
 		)
 		sales_order.save()
@@ -298,7 +302,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates a WooCommerce Order
+		Test that the Sales Order Synchronisation method creates a WooCommerce Order
 		when only a WooCommerce Order ID is passed
 		"""
 		# Create a new order in WooCommerce

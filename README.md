@@ -5,6 +5,14 @@
 
 WooCommerce connector for ERPNext v15
 
+This app allows you to synchronise your ERPNext site with **multiple** WooCommerce websites
+
+
+#### User documentation
+
+User documentation is hosted at [woocommerce-fusion-docs.finfoot.tech](https://woocommerce-fusion-docs.finfoot.tech)
+
+
 #### License
 
 Dirk van der Laarse
@@ -66,4 +74,13 @@ semgrep --config=/workspace/development/frappe-semgrep-rules/rules apps/woocomme
 If you use VS Code, you can specify the `.flake8` config file in your `settings.json` file:
 ```shell
 "python.linting.flake8Args": ["--config=frappe-bench-v15/apps/woocommerce_fusion/.flake8_strict"]
+```
+
+
+The documentation has been generated using [mdBook](https://rust-lang.github.io/mdBook/guide/creating.html)
+
+Make sure you have [mdbook](https://rust-lang.github.io/mdBook/guide/installation.html) installed/downloaded. To modify and test locally:
+```shell
+cd docs
+mdbook serve --open
 ```
