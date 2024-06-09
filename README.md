@@ -5,15 +5,17 @@
 
 WooCommerce connector for ERPNext v15
 
-#### License
-
-Dirk van der Laarse
+This app allows you to synchronise your ERPNext site with **multiple** WooCommerce websites
 
 
 #### User documentation
 
 User documentation is hosted at [woocommerce-fusion-docs.finfoot.tech](https://woocommerce-fusion-docs.finfoot.tech)
 
+
+#### License
+
+Dirk van der Laarse
 
 #### Manual Installation
 
