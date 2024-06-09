@@ -43,13 +43,13 @@ frappe.ui.form.on('WooCommerce Server', {
 					read_only: 1
 				}
 			],
-			size: 'large', // small, large, extra-large 
+			size: 'large', // small, large, extra-large
 			primary_action_label: __('OK'),
 			primary_action(values) {
 				d.hide();
 			}
 		});
-		
+
 		d.show();
 
 	}
