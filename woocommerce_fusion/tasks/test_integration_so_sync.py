@@ -45,7 +45,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 	def test_sync_create_new_sales_order_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders when there are new
+		Test that the Sales Order Synchronisation method creates new Sales orders when there are new
 		WooCommerce orders.
 
 		Assumes that the Wordpress Site we're testing against has:
@@ -86,7 +86,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders with a Tax Template
+		Test that the Sales Order Synchronisation method creates new Sales orders with a Tax Template
 		when there are new WooCommerce orders and a Sales Taxes and Charges template has been set in settings.
 
 		Assumes that the Wordpress Site we're testing against has:
@@ -137,7 +137,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Sales orders and a Payment Entry
+		Test that the Sales Order Synchronisation method creates new Sales orders and a Payment Entry
 		when there are new fully paid WooCommerce orders.
 		"""
 		# Create a new order in WooCommerce
@@ -163,7 +163,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates new Draft Sales orders without errors
+		Test that the Sales Order Synchronisation method creates new Draft Sales orders without errors
 		when the submit_sales_orders setting is set to 0
 		"""
 		# Setup
@@ -196,7 +196,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates a linked Payment Entry if there are no linked
+		Test that the Sales Order Synchronisation method creates a linked Payment Entry if there are no linked
 		PE's on a now-submitted Sales Order
 		"""
 		# Setup
@@ -234,7 +234,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 	def test_sync_updates_woocommerce_order_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
-		Test that the Sales Order Synchornisation method updates a WooCommerce Order
+		Test that the Sales Order Synchronisation method updates a WooCommerce Order
 		with changed fields from Sales Order
 		"""
 		# Setup
@@ -302,7 +302,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchornisation method creates a WooCommerce Order
+		Test that the Sales Order Synchronisation method creates a WooCommerce Order
 		when only a WooCommerce Order ID is passed
 		"""
 		# Create a new order in WooCommerce

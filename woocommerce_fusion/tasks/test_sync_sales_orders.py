@@ -138,7 +138,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
 
-		# Assert that the sales order need to be updated
+		# Assert that the sales order need to be created
 		mock_create_sales_order.assert_called_once()
 		self.assertEqual(mock_create_sales_order.call_args.args[0], wc_order.__dict__)
 

@@ -10,6 +10,7 @@ from frappe.utils import get_datetime, now
 from frappe.utils.data import cstr
 
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
+from woocommerce_fusion.tasks.sync_items import run_item_sync
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING,
 	WC_ORDER_STATUS_MAPPING_REVERSE,
@@ -278,6 +279,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		if not self.sales_order_name or self.woocommerce_order_id:
 			wc_settings = frappe.get_doc("WooCommerce Integration Settings")
 			wc_settings.wc_last_sync_date = now()
+			wc_settings.flags.ignore_mandatory = True
 			wc_settings.save()
 
 	def update_sales_order(self, woocommerce_order, sales_order_name):
@@ -596,28 +598,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
-		wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_site)
 		for item_data in items_list:
-			item_woo_com_id = cstr(item_data.get("product_id"))
-
-			item_codes = frappe.db.get_all(
-				"Item WooCommerce Server",
-				filters={"woocommerce_id": item_woo_com_id, "woocommerce_server": woocommerce_site},
-				fields=["parent"],
+			item_woo_com_id = cstr(item_data.get("variation_id") or item_data.get("product_id"))
+			woocommerce_product_name = generate_woocommerce_record_name_from_domain_and_id(
+				woocommerce_site, item_woo_com_id
 			)
-			found_item = frappe.get_doc("Item", item_codes[0].parent) if item_codes else None
-			if not found_item:
-				# Create Item
-				item = frappe.new_doc("Item")
-				item.item_code = _("woocommerce - {0}").format(item_woo_com_id)
-				item.stock_uom = wc_server.uom or _("Nos")
-				item.item_group = wc_server.item_group
-				item.item_name = item_data.get("name")
-				row = item.append("woocommerce_servers")
-				row.woocommerce_id = item_woo_com_id
-				row.woocommerce_server = woocommerce_site
-				item.flags.ignore_mandatory = True
-				item.save()
+			run_item_sync(woocommerce_product_name=woocommerce_product_name)
 
 	def set_items_in_sales_order(self, new_sales_order, order):
 		"""
@@ -629,7 +615,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			frappe.throw(_("Please set Warehouse in WooCommerce Server"))
 
 		for item in order.get("line_items"):
-			woocomm_item_id = item.get("product_id")
+			woocomm_item_id = item.get("variation_id") or item.get("product_id")
 
 			iws = frappe.qb.DocType("Item WooCommerce Server")
 			itm = frappe.qb.DocType("Item")

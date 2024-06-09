@@ -9,6 +9,11 @@ frappe.ui.form.on('Item', {
 		frm.add_custom_button(__("Sync this Item's Price to WooCommerce"), function () {
 			frm.trigger("sync_item_price");
 		}, __('Actions'));
+
+		// Add a custom button to sync Item with WooCommerce
+		frm.add_custom_button(__("Sync this Item with WooCommerce"), function () {
+			frm.trigger("sync_item");
+		}, __('Actions'));
 	},
 
 	sync_item_stock: function(frm) {
@@ -55,6 +60,20 @@ frappe.ui.form.on('Item', {
 						message: __("Failed to syncrhonise item price to WooCommerce"),
 					});
 				}
+			}
+		});
+	},
+
+	sync_item: function(frm) {
+		// Sync this Item
+		frappe.call({
+			method: "woocommerce_fusion.tasks.sync_items.run_item_sync",
+			args: {
+				item_code: frm.doc.name,
+				enqueue: true
+			},
+			callback: function(r) {
+				frm.reload_doc();
 			}
 		});
 	},

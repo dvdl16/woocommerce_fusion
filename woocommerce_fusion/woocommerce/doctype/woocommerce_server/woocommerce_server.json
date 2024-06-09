@@ -43,6 +43,7 @@
   "payment_method_gl_account_mapping",
   "tab_items",
   "enable_stock_level_synchronisation",
+  "name_by",
   "tab_price_list",
   "section_break_hnji",
   "enable_price_list_sync",
@@ -352,11 +353,21 @@
    "fieldname": "enable_stock_level_synchronisation",
    "fieldtype": "Check",
    "label": "Enable Stock Level Synchronisation"
+  },
+  {
+   "default": "WooCommerce ID",
+   "depends_on": "eval: doc.enable_stock_level_synchronisation",
+   "description": "How the item code should be determined when an item is created",
+   "fieldname": "name_by",
+   "fieldtype": "Select",
+   "label": "Default Item Code Naming Basis",
+   "mandatory_depends_on": "eval: doc.enable_stock_level_synchronisation",
+   "options": "WooCommerce ID\nProduct SKU"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-06-05 11:40:30.903418",
+ "modified": "2024-06-05 17:05:48.766514",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",

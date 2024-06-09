@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "wc_last_sync_date",
+  "wc_last_sync_date_items",
   "minimum_creation_date"
  ],
  "fields": [
@@ -13,7 +14,7 @@
    "fieldname": "wc_last_sync_date",
    "fieldtype": "Datetime",
    "in_list_view": 1,
-   "label": "Last Syncronisation Date",
+   "label": "Last Sales Orders Syncronisation Date",
    "reqd": 1
   },
   {
@@ -21,12 +22,19 @@
    "fieldname": "minimum_creation_date",
    "fieldtype": "Datetime",
    "label": "Minimum Creation Date"
+  },
+  {
+   "fieldname": "wc_last_sync_date_items",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Items Syncronisation Date",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-06-05 10:04:01.807051",
+ "modified": "2024-06-07 06:26:26.940482",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Integration Settings",

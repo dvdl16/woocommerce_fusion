@@ -66,6 +66,13 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		wc_server.save()
 		self.wc_server = wc_server
 
+		# Set WooCommerce Integration Settings
+		settings = frappe.get_single("WooCommerce Integration Settings")
+		one_year_ago = add_to_date(now(), years=-1)
+		settings.wc_last_sync_date = one_year_ago
+		settings.wc_last_sync_date_items = one_year_ago
+		settings.save()
+
 	def post_woocommerce_order(
 		self,
 		set_paid: bool = False,
@@ -129,7 +136,11 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		return response.json()["id"]
 
 	def post_woocommerce_product(
-		self, product_name: str, opening_stock: float = 0, regular_price: float = 10
+		self,
+		product_name: str,
+		opening_stock: float = 0,
+		regular_price: float = 10,
+		is_variable: bool = False,
 	) -> int:
 		"""
 		Create a dummy product on a WooCommerce testing site
@@ -153,6 +164,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 				"short_description": "New Product",
 				"manage_stock": True,  # Enable stock management
 				"stock_quantity": opening_stock,  # Set initial stock level
+				"type": "simple" if not is_variable else "variable",
 			}
 		)
 
@@ -220,6 +232,26 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		price = product_data.get("price", "Not available")
 
 		return price
+
+	def get_woocommerce_product(self, product_id: int) -> float:
+		"""
+		Get a product from a WooCommerce testing site
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/products/{product_id}"
+		headers = {"Content-Type": "application/json"}
+
+		# Making the API call
+		response = oauth.get(url, headers=headers)
+
+		product_data = response.json()
+
+		return product_data
 
 	def get_woocommerce_order(self, order_id: int) -> float:
 		"""

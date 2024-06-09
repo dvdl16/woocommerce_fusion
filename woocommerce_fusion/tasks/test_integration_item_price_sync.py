@@ -18,7 +18,7 @@ class TestIntegrationWooCommerceItemPriceSync(TestIntegrationWooCommerce):
 
 	def test_item_price_sync_when_synchronising_with_woocommerce(self):
 		"""
-		Test that the Item Price Synchornisation method posts the correct price to a WooCommerce website.
+		Test that the Item Price Synchronisation method posts the correct price to a WooCommerce website.
 		"""
 		# Create a new product in WooCommerce, set regular price to 10
 		wc_product_id = self.post_woocommerce_product(product_name="ITEM002", regular_price=10)
@@ -54,7 +54,7 @@ class TestIntegrationWooCommerceItemPriceSync(TestIntegrationWooCommerce):
 
 	def test_item_price_sync_ignored_if_item_disabled_when_synchronising_with_woocommerce(self):
 		"""
-		Test that the Item Price Synchornisation method does not post a price to a WooCommerce website when the item is disabled.
+		Test that the Item Price Synchronisation method does not post a price to a WooCommerce website when the item is disabled.
 		"""
 		# Create a new product in WooCommerce, set regular price to 10
 		wc_product_id = self.post_woocommerce_product(product_name="ITEM003", regular_price=10)

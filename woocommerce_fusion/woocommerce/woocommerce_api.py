@@ -27,6 +27,7 @@ class WooCommerceResource(Document):
 	current_wc_api: Optional[WooCommerceAPI] = None
 
 	resource: str = None
+	child_resource: str = None
 	field_setter_map: Dict = None
 
 	@staticmethod
@@ -153,12 +154,18 @@ class WooCommerceResource(Document):
 			total_processed = 0
 
 			for wc_server in wc_api_list:
+				# Skip this API call if one or more servers were specified
+				if args.get("servers", None):
+					if wc_server.woocommerce_server not in args["servers"]:
+						continue
+
 				current_offset = 0
 
 				# Get WooCommerce Records
 				params["offset"] = current_offset
 				try:
-					response = wc_server.api.get(cls.resource, params=params)
+					endpoint = args["endpoint"] if "endpoint" in args else cls.resource
+					response = wc_server.api.get(endpoint, params=params)
 				except Exception as err:
 					log_and_raise_error(err, error_text="get_list failed")
 				if response.status_code != 200:
@@ -272,21 +279,26 @@ class WooCommerceResource(Document):
 
 		record = self.before_db_insert(record_data)
 
+		endpoint = (
+			f"{self.resource}/{self.parent_id}/{self.child_resource}"
+			if self.parent_id and self.child_resource
+			else self.resource
+		)
 		try:
-			response = self.current_wc_api.api.post(self.resource, data=record_data)
+			response = self.current_wc_api.api.post(endpoint, data=record)
 		except Exception as err:
 			log_and_raise_error(err, error_text="db_insert failed")
 		if response.status_code != 201:
 			log_and_raise_error(error_text="db_insert failed", response=response)
+		self.woocommerce_id = response.json()["id"]
+		self.woocommerce_date_modified = response.json()["date_modified"]
 
 	def before_db_insert(self, record: Dict):
 		return record
 
 	def db_update(self, *args, **kwargs):
 		"""
-		Updates a WooCommerce Record.
-
-		Note: Only the 'status' and 'shipment_trackings' fields will be updated.
+		Updates a WooCommerce Record
 		"""
 		# Verify that the WC API has been initialised
 		if not self.wc_api_list:
@@ -312,8 +324,8 @@ class WooCommerceResource(Document):
 		for key in keys_to_pop:
 			record.pop(key)
 
-		# Parse the server domain and order_id from the Document name
-		wc_server_domain, order_id = get_domain_and_id_from_woocommerce_record_name(self.name)
+		# Parse the server domain and id from the Document name
+		wc_server_domain, id = get_domain_and_id_from_woocommerce_record_name(self.name)
 
 		# Select the relevant WooCommerce server
 		self.current_wc_api = next(
@@ -321,8 +333,13 @@ class WooCommerceResource(Document):
 		)
 
 		# Make API call
+		endpoint = (
+			f"{self.resource}/{self.parent_id}/{self.child_resource}/{id}"
+			if self.parent_id and self.child_resource
+			else f"{self.resource}/{id}"
+		)
 		try:
-			response = self.current_wc_api.api.put(f"{self.resource}/{order_id}", data=record)
+			response = self.current_wc_api.api.put(endpoint, data=record)
 		except Exception as err:
 			log_and_raise_error(err, error_text="db_update failed")
 		if response.status_code != 200:
@@ -402,7 +419,14 @@ def get_wc_parameters_from_filters(filters):
 	http://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-orders
 	https://woocommerce.github.io/woocommerce-rest-api-docs/#list-all-products
 	"""
-	supported_filter_fields = ["date_created", "date_modified", "id", "name", "status"]
+	supported_filter_fields = [
+		"date_created",
+		"date_modified",
+		"id",
+		"name",
+		"status",
+		"woocommerce_server",
+	]
 
 	params = {}
 

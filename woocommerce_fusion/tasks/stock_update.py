@@ -71,7 +71,7 @@ def update_stock_levels_on_woocommerce_site(item_code):
 			woocommerce_server = wc_site.woocommerce_server
 			wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_server)
 
-			if not wc_server or not wc_server.enable_sync:
+			if not wc_server or not wc_server.enable_sync or not wc_site.enabled:
 				continue
 
 			wc_api = APIWithRequestLogging(

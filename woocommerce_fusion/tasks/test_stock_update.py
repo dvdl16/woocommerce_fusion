@@ -21,8 +21,8 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		# Set up a dummy item set to sync to two different WC sites
 		some_item = frappe._dict(
 			woocommerce_servers=[
-				frappe._dict(woocommerce_id=1, woocommerce_server="woo1.example.com"),
-				frappe._dict(woocommerce_id=2, woocommerce_server="woo2.example.com"),
+				frappe._dict(woocommerce_id=1, woocommerce_server="woo1.example.com", enabled=1),
+				frappe._dict(woocommerce_id=2, woocommerce_server="woo2.example.com", enabled=1),
 			],
 			is_stock_item=1,
 			disabled=0,
