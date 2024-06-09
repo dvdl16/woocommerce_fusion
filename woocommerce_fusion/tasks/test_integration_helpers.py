@@ -158,7 +158,6 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		payload = json.dumps(
 			{
 				"name": product_name,
-				"type": "simple",
 				"regular_price": str(regular_price),
 				"description": "This is a new product",
 				"short_description": "New Product",
