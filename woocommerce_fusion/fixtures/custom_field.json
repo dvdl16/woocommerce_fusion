@@ -634,7 +634,7 @@
   "insert_after": "serial_no_series",
   "is_system_generated": 0,
   "is_virtual": 0,
-  "label": "WooCommerce Tab",
+  "label": "WooCommerce",
   "length": 0,
   "mandatory_depends_on": null,
   "modified": "2024-06-13 13:14:20.766342",

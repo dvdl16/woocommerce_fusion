@@ -1,5 +1,13 @@
 # Items Sync
 
+## Setup
+
+To link your ERPNext Item to a WooCommerce Product:
+- If the WooCommerce Product already exists, specify the WooCommerce ID and WooCommerce Server
+- If you want the item to be created in WooCommerce, specify only the WooCommerce Server
+
+![Linking an item](../images/item-link.png)
+
 ## Hooks
 
 - Every time an Item is updated or created, a synchronisation will take place for the item if:
