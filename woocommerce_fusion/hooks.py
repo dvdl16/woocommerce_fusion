@@ -250,6 +250,7 @@ fixtures = [
 					"Address-woocommerce_server",
 					"Address-woocommerce_email",
 					"Item-woocommerce_servers",
+					"Item-custom_woocommerce_tab",
 				),
 			]
 		],
