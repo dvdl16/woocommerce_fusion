@@ -22,6 +22,8 @@
   "view_webhook_config",
   "tab_sales_orders",
   "minimum_creation_date",
+  "column_break_utsi",
+  "sync_so_items_to_wc",
   "section_so_defaults",
   "company",
   "warehouse",
@@ -363,11 +365,22 @@
    "label": "Default Item Code Naming Basis",
    "mandatory_depends_on": "eval: doc.enable_stock_level_synchronisation",
    "options": "WooCommerce ID\nProduct SKU"
+  },
+  {
+   "fieldname": "column_break_utsi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "When set, adding/removing/changing Sales Order Lines will be synchronised back to the WooCommerce Order",
+   "fieldname": "sync_so_items_to_wc",
+   "fieldtype": "Check",
+   "label": "Synchronise Sales Order Line changes back"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-06-05 17:05:48.766514",
+ "modified": "2024-06-19 07:24:35.316777",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
