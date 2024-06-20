@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -9,9 +10,6 @@ from frappe.query_builder import Criterion
 from frappe.utils import get_datetime, now
 
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
-from woocommerce_fusion.woocommerce.doctype.item_woocommerce_server.item_woocommerce_server import (
-	ItemWooCommerceServer,
-)
 from woocommerce_fusion.woocommerce.doctype.woocommerce_product.woocommerce_product import (
 	WooCommerceProduct,
 )
@@ -53,7 +51,9 @@ def run_item_sync(
 		item = frappe.get_doc("Item", item_code)
 		for wc_server in item.woocommerce_servers:
 			# Trigger sync for every linked server
-			sync = SynchroniseItem(item=ERPNextItemToSync(item=item, item_woocommerce_server=wc_server))
+			sync = SynchroniseItem(
+				item=ERPNextItemToSync(item=item, item_woocommerce_server_idx=wc_server.idx)
+			)
 			if enqueue:
 				frappe.enqueue(sync.run)
 			else:
@@ -100,7 +100,11 @@ class ERPNextItemToSync:
 	"""Class for keeping track of an ERPNext Item and the relevant WooCommerce Server to sync to"""
 
 	item: Item
-	item_woocommerce_server: ItemWooCommerceServer
+	item_woocommerce_server_idx: int
+
+	@property
+	def item_woocommerce_server(self):
+		return self.item.woocommerce_servers[self.item_woocommerce_server_idx - 1]
 
 
 class SynchroniseItem(SynchroniseWooCommerce):
@@ -128,7 +132,12 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			self.get_corresponding_item_or_product()
 			self.sync_wc_product_with_erpnext_item()
 		except Exception as err:
-			error_message = f"{frappe.get_traceback()}\n\nItem Data: \n{str(self.item) if self.item else ''}\n\nWC Product Data \n{str(self.woocommerce_product.as_dict()) if self.woocommerce_product else ''})"
+			woocommerce_product_dict = (
+				self.woocommerce_product.as_dict()
+				if isinstance(self.woocommerce_product, WooCommerceProduct)
+				else self.woocommerce_product
+			)
+			error_message = f"{frappe.get_traceback()}\n\nItem Data: \n{str(self.item) if self.item else ''}\n\nWC Product Data \n{str(woocommerce_product_dict) if self.woocommerce_product else ''})"
 			frappe.log_error("WooCommerce Error", error_message)
 			raise err
 
@@ -150,6 +159,11 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		"""
 		Get erpnext item for a WooCommerce Product
 		"""
+		if not all(
+			[self.woocommerce_product.woocommerce_server, self.woocommerce_product.woocommerce_id]
+		):
+			raise ValueError()
+
 		iws = frappe.qb.DocType("Item WooCommerce Server")
 		itm = frappe.qb.DocType("Item")
 
@@ -172,8 +186,8 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		if found_item:
 			self.item = ERPNextItemToSync(
 				item=found_item,
-				item_woocommerce_server=next(
-					server for server in found_item.woocommerce_servers if server.name == item_codes[0].name
+				item_woocommerce_server_idx=next(
+					server.idx for server in found_item.woocommerce_servers if server.name == item_codes[0].name
 				),
 			)
 
@@ -213,7 +227,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		# Update these fields if necessary
 		pass
 
-		self.set_sync_hash(wc_product=wc_product, item=item)
+		self.set_sync_hash()
 
 	def update_woocommerce_product(
 		self, wc_product: WooCommerceProduct, item: ERPNextItemToSync
@@ -231,7 +245,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		if wc_product_dirty:
 			wc_product.save()
 
-		self.set_sync_hash(wc_product=wc_product, item=item)
+		self.set_sync_hash()
 
 	def create_woocommerce_product(self, item: ERPNextItemToSync) -> None:
 		"""
@@ -245,26 +259,60 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			# Create a new WooCommerce Product doc
 			wc_product = frappe.get_doc({"doctype": "WooCommerce Product"})
 
-			# Handle variants
 			wc_product.type = "simple"
+
+			# Handle variants
 			if item.item.has_variants:
 				wc_product.type = "variable"
+				wc_product_attributes = []
+
+				# Handle attributes
+				for row in item.item.attributes:
+					item_attribute = frappe.get_doc("Item Attribute", row.attribute)
+					wc_product_attributes.append(
+						{
+							"name": row.attribute,
+							"slug": row.attribute.lower().replace(" ", "_"),
+							"visible": True,
+							"variation": True,
+							"options": [option.attribute_value for option in item_attribute.item_attribute_values],
+						}
+					)
+
+				wc_product.attributes = json.dumps(wc_product_attributes)
+
 			if item.item.variant_of:
 				# Check if parent exists
 				parent_item = frappe.get_doc("Item", item.item.variant_of)
 				parent_item, parent_wc_product = run_item_sync(item_code=parent_item.item_code)
 				wc_product.parent_id = parent_wc_product.woocommerce_id
-				wc_product.type = "varation"
+				wc_product.type = "variation"
+
+				# Handle attributes
+				wc_product_attributes = [
+					{
+						"name": row.attribute,
+						"slug": row.attribute.lower().replace(" ", "_"),
+						"option": row.attribute_value,
+					}
+					for row in item.item.attributes
+				]
+
+				wc_product.attributes = json.dumps(wc_product_attributes)
 
 			# Set properties
 			wc_product.woocommerce_server = item.item_woocommerce_server.woocommerce_server
 			wc_product.woocommerce_name = item.item.item_name
 			wc_product.regular_price = get_item_price_rate(item) or "0"
 			wc_product.insert()
+			self.woocommerce_product = wc_product
+
+			# Reload ERPNext Item
+			item.item.reload()
 			item.item_woocommerce_server.woocommerce_id = wc_product.woocommerce_id
 			item.item.save()
 
-			self.set_sync_hash(wc_product=wc_product, item=item)
+			self.set_sync_hash()
 
 	def create_item(self, wc_product: WooCommerceProduct) -> None:
 		"""
@@ -275,9 +323,20 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		# Create Item
 		item = frappe.new_doc("Item")
 
+		# Handle variants' attributes
+		if wc_product.type in ["variable", "variation"]:
+			self.create_or_update_item_attributes(wc_product)
+			wc_attributes = json.loads(wc_product.attributes)
+			for wc_attribute in wc_attributes:
+				row = item.append("attributes")
+				row.attribute = wc_attribute["name"]
+				if wc_product.type == "variation":
+					row.attribute_value = wc_attribute["option"]
+
 		# Handle variants
 		if wc_product.type == "variable":
 			item.has_variants = 1
+
 		if wc_product.type == "variation":
 			# Check if parent exists
 			woocommerce_product_name = generate_woocommerce_record_name_from_domain_and_id(
@@ -302,21 +361,67 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		item.flags.ignore_mandatory = True
 		item.insert()
 
-		self.set_sync_hash(
-			wc_product=wc_product,
-			item=ERPNextItemToSync(item=item, item_woocommerce_server=item.woocommerce_servers[0]),
+		self.item = ERPNextItemToSync(
+			item=item,
+			item_woocommerce_server_idx=next(
+				iws.idx
+				for iws in item.woocommerce_servers
+				if iws.woocommerce_server == wc_product.woocommerce_server
+			),
 		)
 
-	def set_sync_hash(self, wc_product: WooCommerceProduct, item: ERPNextItemToSync):
+		self.set_sync_hash()
+
+	def create_or_update_item_attributes(self, wc_product: WooCommerceProduct):
+		"""
+		Create or update an Item Attribute
+		"""
+		if wc_product.attributes:
+			wc_attributes = json.loads(wc_product.attributes)
+			for wc_attribute in wc_attributes:
+				if frappe.db.exists("Item Attribute", wc_attribute["name"]):
+					# Get existing Item Attribute
+					item_attribute = frappe.get_doc("Item Attribute", wc_attribute["name"])
+				else:
+					# Create a Item Attribute
+					item_attribute = frappe.get_doc(
+						{"doctype": "Item Attribute", "attribute_name": wc_attribute["name"]}
+					)
+
+				# Get list of attribute options.
+				# In variable WooCommerce Products, it's a list with key "options"
+				# In a WooCommerce Product variant, it's a single value with key "option"
+				options = (
+					wc_attribute["options"] if wc_product.type == "variable" else [wc_attribute["option"]]
+				)
+
+				# If no attributes values exist, or attribute values exist already but are different, remove and update them
+				if len(item_attribute.item_attribute_values) == 0 or (
+					len(item_attribute.item_attribute_values) > 0
+					and set(options) != set([val.attribute_value for val in item_attribute.item_attribute_values])
+				):
+					item_attribute.item_attribute_values = []
+					for option in options:
+						row = item_attribute.append("item_attribute_values")
+						row.attribute_value = option
+						row.abbr = option.replace(" ", "")
+
+				item_attribute.flags.ignore_mandatory = True
+				if not item_attribute.name:
+					item_attribute.insert()
+				else:
+					item_attribute.save()
+
+	def set_sync_hash(self):
 		"""
 		Set the last sync hash value using db.set_value, as it does not call the ORM triggers
 		and it does not update the modified timestamp (by using the update_modified parameter)
 		"""
 		frappe.db.set_value(
 			"Item WooCommerce Server",
-			item.item_woocommerce_server.name,
+			self.item.item_woocommerce_server.name,
 			"woocommerce_last_sync_hash",
-			wc_product.woocommerce_date_modified,
+			self.woocommerce_product.woocommerce_date_modified,
 			update_modified=False,
 		)
 

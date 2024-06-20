@@ -25,11 +25,15 @@ When comparing a **WooCommerce Item** with it's counterpart ERPNext **Item**, th
 
 ## Fields Mapping
 
-| WooCommerce | ERPNext     | Note                                                                                          |
-| ----------- | ----------- | --------------------------------------------------------------------------------------------- |
-| `id`        | *Item Code* | Only if *Default Item Code Naming Basis* is set to *WooCommerce ID* on **WooCommerce Server** |
-| `sku`       | *Item Code* | Only if *Default Item Code Naming Basis* is set to *Product SKU* on **WooCommerce Server**    |
-| `name`      | *Item Name* |                                                                                               |
+| WooCommerce  | ERPNext      | Note                                                                                          |
+| ------------ | ------------ | --------------------------------------------------------------------------------------------- |
+| `id`         | *Item Code*  | Only if *Default Item Code Naming Basis* is set to *WooCommerce ID* on **WooCommerce Server** |
+| `sku`        | *Item Code*  | Only if *Default Item Code Naming Basis* is set to *Product SKU* on **WooCommerce Server**    |
+| `name`       | *Item Name*  |                                                                                               |
+| `type`       |              | `simple` ≡ Normal **Item**                                                                    |
+|              |              | `variable` ≡ Template **Item** (*Has Variants* is checked).                                   |
+|              |              | `variant` ≡ **Item** Variant (*Variant Of* is set)                                            |
+| `attributes` | *Attributes* | Missing **Item Attributes* will automatically be created in both systems                      |
 
 Please raise an [Issue on Github](https://github.com/dvdl16/woocommerce_fusion/issues) to request additional fields to be mapped.
 

@@ -22,11 +22,11 @@ class TestIntegrationWooCommerceStockSync(TestIntegrationWooCommerce):
 		Test that the Stock Synchronisation method posts the correct stock level to a WooCommerce website.
 		"""
 		# Create a new product in WooCommerce, set opening stock to 1
-		wc_product_id = self.post_woocommerce_product(product_name="ITEM001", opening_stock=1)
+		wc_product_id = self.post_woocommerce_product(product_name="ITEM009", opening_stock=1)
 
 		# Create the same product in ERPNext (with opening stock of 5, not 1) and link it
 		item = create_item(
-			"ITEM001", valuation_rate=10, warehouse=None, company=get_default_company(), opening_stock=5
+			"ITEM009", valuation_rate=10, warehouse=None, company=get_default_company(), opening_stock=5
 		)
 		item.woocommerce_servers = []
 		row = item.append("woocommerce_servers")

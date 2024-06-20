@@ -1,5 +1,6 @@
 import json
 import os
+from typing import List
 
 import frappe
 from erpnext import get_default_company
@@ -140,7 +141,8 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		product_name: str,
 		opening_stock: float = 0,
 		regular_price: float = 10,
-		is_variable: bool = False,
+		type: str = "simple",
+		attributes: List[str] = ["Material Type", "Volume"],
 	) -> int:
 		"""
 		Create a dummy product on a WooCommerce testing site
@@ -149,24 +151,50 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		from requests_oauthlib import OAuth1Session
 
+		if type in ["variable", "variation"]:
+			for attr in attributes:
+				self.post_product_attribute(attr, attr.lower().replace(" ", "_"))
+
+		# Create parent if required
+		if type == "variation":
+			parent_id = self.post_woocommerce_product(
+				product_name + " parent", opening_stock, regular_price, "variable", attributes
+			)
+
 		# Initialize OAuth1 session
 		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
 
 		# API Endpoint
 		url = f"{self.wc_url}/wp-json/wc/v3/products/"
+		url += f"{parent_id}/variations/" if type == "variation" else ""
 
-		payload = json.dumps(
-			{
-				"name": product_name,
-				"regular_price": str(regular_price),
-				"description": "This is a new product",
-				"short_description": "New Product",
-				"manage_stock": True,  # Enable stock management
-				"stock_quantity": opening_stock,  # Set initial stock level
-				"type": "simple" if not is_variable else "variable",
-			}
-		)
+		payload = {
+			"name": product_name,
+			"regular_price": str(regular_price),
+			"description": "This is a new product",
+			"short_description": "New Product",
+			"manage_stock": True,  # Enable stock management
+			"stock_quantity": opening_stock,  # Set initial stock level
+		}
+		if type != "variation":
+			payload["type"] = type
+		if type == "variable":
+			payload["attributes"] = [
+				{
+					"name": attr,
+					"slug": attr.lower().replace(" ", "_"),
+					"variation": True,
+					"options": ["Option 1", "Option 2", "Option 3"],
+				}
+				for attr in attributes
+			]
+		elif type == "variation":
+			payload["attributes"] = [
+				{"name": attr, "slug": attr.lower().replace(" ", "_"), "option": "Option 1"}
+				for attr in attributes
+			]
 
+		payload = json.dumps(payload)
 		headers = {"Content-Type": "application/json"}
 
 		# Making the API call
@@ -232,7 +260,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		return price
 
-	def get_woocommerce_product(self, product_id: int) -> float:
+	def get_woocommerce_product(self, product_id: int, parent_id: int = None) -> float:
 		"""
 		Get a product from a WooCommerce testing site
 		"""
@@ -242,7 +270,12 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
 
 		# API Endpoint
-		url = f"{self.wc_url}/wp-json/wc/v3/products/{product_id}"
+		url = (
+			f"{self.wc_url}/wp-json/wc/v3/products/{product_id}"
+			if not parent_id
+			else f"{self.wc_url}/wp-json/wc/v3/products/{parent_id}/variations/{product_id}"
+		)
+
 		headers = {"Content-Type": "application/json"}
 
 		# Making the API call
@@ -271,6 +304,31 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		order_data = response.json()
 
 		return order_data
+
+	def post_product_attribute(self, attribute_name: str, attribute_slug: str):
+		"""
+		Post product attribute to WooCommerce
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/products/attributes"
+		headers = {"Content-Type": "application/json"}
+
+		data = {
+			"name": attribute_name,
+			"slug": attribute_slug,
+			"type": "select",
+		}
+
+		# Making the API call
+		response = oauth.post(url, data, headers=headers)
+		attribute_data = response.json()
+
+		return attribute_data
 
 
 def create_bank_account(
