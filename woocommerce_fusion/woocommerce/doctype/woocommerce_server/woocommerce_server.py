@@ -4,6 +4,7 @@
 from urllib.parse import urlparse
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from woocommerce import API
 
@@ -21,7 +22,7 @@ class WooCommerceServer(Document):
 		# Validate URL
 		result = urlparse(self.woocommerce_server_url)
 		if not all([result.scheme, result.netloc]):
-			frappe.throw("Please enter a valid WooCommerce Server URL")
+			frappe.throw(_("Please enter a valid WooCommerce Server URL"))
 
 		# Get Shipment Providers if the "Advanced Shipment Tracking" woocommerce plugin is used
 		if self.enable_sync and self.wc_plugin_advanced_shipment_tracking:
