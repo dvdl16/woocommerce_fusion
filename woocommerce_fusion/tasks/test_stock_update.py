@@ -33,17 +33,25 @@ class TestWooCommerceStockSync(FrappeTestCase):
 		bin_list = [
 			frappe._dict(warehouse="Warehouse A", actual_qty=5),
 			frappe._dict(warehouse="Warehouse B", actual_qty=10),
+			frappe._dict(warehouse="Warehouse C", actual_qty=20),
 		]
 		mock_frappe.get_list.return_value = bin_list
 
-		# Set up a dummy settings doc with two different WC servers
-		wc_additional_settings = frappe._dict(
-			servers=[
-				frappe._dict(woocommerce_server="woo1.example.com", enable_sync=1),
-				frappe._dict(woocommerce_server="woo2.example.com", enable_sync=1),
-			]
-		)
-		mock_frappe.get_single.return_value = wc_additional_settings
+		# Set up mock return values
+		mock_frappe.get_cached_doc.side_effect = [
+			frappe._dict(
+				woocommerce_server="woo1.example.com",
+				enable_sync=1,
+				enable_stock_level_synchronisation=1,
+				warehouses=[frappe._dict(warehouse="Warehouse A"), frappe._dict(warehouse="Warehouse B")],
+			),
+			frappe._dict(
+				woocommerce_server="woo2.example.com",
+				enable_sync=1,
+				enable_stock_level_synchronisation=1,
+				warehouses=[frappe._dict(warehouse="Warehouse A"), frappe._dict(warehouse="Warehouse B")],
+			),
+		]
 
 		# Mock out calls to WooCommerce API's
 		mock_put_response = Mock()

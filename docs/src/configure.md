@@ -25,4 +25,18 @@ When set, adding/removing/changing Sales Order Lines will be synchronised back t
 
 ---
 
+Click on the "Items" tab if you want to turn on Stock Level Synchronisation
+
+!["Items" tab](images/items-tab.png)
+
+**Settings**:
+-  Default Item Code Naming Basis
+   -  How the item code should be determined when an item is created, either "WooCommerce ID" or "Product SKU".
+-  Enable Stock Level Synchronisation
+   -  Turns on Syncrhonisation of Item Stock Levels to WooCommerce
+-  Warehouses
+   -  Select the Warehouses that should be taken into account when synchronising Item Stock Levels
+
+---
+
 Click on the "Save" - and you are ready to go!

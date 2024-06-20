@@ -64,6 +64,10 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		wc_server.payment_method_bank_account_mapping = json.dumps({"bacs": bank_account.name})
 		wc_server.payment_method_gl_account_mapping = json.dumps({"bacs": gl_account.name})
 
+		wc_server.enable_stock_level_synchronisation = 1
+		row = wc_server.append("warehouses")
+		row.warehouse = "Stores - SC"
+
 		wc_server.save()
 		self.wc_server = wc_server
 
