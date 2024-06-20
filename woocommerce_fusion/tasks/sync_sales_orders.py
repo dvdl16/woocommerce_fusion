@@ -458,7 +458,9 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			# Check if any line item properties changed
 			else:
 				for i, so_item in enumerate(sales_order.items):
-					if (
+					if not so_item.woocommerce_id:
+						break
+					elif (
 						int(so_item.woocommerce_id) != line_items[i]["product_id"]
 						or so_item.qty != line_items[i]["quantity"]
 						or so_item.rate != get_tax_inc_price_for_woocommerce_line_item(line_items[i])
