@@ -22,6 +22,8 @@
   "view_webhook_config",
   "tab_sales_orders",
   "minimum_creation_date",
+  "column_break_utsi",
+  "sync_so_items_to_wc",
   "section_so_defaults",
   "company",
   "warehouse",
@@ -42,8 +44,11 @@
   "payment_method_bank_account_mapping",
   "payment_method_gl_account_mapping",
   "tab_items",
-  "enable_stock_level_synchronisation",
+  "item_section",
   "name_by",
+  "item_stock_section",
+  "enable_stock_level_synchronisation",
+  "warehouses",
   "tab_price_list",
   "section_break_hnji",
   "enable_price_list_sync",
@@ -356,18 +361,45 @@
   },
   {
    "default": "WooCommerce ID",
-   "depends_on": "eval: doc.enable_stock_level_synchronisation",
    "description": "How the item code should be determined when an item is created",
    "fieldname": "name_by",
    "fieldtype": "Select",
    "label": "Default Item Code Naming Basis",
    "mandatory_depends_on": "eval: doc.enable_stock_level_synchronisation",
    "options": "WooCommerce ID\nProduct SKU"
+  },
+  {
+   "fieldname": "column_break_utsi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "When set, adding/removing/changing Sales Order Lines will be synchronised back to the WooCommerce Order",
+   "fieldname": "sync_so_items_to_wc",
+   "fieldtype": "Check",
+   "label": "Synchronise Sales Order Line changes back"
+  },
+  {
+   "fieldname": "item_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "item_stock_section",
+   "fieldtype": "Section Break",
+   "label": "Item Stock Levels"
+  },
+  {
+   "depends_on": "eval: doc.enable_stock_level_synchronisation",
+   "description": "Select the Warehouses that should be taken into account when synchronising Item Stock Levels",
+   "fieldname": "warehouses",
+   "fieldtype": "Table MultiSelect",
+   "label": "Warehouses",
+   "options": "WooCommerce Server Warehouse"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-06-05 17:05:48.766514",
+ "modified": "2024-06-20 14:47:21.836197",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",

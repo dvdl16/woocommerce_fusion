@@ -275,9 +275,11 @@ class WooCommerceResource(Document):
 			None,
 		)
 
+		# Prepare data
 		record_data = self.to_dict()
+		record = self.deserialize_attributes_of_type_dict_or_list(record_data)
 
-		record = self.before_db_insert(record_data)
+		record = self.before_db_insert(record)
 
 		endpoint = (
 			f"{self.resource}/{self.parent_id}/{self.child_resource}"

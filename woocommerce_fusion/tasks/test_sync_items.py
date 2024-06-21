@@ -37,7 +37,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		row.woocommerce_id = woocommerce_id
 		row.woocommerce_server = woocommerce_server
 		item.modified = "2023-01-01"
-		sync.item = ERPNextItemToSync(item, row)
+		sync.item = ERPNextItemToSync(item, 1)
 
 		# Create dummy WooCommerce Product
 		wc_product = frappe.get_doc({"doctype": "WooCommerce Product"})
@@ -81,7 +81,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		row.woocommerce_server = woocommerce_server
 		item.modified = "2023-12-25"
 		item.docstatus = 1
-		sync.item = ERPNextItemToSync(item, row)
+		sync.item = ERPNextItemToSync(item, 1)
 
 		# Create dummy WooCommerce Product
 		wc_product = frappe.get_doc({"doctype": "WooCommerce Product"})
@@ -135,11 +135,13 @@ class TestWooCommerceSync(FrappeTestCase):
 
 	@patch("frappe.get_cached_doc")
 	@patch("frappe.new_doc")
+	@patch("woocommerce_fusion.tasks.sync_items.json")
 	def test_create_item(
-		self, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
+		self, mock_json, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
 	):
 		item_mock = MagicMock()
 		item_mock.append.return_value = MagicMock()
+		item_mock.woocommerce_servers = [frappe._dict(idx=1, woocommerce_server="Test Server")]
 		mock_new_doc.return_value = item_mock
 
 		# Create a mock WooCommerceProduct
@@ -170,19 +172,23 @@ class TestWooCommerceSync(FrappeTestCase):
 
 	@patch("frappe.get_cached_doc")
 	@patch("frappe.new_doc")
+	@patch("woocommerce_fusion.tasks.sync_items.json")
 	def test_create_item_handles_woo_product_variant(
-		self, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
+		self, mock_json, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
 	):
 		parent_item_mock = MagicMock()
 		parent_item_mock.item_code = 9999
+		parent_item_mock.woocommerce_servers = [frappe._dict(idx=1, woocommerce_server="Test Server")]
 		item_mock = MagicMock()
 		item_mock.append.return_value = MagicMock()
+		item_mock.woocommerce_servers = [frappe._dict(idx=1, woocommerce_server="Test Server")]
 		mock_new_doc.return_value = item_mock
 		mock_run_item_sync.return_value = (parent_item_mock, None)
 
 		# Create a mock WooCommerceProduct
 		wc_product = MagicMock()
 		wc_product.woocommerce_id = 42001
+		wc_product.woocommerce_server = "Test Server"
 		wc_product.type = "variation"
 
 		# Create instance of the class that contains create_item method
@@ -199,16 +205,19 @@ class TestWooCommerceSync(FrappeTestCase):
 
 	@patch("frappe.get_cached_doc")
 	@patch("frappe.new_doc")
+	@patch("woocommerce_fusion.tasks.sync_items.json")
 	def test_create_item_handles_woo_product_with_variants(
-		self, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
+		self, mock_json, mock_new_doc, mock_get_cached_doc, mock_set_sync_hash, mock_run_item_sync
 	):
 		item_mock = MagicMock()
 		item_mock.append.return_value = MagicMock()
+		item_mock.woocommerce_servers = [frappe._dict(idx=1, woocommerce_server="Test Server")]
 		mock_new_doc.return_value = item_mock
 
 		# Create a mock WooCommerceProduct
 		wc_product = MagicMock()
 		wc_product.woocommerce_id = 42001
+		wc_product.woocommerce_server = "Test Server"
 		wc_product.type = "variable"
 
 		# Create instance of the class that contains create_item method
@@ -322,7 +331,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_product_mock.insert.assert_called_once()
 
 		self.assertEqual(wc_product_mock.parent_id, 696969)
-		self.assertEqual(wc_product_mock.type, "varation")
+		self.assertEqual(wc_product_mock.type, "variation")
 		item_mock.item.save.assert_called_once()
 
 	@patch("frappe.get_cached_doc")

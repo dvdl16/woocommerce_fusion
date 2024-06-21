@@ -169,6 +169,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Setup
 		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
 		wc_server.submit_sales_orders = 0
+		wc_server.enable_payments_sync = 0
 		wc_server.flags.ignore_mandatory = True
 		wc_server.save()
 
@@ -241,6 +242,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
 		wc_server.submit_sales_orders = 0
 		wc_server.enable_payments_sync = 0
+		wc_server.sync_so_items_to_wc = 1
 		wc_server.flags.ignore_mandatory = True
 		wc_server.save()
 

@@ -2,6 +2,17 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('WooCommerce Server', {
+	refresh: function(frm) {
+		// Only list enabled warehouses
+		frm.fields_dict.warehouses.get_query = function (doc) {
+			return {
+				filters: {
+					disabled: 0,
+					is_group: 0
+				}
+			};
+		}
+	},
 	// View WooCommerce Webhook Configuration
 	view_webhook_config: function(frm) {
 		let d = new frappe.ui.Dialog({

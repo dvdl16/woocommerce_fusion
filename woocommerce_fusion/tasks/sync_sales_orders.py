@@ -448,36 +448,40 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			)
 
 		# Update the line_items field if necessary
-		sales_order_items_changed = False
-		line_items = json.loads(wc_order.line_items)
-		# Check if count of line items are different
-		if len(line_items) != len(sales_order.items):
-			sales_order_items_changed = True
-		# Check if any line item properties changed
-		else:
-			for i, so_item in enumerate(sales_order.items):
-				if (
-					int(so_item.woocommerce_id) != line_items[i]["product_id"]
-					or so_item.qty != line_items[i]["quantity"]
-					or so_item.rate != get_tax_inc_price_for_woocommerce_line_item(line_items[i])
-				):
-					sales_order_items_changed = True
-					break
+		wc_server = frappe.get_cached_doc("WooCommerce Server", wc_order.woocommerce_server)
+		if wc_server.sync_so_items_to_wc:
+			sales_order_items_changed = False
+			line_items = json.loads(wc_order.line_items)
+			# Check if count of line items are different
+			if len(line_items) != len(sales_order.items):
+				sales_order_items_changed = True
+			# Check if any line item properties changed
+			else:
+				for i, so_item in enumerate(sales_order.items):
+					if not so_item.woocommerce_id:
+						break
+					elif (
+						int(so_item.woocommerce_id) != line_items[i]["product_id"]
+						or so_item.qty != line_items[i]["quantity"]
+						or so_item.rate != get_tax_inc_price_for_woocommerce_line_item(line_items[i])
+					):
+						sales_order_items_changed = True
+						break
 
-		if sales_order_items_changed:
-			# Set the product_id for existing lines to null, to clear the line items for the WooCommerce order
-			replacement_line_items = [
-				{"id": line_item["id"], "product_id": None} for line_item in json.loads(wc_order.line_items)
-			]
-			# Add the correct lines
-			replacement_line_items.extend(
-				[
-					{"product_id": so_item.woocommerce_id, "quantity": so_item.qty, "price": so_item.rate}
-					for so_item in sales_order.items
+			if sales_order_items_changed:
+				# Set the product_id for existing lines to null, to clear the line items for the WooCommerce order
+				replacement_line_items = [
+					{"id": line_item["id"], "product_id": None} for line_item in json.loads(wc_order.line_items)
 				]
-			)
-			wc_order.line_items = json.dumps(replacement_line_items)
-			wc_order_dirty = True
+				# Add the correct lines
+				replacement_line_items.extend(
+					[
+						{"product_id": so_item.woocommerce_id, "quantity": so_item.qty, "price": so_item.rate}
+						for so_item in sales_order.items
+					]
+				)
+				wc_order.line_items = json.dumps(replacement_line_items)
+				wc_order_dirty = True
 
 		if wc_order_dirty:
 			try:
