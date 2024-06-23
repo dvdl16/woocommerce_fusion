@@ -54,7 +54,7 @@ def log_woocommerce_request(
 			"data": frappe.as_json(data) if data else None,
 			"response": f"{str(res)}\n{res.text}" if res is not None else None,
 			"error": frappe.get_traceback(),
-			"status": "Success" if res and res.status_code == 200 else "Error",
+			"status": "Success" if res and res.status_code in [200, 201] else "Error",
 		}
 	)
 
