@@ -52,9 +52,15 @@ class WooCommerceProduct(WooCommerceResource):
 
 	@staticmethod
 	def set_title(product: str):
-		product[
-			"title"
-		] = f"{(product['sku'] + ' - ') if product['sku'] else ''}{product['woocommerce_name']}"
+		# Variations won't have the woocommerce_name property
+		if wc_name := product.get("woocommerce_name"):
+			if sku := product.get("sku"):
+				product["title"] = f"{sku} - {wc_name}"
+			else:
+				product["title"] = wc_name
+		else:
+			product["title"] = product["woocommerce_id"]
+
 		return product
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
