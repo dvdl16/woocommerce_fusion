@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime
+from time import sleep
 from typing import List, Optional, Tuple
 
 import frappe
@@ -19,6 +20,7 @@ from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_serve
 from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
 )
+from woocommerce_fusion.exceptions import SyncDisabledError
 
 
 def run_item_sync_from_hook(doc, method):
@@ -87,7 +89,12 @@ def sync_woocommerce_products_modified_since(date_time_from=None):
 
 	wc_products = get_list_of_wc_products(date_time_from=date_time_from)
 	for wc_product in wc_products:
-		run_item_sync(woocommerce_product=wc_product)
+		try:
+			run_item_sync(woocommerce_product_name=wc_product["name"])
+			sleep(1)
+		# Skip items with errors, as these exceptions will be logged
+		except Exception:
+			pass
 
 	wc_settings.reload()
 	wc_settings.wc_last_sync_date_items = now()
@@ -131,6 +138,8 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		try:
 			self.get_corresponding_item_or_product()
 			self.sync_wc_product_with_erpnext_item()
+		except SyncDisabledError:
+			pass
 		except Exception as err:
 			woocommerce_product_dict = (
 				self.woocommerce_product.as_dict()
@@ -139,7 +148,6 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			)
 			error_message = f"{frappe.get_traceback()}\n\nItem Data: \n{str(self.item) if self.item else ''}\n\nWC Product Data \n{str(woocommerce_product_dict) if self.woocommerce_product else ''})"
 			frappe.log_error("WooCommerce Error", error_message)
-			raise err
 
 	def get_corresponding_item_or_product(self):
 		"""
@@ -149,8 +157,14 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		if (
 			self.item and not self.woocommerce_product and self.item.item_woocommerce_server.woocommerce_id
 		):
+			# Validate that this Item's WooCommerce Server has sync enabled
+			wc_server = frappe.get_cached_doc("WooCommerce Server", self.item.item_woocommerce_server.woocommerce_server)
+			if not wc_server.enable_sync:
+				raise SyncDisabledError
+
 			wc_products = get_list_of_wc_products(item=self.item)
-			self.woocommerce_product = wc_products[0]
+			wc_product = frappe.get_doc("WooCommerce Product", wc_products[0]["name"])
+			self.woocommerce_product = wc_product.load_from_db()
 
 		if self.woocommerce_product and not self.item:
 			self.get_erpnext_item()

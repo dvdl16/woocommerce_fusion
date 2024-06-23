@@ -196,7 +196,8 @@ class WooCommerceResource(Document):
 
 						if cls.field_setter_map:
 							for new_key, old_key in cls.field_setter_map.items():
-								record[new_key] = record[old_key]
+								if old_key in record:
+									record[new_key] = record[old_key]
 
 						server_domain = parse_domain_from_url(wc_server.woocommerce_server_url)
 						record["name"] = generate_woocommerce_record_name_from_domain_and_id(
