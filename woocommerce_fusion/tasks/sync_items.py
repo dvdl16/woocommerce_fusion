@@ -10,6 +10,7 @@ from frappe import _, _dict
 from frappe.query_builder import Criterion
 from frappe.utils import get_datetime, now
 
+from woocommerce_fusion.exceptions import SyncDisabledError
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
 from woocommerce_fusion.woocommerce.doctype.woocommerce_product.woocommerce_product import (
 	WooCommerceProduct,
@@ -20,7 +21,6 @@ from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_serve
 from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
 )
-from woocommerce_fusion.exceptions import SyncDisabledError
 
 
 def run_item_sync_from_hook(doc, method):
@@ -158,7 +158,9 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			self.item and not self.woocommerce_product and self.item.item_woocommerce_server.woocommerce_id
 		):
 			# Validate that this Item's WooCommerce Server has sync enabled
-			wc_server = frappe.get_cached_doc("WooCommerce Server", self.item.item_woocommerce_server.woocommerce_server)
+			wc_server = frappe.get_cached_doc(
+				"WooCommerce Server", self.item.item_woocommerce_server.woocommerce_server
+			)
 			if not wc_server.enable_sync:
 				raise SyncDisabledError
 
