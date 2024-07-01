@@ -50,6 +50,7 @@ class WooCommerceOrder(WooCommerceResource):
 	Virtual doctype for WooCommerce Orders
 	"""
 
+	doctype = "WooCommerce Order"
 	resource: str = "orders"
 
 	@staticmethod

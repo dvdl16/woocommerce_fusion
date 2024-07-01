@@ -19,13 +19,13 @@ class WooCommerceProduct(WooCommerceResource):
 	Virtual doctype for WooCommerce Products
 	"""
 
+	doctype = "WooCommerce Product"
 	resource: str = "products"
 	child_resource: str = "variations"
 	field_setter_map = {"woocommerce_name": "name", "woocommerce_id": "id"}
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
 	# nosemgrep
-	@staticmethod
 	def get_list(args):
 		products = WooCommerceProduct.get_list_of_records(args)
 
@@ -51,7 +51,7 @@ class WooCommerceProduct(WooCommerceResource):
 		return product
 
 	@staticmethod
-	def set_title(product: str):
+	def set_title(product: dict):
 		# Variations won't have the woocommerce_name property
 		if wc_name := product.get("woocommerce_name"):
 			if sku := product.get("sku"):
@@ -70,16 +70,16 @@ class WooCommerceProduct(WooCommerceResource):
 		return WooCommerceProduct.get_count_of_records(args)
 
 	def before_db_insert(self, product: Dict):
-		return self.clean_up_product(product)
+		return self.clean_up_product_before_write(product)
 
 	def before_db_update(self, product: Dict):
-		return self.clean_up_product(product)
+		return self.clean_up_product_before_write(product)
 
 	def after_db_update(self):
 		pass
 
 	@staticmethod
-	def clean_up_product(product):
+	def clean_up_product_before_write(product):
 		"""
 		Perform some tasks to make sure that an product is in the correct format for the WC API
 		"""

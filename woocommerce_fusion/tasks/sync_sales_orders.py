@@ -2,7 +2,6 @@ import json
 from datetime import datetime
 from random import randrange
 from typing import Dict, List, Optional
-from urllib.parse import urlparse
 
 import frappe
 from frappe import _, _dict
@@ -14,6 +13,7 @@ from woocommerce_fusion.tasks.sync_items import run_item_sync
 from woocommerce_fusion.woocommerce.doctype.woocommerce_order.woocommerce_order import (
 	WC_ORDER_STATUS_MAPPING,
 	WC_ORDER_STATUS_MAPPING_REVERSE,
+	WooCommerceOrder,
 )
 from woocommerce_fusion.woocommerce.doctype.woocommerce_server.woocommerce_server import (
 	WooCommerceServer,
@@ -158,14 +158,14 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			filters.append(["Sales Order", "modified", ">", self.date_time_from])
 		if woocommerce_orders:
 			filters.append(
-				["Sales Order", "woocommerce_id", "in", [order["id"] for order in woocommerce_orders.values()]]
+				["Sales Order", "woocommerce_id", "in", [order.id for order in woocommerce_orders.values()]]
 			)
 			filters.append(
 				[
 					"Sales Order",
 					"woocommerce_server",
 					"in",
-					[order["woocommerce_server"] for order in woocommerce_orders.values()],
+					[order.woocommerce_server for order in woocommerce_orders.values()],
 				]
 			)
 		if sales_order_name:
@@ -239,7 +239,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				args={"filters": filters, "page_lenth": page_length, "start": start}
 			)
 			for wc_order in new_results:
-				self.wc_orders_dict[wc_order["name"]] = wc_order
+				self.wc_orders_dict[wc_order.name] = wc_order
 			start += page_length
 
 	def sync_wc_orders_with_erpnext_sales_orders(self):
@@ -256,12 +256,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		# Loop through each order
 		for wc_order in self.wc_orders_dict.values():
-			if wc_order["name"] in sales_orders_dict:
-				so = sales_orders_dict[wc_order["name"]]
+			if wc_order.name in sales_orders_dict:
+				so = sales_orders_dict[wc_order.name]
 				# If the Sales Order exists and it has been updated after last_updated, update it
-				if get_datetime(wc_order["date_modified"]) > get_datetime(so.modified):
+				if get_datetime(wc_order.date_modified) > get_datetime(so.modified):
 					self.update_sales_order(wc_order, so.name)
-				if get_datetime(wc_order["date_modified"]) < get_datetime(so.modified) and so.docstatus == 1:
+				if get_datetime(wc_order.date_modified) < get_datetime(so.modified) and so.docstatus == 1:
 					self.update_woocommerce_order(wc_order, so.name)
 
 				# If the Sales Order exists and has been submitted in the mean time, sync Payment Entries
@@ -292,12 +292,8 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		# Ignore cancelled Sales Orders
 		if sales_order.docstatus != 2:
 
-			# Get the WooCommerce Order doc
-			wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": woocommerce_order["name"]})
-			wc_order.load_from_db()
-
 			# Update the woocommerce_status field if necessary
-			wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+			wc_order_status = WC_ORDER_STATUS_MAPPING_REVERSE[woocommerce_order.status]
 			if sales_order.woocommerce_status != wc_order_status:
 				sales_order.woocommerce_status = wc_order_status
 				try:
@@ -308,13 +304,15 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					return
 
 			# Update the payment_method_title field if necessary
-			if sales_order.woocommerce_payment_method != wc_order.payment_method_title:
-				sales_order.woocommerce_payment_method = wc_order.payment_method_title
+			if sales_order.woocommerce_payment_method != woocommerce_order.payment_method_title:
+				sales_order.woocommerce_payment_method = woocommerce_order.payment_method_title
 
 			if not sales_order.woocommerce_payment_entry:
 				self.create_and_link_payment_entry(woocommerce_order, sales_order_name)
 
-	def create_and_link_payment_entry(self, wc_order_data: Dict, sales_order_name: str) -> None:
+	def create_and_link_payment_entry(
+		self, wc_order: WooCommerceOrder, sales_order_name: str
+	) -> None:
 		"""
 		Create a Payment Entry for WooCommerce Orders that have been marked as Paid
 		"""
@@ -327,35 +325,32 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			# Validate that WooCommerce order has been paid, and that sales order doesn't have a linked Payment Entry yet
 			if (
 				wc_server.enable_payments_sync
-				and wc_order_data["payment_method"]
-				and (
-					(wc_server.ignore_date_paid)
-					or (not wc_server.ignore_date_paid and wc_order_data["date_paid"])
-				)
+				and wc_order.payment_method
+				and ((wc_server.ignore_date_paid) or (not wc_server.ignore_date_paid and wc_order.date_paid))
 				and not sales_order.woocommerce_payment_entry
 				and sales_order.docstatus == 1
 			):
 				# Get Company Bank Account for this Payment Method
 				payment_method_bank_account_mapping = json.loads(wc_server.payment_method_bank_account_mapping)
 
-				if wc_order_data["payment_method"] not in payment_method_bank_account_mapping:
+				if wc_order.payment_method not in payment_method_bank_account_mapping:
 					raise KeyError(
-						f"WooCommerce payment method {wc_order_data['payment_method']} not found in WooCommerce Server"
+						f"WooCommerce payment method {wc_order.payment_method} not found in WooCommerce Server"
 					)
 
-				company_bank_account = payment_method_bank_account_mapping[wc_order_data["payment_method"]]
+				company_bank_account = payment_method_bank_account_mapping[wc_order.payment_method]
 
 				if company_bank_account:
 					# Get G/L Account for this Payment Method
 					payment_method_gl_account_mapping = json.loads(wc_server.payment_method_gl_account_mapping)
-					company_gl_account = payment_method_gl_account_mapping[wc_order_data["payment_method"]]
+					company_gl_account = payment_method_gl_account_mapping[wc_order.payment_method]
 
 					# Create a new Payment Entry
 					company = frappe.get_value("Account", company_gl_account, "company")
-					meta_data = wc_order_data.get("meta_data", None)
+					meta_data = wc_order.get("meta_data", None)
 
 					# Attempt to get Payfast Transaction ID
-					payment_reference_no = wc_order_data.get("transaction_id", None)
+					payment_reference_no = wc_order.get("transaction_id", None)
 
 					# Attempt to get Yoco Transaction ID
 					if not payment_reference_no:
@@ -387,13 +382,13 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 					payment_entry_dict = {
 						"company": company,
 						"payment_type": "Receive",
-						"reference_no": payment_reference_no or wc_order_data["payment_method_title"],
-						"reference_date": wc_order_data["date_paid"] or sales_order.transaction_date,
+						"reference_no": payment_reference_no or wc_order.payment_method_title,
+						"reference_date": wc_order.date_paid or sales_order.transaction_date,
 						"party_type": "Customer",
 						"party": sales_order.customer,
-						"posting_date": wc_order_data["date_paid"] or sales_order.transaction_date,
-						"paid_amount": float(wc_order_data["total"]),
-						"received_amount": float(wc_order_data["total"]),
+						"posting_date": wc_order.date_paid or sales_order.transaction_date,
+						"paid_amount": float(wc_order.total),
+						"received_amount": float(wc_order.total),
 						"bank_account": company_bank_account,
 						"paid_to": company_gl_account,
 					}
@@ -415,12 +410,12 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		except Exception as e:
 			frappe.log_error(
 				"WooCommerce Sync Task Error",
-				f"Failed to create Payment Entry for WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
+				f"Failed to create Payment Entry for WooCommerce Order {wc_order.name}\n{frappe.get_traceback()}",
 			)
 			return
 
 	@staticmethod
-	def update_woocommerce_order(wc_order_data: Dict, sales_order_name: str) -> None:
+	def update_woocommerce_order(wc_order: WooCommerceOrder, sales_order_name: str) -> None:
 		"""
 		Update the WooCommerce Order with fields from it's corresponding ERPNext Sales Order
 		"""
@@ -428,10 +423,6 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		# Get the Sales Order doc
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
-
-		# Get the WooCommerce Order doc
-		wc_order = frappe.get_doc({"doctype": "WooCommerce Order", "name": wc_order_data["name"]})
-		wc_order.load_from_db()
 
 		# Update the woocommerce_status field if necessary
 		sales_order_wc_status = WC_ORDER_STATUS_MAPPING[sales_order.woocommerce_status]
@@ -489,50 +480,37 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			except Exception:
 				frappe.log_error(
 					"WooCommerce Sync Task Error",
-					f"Failed to update WooCommerce Order {wc_order_data['name']}\n{frappe.get_traceback()}",
+					f"Failed to update WooCommerce Order {wc_order.name}\n{frappe.get_traceback()}",
 				)
 
-	def create_sales_order(self, wc_order_data: Dict) -> None:
+	def create_sales_order(self, wc_order: WooCommerceOrder) -> None:
 		"""
 		Create an ERPNext Sales Order from the given WooCommerce Order
 		"""
-		raw_billing_data = wc_order_data.get("billing")
-		raw_shipping_data = wc_order_data.get("shipping")
+		raw_billing_data = json.loads(wc_order.billing)
+		raw_shipping_data = json.loads(wc_order.shipping)
 		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
 		customer_docname = self.create_or_link_customer_and_address(
 			raw_billing_data, raw_shipping_data, customer_name
 		)
-		try:
-			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
-		except Exception:
-			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
-			frappe.log_error("WooCommerce Error", error_message)
-			raise
-		self.create_missing_items(wc_order_data.get("line_items"), site_domain)
+		self.create_missing_items(wc_order, json.loads(wc_order.line_items), wc_order.woocommerce_server)
 
 		new_sales_order = frappe.new_doc("Sales Order")
 		new_sales_order.customer = customer_docname
-		new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order_data.get("id")
+		new_sales_order.po_no = new_sales_order.woocommerce_id = wc_order.id
 
-		try:
-			site_domain = urlparse(wc_order_data.get("_links")["self"][0]["href"]).netloc
-			new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[
-				wc_order_data.get("status")
-			]
-			wc_server = frappe.get_cached_doc("WooCommerce Server", site_domain)
-		except Exception:
-			error_message = f"{frappe.get_traceback()}\n\n Order Data: \n{str(wc_order_data.as_dict())}"
-			frappe.log_error("WooCommerce Error", error_message)
-			raise
+		new_sales_order.woocommerce_status = WC_ORDER_STATUS_MAPPING_REVERSE[wc_order.status]
+		wc_server = frappe.get_cached_doc("WooCommerce Server", wc_order.woocommerce_server)
 
-		new_sales_order.woocommerce_server = site_domain
-		new_sales_order.woocommerce_payment_method = wc_order_data.get("payment_method_title", None)
-		created_date = wc_order_data.get("date_created").split("T")
+		new_sales_order.woocommerce_server = wc_order.woocommerce_server
+		new_sales_order.woocommerce_payment_method = wc_order.payment_method_title
+		created_date = wc_order.date_created.split("T")
 		new_sales_order.transaction_date = created_date[0]
 		delivery_after = wc_server.delivery_after_days or 7
 		new_sales_order.delivery_date = frappe.utils.add_days(created_date[0], delivery_after)
 		new_sales_order.company = wc_server.company
-		self.set_items_in_sales_order(new_sales_order, wc_order_data)
+		new_sales_order.currency = wc_order.currency
+		self.set_items_in_sales_order(new_sales_order, wc_order)
 		new_sales_order.flags.ignore_mandatory = True
 		try:
 			new_sales_order.insert()
@@ -544,7 +522,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			)
 			frappe.log_error("WooCommerce Error", error_message)
 
-		self.create_and_link_payment_entry(wc_order_data, new_sales_order.name)
+		self.create_and_link_payment_entry(wc_order, new_sales_order.name)
 
 	@staticmethod
 	def create_or_link_customer_and_address(
@@ -598,7 +576,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 
 		return customer.name
 
-	def create_missing_items(self, items_list, woocommerce_site):
+	def create_missing_items(self, wc_order, items_list, woocommerce_site):
 		"""
 		Searching for items linked to multiple WooCommerce sites
 		"""
@@ -609,7 +587,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 			)
 			run_item_sync(woocommerce_product_name=woocommerce_product_name)
 
-	def set_items_in_sales_order(self, new_sales_order, order):
+	def set_items_in_sales_order(self, new_sales_order, wc_order):
 		"""
 		Customised version of set_items_in_sales_order to allow searching for items linked to
 		multiple WooCommerce sites
@@ -618,7 +596,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		if not wc_server.warehouse:
 			frappe.throw(_("Please set Warehouse in WooCommerce Server"))
 
-		for item in order.get("line_items"):
+		for item in json.loads(wc_order.line_items):
 			woocomm_item_id = item.get("variation_id") or item.get("product_id")
 
 			iws = frappe.qb.DocType("Item WooCommerce Server")
@@ -664,12 +642,10 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 				ordered_items_tax = item.get("total_tax")
 				add_tax_details(new_sales_order, ordered_items_tax, "Ordered Item tax", wc_server.tax_account)
 
-		add_tax_details(
-			new_sales_order, order.get("shipping_tax"), "Shipping Tax", wc_server.f_n_f_account
-		)
+		add_tax_details(new_sales_order, wc_order.shipping_tax, "Shipping Tax", wc_server.f_n_f_account)
 		add_tax_details(
 			new_sales_order,
-			order.get("shipping_total"),
+			wc_order.shipping_total,
 			"Shipping Total",
 			wc_server.f_n_f_account,
 		)
@@ -697,6 +673,7 @@ def create_address(raw_data, customer, address_type):
 	address.pincode = raw_data.get("postcode")
 	address.phone = raw_data.get("phone")
 	address.email_id = customer.woocommerce_email
+	address.address_title = f"{customer.name}-{address_type}"
 	address.append("links", {"link_doctype": "Customer", "link_name": customer.name})
 
 	address.flags.ignore_mandatory = True

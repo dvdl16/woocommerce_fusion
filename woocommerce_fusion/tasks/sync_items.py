@@ -51,6 +51,8 @@ def run_item_sync(
 
 	elif item_code:
 		item = frappe.get_doc("Item", item_code)
+		if not item.woocommerce_servers:
+			frappe.throw(_("No WooCommerce Servers defined for Item {0}").format(item_code))
 		for wc_server in item.woocommerce_servers:
 			# Trigger sync for every linked server
 			sync = SynchroniseItem(
@@ -165,8 +167,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 				raise SyncDisabledError
 
 			wc_products = get_list_of_wc_products(item=self.item)
-			wc_product = frappe.get_doc("WooCommerce Product", wc_products[0]["name"])
-			self.woocommerce_product = wc_product.load_from_db()
+			self.woocommerce_product = wc_products[0]
 
 		if self.woocommerce_product and not self.item:
 			self.get_erpnext_item()
@@ -236,10 +237,6 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		"""
 		Update the ERPNext Item with fields from it's corresponding WooCommerce Product
 		"""
-		# Get the WooCommerce Product doc
-		wc_product = frappe.get_doc({"doctype": "WooCommerce Product", "name": woocommerce_product.name})
-		wc_product.load_from_db()
-
 		# Update these fields if necessary
 		pass
 
