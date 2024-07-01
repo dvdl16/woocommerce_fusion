@@ -73,7 +73,11 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 		"""
 		Get list of ERPNext Item Prices to synchronise,
 		"""
-		if self.wc_server.enable_price_list_sync and self.wc_server.price_list:
+		if (
+			self.wc_server.enable_sync
+			and self.wc_server.enable_price_list_sync
+			and self.wc_server.price_list
+		):
 			ip = qb.DocType("Item Price")
 			iwc = qb.DocType("Item WooCommerce Server")
 			item = qb.DocType("Item")
@@ -118,7 +122,7 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 				# When the price is set, the WooCommerce API returns a string value, when the price is not set, it returns a float value of 0.0
 				wc_product_regular_price = (
 					float(wc_product.regular_price)
-					if type(wc_product.regular_price) == str
+					if isinstance(wc_product.regular_price, str)
 					else wc_product.regular_price
 				)
 				if wc_product_regular_price != price_list_rate:
