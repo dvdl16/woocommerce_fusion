@@ -32,7 +32,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that get_list returns a list of Orders, each with a 'name' attribute
 		"""
 		nr_of_orders = 3
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
 
 		# Create mock API object
 		mock_api_list = [
@@ -74,7 +74,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Verify that a 'name' attribute has been created with value of '[domain]~[id]'
 		for order in orders:
 			self.assertIsNotNone(order.name)
-			expected_name = urlparse(woocommerce_server_url).netloc + WC_ORDER_DELIMITER + str(order["id"])
+			expected_name = urlparse(woocommerce_server_url).netloc + WC_ORDER_DELIMITER + str(order.id)
 			self.assertEqual(order.name, expected_name)
 
 	def test_get_list_pagination_works(self, mock_init_api):
@@ -161,14 +161,15 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that load_from_db returns an Order
 		"""
 		order_id = 1
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
+		woocommerce_server = "site1.example.com"
 
 		# Setup mock API
 		mock_api_list = [
 			WooCommerceOrderAPI(
 				api=Mock(),
 				woocommerce_server_url=woocommerce_server_url,
-				woocommerce_server=woocommerce_server_url,
+				woocommerce_server=woocommerce_server,
 				wc_plugin_advanced_shipment_tracking=1,
 			)
 		]
@@ -198,7 +199,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Instantiate the class
 					woocommerce_order = WooCommerceOrder()
 					woocommerce_order.doctype = "WooCommerce Order"
-					woocommerce_order.name = woocommerce_server_url + WC_ORDER_DELIMITER + str(order_id)
+					woocommerce_order.name = woocommerce_server + WC_ORDER_DELIMITER + str(order_id)
 
 					# Call load_from_db
 					woocommerce_order.load_from_db()
@@ -209,12 +210,12 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Check that all order fields are valid
 					for key, value in mocked_super_call.call_args.args[0].items():
 						# Test that Lists and Dicts are in JSON format, except for meta fieds
-						meta_data_fields = ["modified", "woocommerce_server"]
+						meta_data_fields = ["modified", "woocommerce_server", "name", "doctype"]
 						if key not in meta_data_fields:
-							if isinstance(dummy_wc_order[key], dict) or isinstance(dummy_wc_order[key], list):
-								self.assertEqual(json.loads(value), dummy_wc_order[key])
+							if isinstance(dummy_wc_order.get(key), dict) or isinstance(dummy_wc_order.get(key), list):
+								self.assertEqual(json.loads(value), dummy_wc_order.get(key))
 							else:
-								self.assertEqual(value, dummy_wc_order[key])
+								self.assertEqual(value, dummy_wc_order.get(key))
 
 		# Check that the API was initialised
 		mock_init_api.assert_called_once()
@@ -233,7 +234,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api_list = [
 			WooCommerceOrderAPI(
 				api=Mock(),
-				woocommerce_server_url="site1.example.com",
+				woocommerce_server_url="http://site1.example.com",
 				woocommerce_server="site1.example.com",
 				wc_plugin_advanced_shipment_tracking=1,
 			)
@@ -281,7 +282,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		mock_api_list = [
 			WooCommerceOrderAPI(
 				api=Mock(),
-				woocommerce_server_url="site1.example.com",
+				woocommerce_server_url="http://site1.example.com",
 				woocommerce_server="site1.example.com",
 				wc_plugin_advanced_shipment_tracking=1,
 			)
@@ -303,7 +304,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Call db_insert
 		woocommerce_order = frappe.get_doc({"doctype": "WooCommerce Order"})
-		woocommerce_order.woocommerce_server_url = "site1.example.com"
+		woocommerce_order.woocommerce_server_url = "http://site1.example.com"
 
 		# Verify that an Exception is thrown
 		with self.assertRaises(Exception) as context:
@@ -320,7 +321,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that db_update makes a PUT call to the WooCommerce API
 		"""
 		order_id = 1
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
 
 		# Setup mock API
 		mock_api_list = [
@@ -371,7 +372,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that the get_additional_order_attributes method makes an API call
 		"""
 		order_id = 1
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
 		# Setup mock API
 		mock_api_list = [
 			WooCommerceOrderAPI(
@@ -412,7 +413,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		Test that the update_shipment_tracking method makes an API POST call
 		"""
 		order_id = 1
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
 		# Setup mock API
 		mock_api_list = [
 			WooCommerceOrderAPI(
@@ -458,7 +459,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		shipment_trackings is unchanged
 		"""
 		order_id = 1
-		woocommerce_server_url = "site1.example.com"
+		woocommerce_server_url = "http://site1.example.com"
 		# Setup mock API
 		mock_api_list = [
 			WooCommerceOrderAPI(
@@ -517,105 +518,103 @@ def wc_response_for_list_of_orders(nr_of_orders=5, site="example.com"):
 	Generate a dummy list of orders as if it was returned from the WooCommerce API
 	"""
 	dummy_wc_order_instance = deepcopy(dummy_wc_order)
-	dummy_wc_order_instance.woocommerce_server = site
-	return [dummy_wc_order_instance for i in range(nr_of_orders)]
+	dummy_wc_order_instance["woocommerce_server"] = site
+	return [frappe._dict(dummy_wc_order_instance) for i in range(nr_of_orders)]
 
 
-dummy_wc_order = frappe._dict(
-	{
-		"billing": {
-			"address_1": "",
-			"address_2": "",
-			"city": "",
-			"company": "",
-			"country": "",
-			"email": "",
-			"first_name": "",
-			"last_name": "",
-			"phone": "",
-			"postcode": "",
-			"state": "",
-		},
-		"cart_hash": "",
-		"cart_tax": "0.00",
-		"coupon_lines": [],
-		"created_via": "admin",
-		"currency": "ZAR",
-		"currency_symbol": "R",
-		"customer_id": 0,
-		"customer_ip_address": "",
-		"customer_note": "",
-		"customer_user_agent": "",
-		"date_completed": None,
-		"date_completed_gmt": None,
-		"date_created": "2023-05-20T13:12:23",
-		"date_created_gmt": "2023-05-20T13:12:23",
-		"date_modified": "2023-05-20T13:12:39",
-		"date_modified_gmt": "2023-05-20T13:12:39",
-		"date_paid": "2023-05-20T13:12:39",
-		"date_paid_gmt": "2023-05-20T13:12:39",
-		"discount_tax": "0.00",
-		"discount_total": "0.00",
-		"fee_lines": [],
-		"id": 15,
-		"is_editable": False,
-		"line_items": [
-			{
-				"id": 2,
-				"image": {
-					"id": "12",
-					"src": "https://wootest.mysite.com/wp-content/uploads/2023/05/hoodie-with-logo-2.jpg",
-				},
-				"meta_data": [],
-				"name": "Hoodie",
-				"parent_name": None,
-				"price": 45,
-				"product_id": 13,
-				"quantity": 1,
-				"sku": "",
-				"subtotal": "45.00",
-				"subtotal_tax": "0.00",
-				"tax_class": "",
-				"taxes": [],
-				"total": "45.00",
-				"total_tax": "0.00",
-				"variation_id": 0,
-			}
-		],
-		"meta_data": [],
-		"needs_payment": False,
-		"needs_processing": True,
-		"number": "15",
-		"order_key": "wc_order_YpxrBDm0nyUkk",
-		"parent_id": 0,
-		"payment_method": "",
-		"payment_method_title": "",
-		"payment_url": "https://wootest.mysite.com/checkout/order-pay/15/?pay_for_order=true&key=wc_order_YpxrBDm0nyUkk",
-		"prices_include_tax": False,
-		"refunds": [],
-		"shipping": {
-			"address_1": "",
-			"address_2": "",
-			"city": "",
-			"company": "",
-			"country": "",
-			"first_name": "",
-			"last_name": "",
-			"phone": "",
-			"postcode": "",
-			"state": "",
-		},
-		"shipping_lines": [],
-		"shipping_tax": "0.00",
-		"shipping_total": "0.00",
-		"status": "processing",
-		"tax_lines": [],
-		"total": "45.00",
-		"total_tax": "0.00",
-		"transaction_id": "",
-		"version": "7.7.0",
-	}
-)
+dummy_wc_order = {
+	"billing": {
+		"address_1": "1",
+		"address_2": "2",
+		"city": "a",
+		"company": "b",
+		"country": "c",
+		"first_name": "d",
+		"last_name": "e",
+		"phone": "f",
+		"postcode": "g",
+		"state": "h",
+		"email": "i",
+	},
+	"cart_hash": "",
+	"cart_tax": "0.00",
+	"coupon_lines": [],
+	"created_via": "admin",
+	"currency": "ZAR",
+	"currency_symbol": "R",
+	"customer_id": 0,
+	"customer_ip_address": "",
+	"customer_note": "",
+	"customer_user_agent": "",
+	"date_completed": None,
+	"date_completed_gmt": None,
+	"date_created": "2023-05-20T13:12:23",
+	"date_created_gmt": "2023-05-20T13:12:23",
+	"date_modified": "2023-05-20T13:12:39",
+	"date_modified_gmt": "2023-05-20T13:12:39",
+	"date_paid": "2023-05-20T13:12:39",
+	"date_paid_gmt": "2023-05-20T13:12:39",
+	"discount_tax": "0.00",
+	"discount_total": "0.00",
+	"fee_lines": [],
+	"id": 15,
+	"is_editable": False,
+	"line_items": [
+		{
+			"id": 2,
+			"image": {
+				"id": "12",
+				"src": "https://wootest.mysite.com/wp-content/uploads/2023/05/hoodie-with-logo-2.jpg",
+			},
+			"meta_data": [],
+			"name": "Hoodie",
+			"parent_name": None,
+			"price": 45,
+			"product_id": 13,
+			"quantity": 1,
+			"sku": "",
+			"subtotal": "45.00",
+			"subtotal_tax": "0.00",
+			"tax_class": "",
+			"taxes": [],
+			"total": "45.00",
+			"total_tax": "0.00",
+			"variation_id": 0,
+		}
+	],
+	"meta_data": [],
+	"needs_payment": False,
+	"needs_processing": True,
+	"number": "15",
+	"order_key": "wc_order_YpxrBDm0nyUkk",
+	"parent_id": 0,
+	"payment_method": "",
+	"payment_method_title": "",
+	"payment_url": "https://wootest.mysite.com/checkout/order-pay/15/?pay_for_order=true&key=wc_order_YpxrBDm0nyUkk",
+	"prices_include_tax": False,
+	"refunds": [],
+	"shipping": {
+		"address_1": "1",
+		"address_2": "2",
+		"city": "a",
+		"company": "b",
+		"country": "c",
+		"first_name": "d",
+		"last_name": "e",
+		"phone": "f",
+		"postcode": "g",
+		"state": "h",
+	},
+	"shipping_lines": [],
+	"shipping_tax": "0.00",
+	"shipping_total": "0.00",
+	"status": "processing",
+	"tax_lines": [],
+	"total": "45.00",
+	"total_tax": "0.00",
+	"transaction_id": "",
+	"version": "7.7.0",
+}
 
 
 class TestAPIWithRequestLogging(FrappeTestCase):
