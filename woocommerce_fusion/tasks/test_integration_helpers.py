@@ -84,6 +84,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		payment_method_title: str = "Direct Bank Transfer",
 		item_price: float = 10,
 		item_qty: int = 1,
+		currency: str = None,
 	) -> int:
 		"""
 		Create a dummy order on a WooCommerce testing site
@@ -103,36 +104,38 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		# API Endpoint
 		url = f"{self.wc_url}/wp-json/wc/v3/orders/"
 
-		payload = json.dumps(
-			{
-				"payment_method": "bacs",
-				"payment_method_title": payment_method_title,
-				"set_paid": set_paid,
-				"billing": {
-					"first_name": "John",
-					"last_name": "Doe",
-					"address_1": "123 Main St",
-					"address_2": "",
-					"city": "Anytown",
-					"state": "CA",
-					"postcode": "12345",
-					"country": "US",
-					"email": "john.doe@example.com",
-					"phone": "123-456-7890",
-				},
-				"shipping": {
-					"first_name": "John",
-					"last_name": "Doe",
-					"address_1": "123 Main St",
-					"address_2": "",
-					"city": "Anytown",
-					"state": "CA",
-					"postcode": "12345",
-					"country": "US",
-				},
-				"line_items": [{"product_id": wc_product_id, "quantity": item_qty}],
-			}
-		)
+		data = {
+			"payment_method": "bacs",
+			"payment_method_title": payment_method_title,
+			"set_paid": set_paid,
+			"billing": {
+				"first_name": "John",
+				"last_name": "Doe",
+				"address_1": "123 Main St",
+				"address_2": "",
+				"city": "Anytown",
+				"state": "CA",
+				"postcode": "12345",
+				"country": "US",
+				"email": "john.doe@example.com",
+				"phone": "123-456-7890",
+			},
+			"shipping": {
+				"first_name": "John",
+				"last_name": "Doe",
+				"address_1": "123 Main St",
+				"address_2": "",
+				"city": "Anytown",
+				"state": "CA",
+				"postcode": "12345",
+				"country": "US",
+			},
+			"line_items": [{"product_id": wc_product_id, "quantity": item_qty}],
+		}
+
+		if currency:
+			data["currency"] = currency
+		payload = json.dumps(data)
 		headers = {"Content-Type": "application/json"}
 
 		# Making the API call

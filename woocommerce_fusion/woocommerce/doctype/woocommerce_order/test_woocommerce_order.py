@@ -73,9 +73,9 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 		# Verify that a 'name' attribute has been created with value of '[domain]~[id]'
 		for order in orders:
-			self.assertTrue("name" in order)
+			self.assertIsNotNone(order.name)
 			expected_name = urlparse(woocommerce_server_url).netloc + WC_ORDER_DELIMITER + str(order["id"])
-			self.assertEqual(order["name"], expected_name)
+			self.assertEqual(order.name, expected_name)
 
 	def test_get_list_pagination_works(self, mock_init_api):
 		"""
@@ -85,13 +85,19 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Create mock API object list with 3 WooCommerce servers/API's
 		mock_api_list = [
 			WooCommerceOrderAPI(
-				api=Mock(), woocommerce_server_url="site1.example.com", woocommerce_server="site1.example.com"
+				api=Mock(),
+				woocommerce_server_url="http://site1.example.com",
+				woocommerce_server="site1.example.com",
 			),
 			WooCommerceOrderAPI(
-				api=Mock(), woocommerce_server_url="site2.example.com", woocommerce_server="site1.example.com"
+				api=Mock(),
+				woocommerce_server_url="http://site2.example.com",
+				woocommerce_server="site2.example.com",
 			),
 			WooCommerceOrderAPI(
-				api=Mock(), woocommerce_server_url="site3.example.com", woocommerce_server="site1.example.com"
+				api=Mock(),
+				woocommerce_server_url="http://site3.example.com",
+				woocommerce_server="site3.example.com",
 			),
 		]
 
@@ -137,25 +143,13 @@ class TestWooCommerceOrder(FrappeTestCase):
 
 				# Verify that the orders were combined correctly from the API's
 				order_counts_for_api1 = len(
-					[
-						order
-						for order in orders
-						if order["_links"]["site"] == mock_api_list[0].woocommerce_server_url
-					]
+					[order for order in orders if order.woocommerce_server == mock_api_list[0].woocommerce_server]
 				)
 				order_counts_for_api2 = len(
-					[
-						order
-						for order in orders
-						if order["_links"]["site"] == mock_api_list[1].woocommerce_server_url
-					]
+					[order for order in orders if order.woocommerce_server == mock_api_list[1].woocommerce_server]
 				)
 				order_counts_for_api3 = len(
-					[
-						order
-						for order in orders
-						if order["_links"]["site"] == mock_api_list[2].woocommerce_server_url
-					]
+					[order for order in orders if order.woocommerce_server == mock_api_list[2].woocommerce_server]
 				)
 				self.assertEqual(
 					(order_counts_for_api1, order_counts_for_api2, order_counts_for_api3),
@@ -522,103 +516,106 @@ def wc_response_for_list_of_orders(nr_of_orders=5, site="example.com"):
 	"""
 	Generate a dummy list of orders as if it was returned from the WooCommerce API
 	"""
-	return [dict(dummy_wc_order, **{"_links": {"site": site}}) for i in range(nr_of_orders)]
+	dummy_wc_order_instance = deepcopy(dummy_wc_order)
+	dummy_wc_order_instance.woocommerce_server = site
+	return [dummy_wc_order_instance for i in range(nr_of_orders)]
 
 
-dummy_wc_order = {
-	"_links": {"site": "https://wootest.mysite.com/wp-json/wc/v3/orders"},
-	"billing": {
-		"address_1": "",
-		"address_2": "",
-		"city": "",
-		"company": "",
-		"country": "",
-		"email": "",
-		"first_name": "",
-		"last_name": "",
-		"phone": "",
-		"postcode": "",
-		"state": "",
-	},
-	"cart_hash": "",
-	"cart_tax": "0.00",
-	"coupon_lines": [],
-	"created_via": "admin",
-	"currency": "ZAR",
-	"currency_symbol": "R",
-	"customer_id": 0,
-	"customer_ip_address": "",
-	"customer_note": "",
-	"customer_user_agent": "",
-	"date_completed": None,
-	"date_completed_gmt": None,
-	"date_created": "2023-05-20T13:12:23",
-	"date_created_gmt": "2023-05-20T13:12:23",
-	"date_modified": "2023-05-20T13:12:39",
-	"date_modified_gmt": "2023-05-20T13:12:39",
-	"date_paid": "2023-05-20T13:12:39",
-	"date_paid_gmt": "2023-05-20T13:12:39",
-	"discount_tax": "0.00",
-	"discount_total": "0.00",
-	"fee_lines": [],
-	"id": 15,
-	"is_editable": False,
-	"line_items": [
-		{
-			"id": 2,
-			"image": {
-				"id": "12",
-				"src": "https://wootest.mysite.com/wp-content/uploads/2023/05/hoodie-with-logo-2.jpg",
-			},
-			"meta_data": [],
-			"name": "Hoodie",
-			"parent_name": None,
-			"price": 45,
-			"product_id": 13,
-			"quantity": 1,
-			"sku": "",
-			"subtotal": "45.00",
-			"subtotal_tax": "0.00",
-			"tax_class": "",
-			"taxes": [],
-			"total": "45.00",
-			"total_tax": "0.00",
-			"variation_id": 0,
-		}
-	],
-	"meta_data": [],
-	"needs_payment": False,
-	"needs_processing": True,
-	"number": "15",
-	"order_key": "wc_order_YpxrBDm0nyUkk",
-	"parent_id": 0,
-	"payment_method": "",
-	"payment_method_title": "",
-	"payment_url": "https://wootest.mysite.com/checkout/order-pay/15/?pay_for_order=true&key=wc_order_YpxrBDm0nyUkk",
-	"prices_include_tax": False,
-	"refunds": [],
-	"shipping": {
-		"address_1": "",
-		"address_2": "",
-		"city": "",
-		"company": "",
-		"country": "",
-		"first_name": "",
-		"last_name": "",
-		"phone": "",
-		"postcode": "",
-		"state": "",
-	},
-	"shipping_lines": [],
-	"shipping_tax": "0.00",
-	"shipping_total": "0.00",
-	"status": "processing",
-	"tax_lines": [],
-	"total": "45.00",
-	"total_tax": "0.00",
-	"transaction_id": "",
-	"version": "7.7.0",
-}
+dummy_wc_order = frappe._dict(
+	{
+		"billing": {
+			"address_1": "",
+			"address_2": "",
+			"city": "",
+			"company": "",
+			"country": "",
+			"email": "",
+			"first_name": "",
+			"last_name": "",
+			"phone": "",
+			"postcode": "",
+			"state": "",
+		},
+		"cart_hash": "",
+		"cart_tax": "0.00",
+		"coupon_lines": [],
+		"created_via": "admin",
+		"currency": "ZAR",
+		"currency_symbol": "R",
+		"customer_id": 0,
+		"customer_ip_address": "",
+		"customer_note": "",
+		"customer_user_agent": "",
+		"date_completed": None,
+		"date_completed_gmt": None,
+		"date_created": "2023-05-20T13:12:23",
+		"date_created_gmt": "2023-05-20T13:12:23",
+		"date_modified": "2023-05-20T13:12:39",
+		"date_modified_gmt": "2023-05-20T13:12:39",
+		"date_paid": "2023-05-20T13:12:39",
+		"date_paid_gmt": "2023-05-20T13:12:39",
+		"discount_tax": "0.00",
+		"discount_total": "0.00",
+		"fee_lines": [],
+		"id": 15,
+		"is_editable": False,
+		"line_items": [
+			{
+				"id": 2,
+				"image": {
+					"id": "12",
+					"src": "https://wootest.mysite.com/wp-content/uploads/2023/05/hoodie-with-logo-2.jpg",
+				},
+				"meta_data": [],
+				"name": "Hoodie",
+				"parent_name": None,
+				"price": 45,
+				"product_id": 13,
+				"quantity": 1,
+				"sku": "",
+				"subtotal": "45.00",
+				"subtotal_tax": "0.00",
+				"tax_class": "",
+				"taxes": [],
+				"total": "45.00",
+				"total_tax": "0.00",
+				"variation_id": 0,
+			}
+		],
+		"meta_data": [],
+		"needs_payment": False,
+		"needs_processing": True,
+		"number": "15",
+		"order_key": "wc_order_YpxrBDm0nyUkk",
+		"parent_id": 0,
+		"payment_method": "",
+		"payment_method_title": "",
+		"payment_url": "https://wootest.mysite.com/checkout/order-pay/15/?pay_for_order=true&key=wc_order_YpxrBDm0nyUkk",
+		"prices_include_tax": False,
+		"refunds": [],
+		"shipping": {
+			"address_1": "",
+			"address_2": "",
+			"city": "",
+			"company": "",
+			"country": "",
+			"first_name": "",
+			"last_name": "",
+			"phone": "",
+			"postcode": "",
+			"state": "",
+		},
+		"shipping_lines": [],
+		"shipping_tax": "0.00",
+		"shipping_total": "0.00",
+		"status": "processing",
+		"tax_lines": [],
+		"total": "45.00",
+		"total_tax": "0.00",
+		"transaction_id": "",
+		"version": "7.7.0",
+	}
+)
 
 
 class TestAPIWithRequestLogging(FrappeTestCase):

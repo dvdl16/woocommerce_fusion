@@ -50,13 +50,13 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-12-31"
-		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
+		sync.wc_orders_dict = {wc_order.name: wc_order}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
 
 		# Assert that the sales order need to be updated
-		mock_update_sales_order.assert_called_once_with(wc_order.__dict__, "SO-0001")
+		mock_update_sales_order.assert_called_once_with(wc_order, "SO-0001")
 
 	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
 	@patch.object(SynchroniseSalesOrders, "update_woocommerce_order")
@@ -93,13 +93,13 @@ class TestWooCommerceSync(FrappeTestCase):
 			woocommerce_server, woocommerce_id
 		)
 		wc_order.date_modified = "2023-01-01"
-		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
+		sync.wc_orders_dict = {wc_order.name: wc_order}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
 
 		# Assert that the sales order need to be updated
-		mock_update_woocommerce_order.assert_called_once_with(wc_order.__dict__, "SO-0001")
+		mock_update_woocommerce_order.assert_called_once_with(wc_order, "SO-0001")
 
 	@patch("woocommerce_fusion.tasks.sync.frappe")
 	@patch.object(SynchroniseSalesOrders, "create_sales_order")
@@ -133,14 +133,14 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		sync.wc_orders_dict = {wc_order.name: wc_order.__dict__}
+		sync.wc_orders_dict = {wc_order.name: wc_order}
 
 		# Call the method under test
 		sync.sync_wc_orders_with_erpnext_sales_orders()
 
 		# Assert that the sales order need to be created
 		mock_create_sales_order.assert_called_once()
-		self.assertEqual(mock_create_sales_order.call_args.args[0], wc_order.__dict__)
+		self.assertEqual(mock_create_sales_order.call_args.args[0], wc_order)
 
 	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
 	def test_successful_payment_entry_creation(self, mock_frappe):
@@ -148,13 +148,15 @@ class TestWooCommerceSync(FrappeTestCase):
 		sync = SynchroniseSalesOrders()
 
 		# Arrange
-		wc_order = {
-			"payment_method": "PayPal",
-			"date_paid": "2023-01-01",
-			"name": "wc_order_1",
-			"payment_method_title": "PayPal",
-			"total": 100,
-		}
+		wc_order = frappe._dict(
+			{
+				"payment_method": "PayPal",
+				"date_paid": "2023-01-01",
+				"name": "wc_order_1",
+				"payment_method_title": "PayPal",
+				"total": 100,
+			}
+		)
 		sales_order_name = "SO-0001"
 
 		mock_sales_order = MagicMock()
@@ -188,12 +190,14 @@ class TestWooCommerceSync(FrappeTestCase):
 	def test_that_no_payment_entry_is_created_when_mapping_is_null(self, mock_frappe):
 		# Arrange
 		sync = SynchroniseSalesOrders()
-		wc_order = {
-			"payment_method": "EFT",
-			"date_paid": "2023-01-01",
-			"name": "wc_order_1",
-			"payment_method_title": "EFT",
-		}
+		wc_order = frappe._dict(
+			{
+				"payment_method": "EFT",
+				"date_paid": "2023-01-01",
+				"name": "wc_order_1",
+				"payment_method_title": "EFT",
+			}
+		)
 		sales_order_name = "SO-0001"
 
 		mock_sales_order = MagicMock()
@@ -231,13 +235,15 @@ class TestWooCommerceSync(FrappeTestCase):
 		sync = SynchroniseSalesOrders()
 
 		# Arrange
-		wc_order = {
-			"payment_method": "PayPal",
-			"date_paid": "2023-01-01",
-			"name": "wc_order_1",
-			"payment_method_title": "PayPal",
-			"total": 100,
-		}
+		wc_order = frappe._dict(
+			{
+				"payment_method": "PayPal",
+				"date_paid": "2023-01-01",
+				"name": "wc_order_1",
+				"payment_method_title": "PayPal",
+				"total": 100,
+			}
+		)
 		sales_order_name = "SO-0001"
 
 		mock_sales_order = MagicMock()

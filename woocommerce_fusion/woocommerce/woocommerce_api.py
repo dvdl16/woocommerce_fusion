@@ -92,26 +92,12 @@ class WooCommerceResource(Document):
 				error_text=f"load_from_db failed (WooCommerce {self.resource} #{record_id})\nOrder:\n{str(record)}"
 			)
 
-		if self.field_setter_map:
-			for new_key, old_key in self.field_setter_map.items():
-				record[new_key] = record[old_key]
-
+		record = self.pre_init_document(
+			record, woocommerce_server_url=self.current_wc_api.woocommerce_server_url
+		)
 		record = self.after_load_from_db(record)
 
-		# Remove unused attributes
-		record.pop("_links")
-
-		# Map Frappe metadata to WooCommerce
-		record["modified"] = record["date_modified"]
-
-		# Define woocommerce_server_url
-		server_domain = parse_domain_from_url(self.current_wc_api.woocommerce_server_url)
-		record["woocommerce_server"] = server_domain
-
-		# Make sure that all JSON fields are dumped as JSON when returned from the WooCommerce API
-		record_with_serialized_subdata = self.serialize_attributes_of_type_dict_or_list(record)
-
-		self.call_super_init(record_with_serialized_subdata)
+		self.call_super_init(record)
 
 	def call_super_init(self, record: Dict):
 		super(Document, self).__init__(record)
@@ -193,18 +179,9 @@ class WooCommerceResource(Document):
 
 					# Add frappe fields to records
 					for record in results[start:end]:
+						cls.pre_init_document(record=record, woocommerce_server_url=wc_server.woocommerce_server_url)
 
-						if cls.field_setter_map:
-							for new_key, old_key in cls.field_setter_map.items():
-								if old_key in record:
-									record[new_key] = record[old_key]
-
-						server_domain = parse_domain_from_url(wc_server.woocommerce_server_url)
-						record["name"] = generate_woocommerce_record_name_from_domain_and_id(
-							domain=server_domain, resource_id=record["id"]
-						)
-						record["woocommerce_server"] = server_domain
-						record = cls.during_get_list_of_records(record)
+						cls.during_get_list_of_records(record)
 
 					all_results.extend(results[start:end])
 					total_processed += len(results)
@@ -225,10 +202,10 @@ class WooCommerceResource(Document):
 						log_and_raise_error(error_text="get_list failed", response=response)
 					results = response.json()
 
-			return all_results
+			return [frappe.get_doc(record) for record in all_results]
 
 	@classmethod
-	def during_get_list_of_records(cls, record: Dict):
+	def during_get_list_of_records(cls, record: Document):
 		return record
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
@@ -350,6 +327,40 @@ class WooCommerceResource(Document):
 
 		self.after_db_update()
 
+	@classmethod
+	def pre_init_document(cls, record: Dict, woocommerce_server_url: str):
+		"""
+		Set values on dictionary that are required for frappe Document initialisation aka frappe.new_doc()
+		"""
+		# Replace old keys with new keys as defined in field_setter_map
+		if cls.field_setter_map:
+			for new_key, old_key in cls.field_setter_map.items():
+				record[new_key] = record.get(old_key, None)
+
+		# Remove unused attributes
+		if "_links" in record:
+			record.pop("_links")
+
+		# Map Frappe metadata to WooCommerce
+		record["modified"] = record["date_modified"]
+
+		# Define woocommerce_server_url
+		server_domain = parse_domain_from_url(woocommerce_server_url)
+		record["woocommerce_server"] = server_domain
+
+		# Set record name
+		record["name"] = generate_woocommerce_record_name_from_domain_and_id(
+			domain=server_domain, resource_id=record["id"]
+		)
+
+		# Set doctype
+		record["doctype"] = cls.doctype
+
+		# Make sure that all JSON fields are dumped as JSON when returned from the WooCommerce API
+		cls.serialize_attributes_of_type_dict_or_list(record)
+
+		return record
+
 	def before_db_update(self, record: Dict):
 		return record
 
@@ -365,39 +376,42 @@ class WooCommerceResource(Document):
 		"""
 		return {field.fieldname: self.get(field.fieldname) for field in self.meta.fields}
 
-	def serialize_attributes_of_type_dict_or_list(self, obj):
+	@classmethod
+	def serialize_attributes_of_type_dict_or_list(cls, obj):
 		"""
 		Serializes the dictionary and list attributes of a given object into JSON format.
 
 		This function iterates over the fields of the input object that are expected to be in JSON format,
 		and if the field is present in the object, it transforms the field's value into a JSON-formatted string.
 		"""
-		json_fields = self.get_json_fields()
+		json_fields = cls.get_json_fields()
 		for field in json_fields:
 			if field.fieldname in obj:
 				obj[field.fieldname] = json.dumps(obj[field.fieldname])
 		return obj
 
-	def deserialize_attributes_of_type_dict_or_list(self, obj):
+	@classmethod
+	def deserialize_attributes_of_type_dict_or_list(cls, obj):
 		"""
 		Deserializes the dictionary and list attributes of a given object from JSON format.
 
 		This function iterates over the fields of the input object that are expected to be in JSON format,
 		and if the field is present in the object, it transforms the field's value from a JSON-formatted string.
 		"""
-		json_fields = self.get_json_fields()
+		json_fields = cls.get_json_fields()
 		for field in json_fields:
 			if field.fieldname in obj and obj[field.fieldname]:
 				obj[field.fieldname] = json.loads(obj[field.fieldname])
 		return obj
 
-	def get_json_fields(self):
+	@classmethod
+	def get_json_fields(cls):
 		"""
 		Returns a list of fields that have been defined with type "JSON"
 		"""
 		fields = frappe.db.get_all(
 			"DocField",
-			{"parent": self.doctype, "fieldtype": "JSON"},
+			{"parent": cls.doctype, "fieldtype": "JSON"},
 			["name", "fieldname", "fieldtype"],
 		)
 
@@ -497,7 +511,10 @@ def log_and_raise_error(exception=None, error_text=None, response=None):
 
 
 def parse_domain_from_url(url: str):
-	return urlparse(url).netloc
+	domain = urlparse(url).netloc
+	if not domain:
+		raise ValueError(_("Invalid server URL"))
+	return domain
 
 
 def get_domain_and_id_from_woocommerce_record_name(
