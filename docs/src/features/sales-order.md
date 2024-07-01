@@ -22,6 +22,8 @@ When comparing a **WooCommerce Order** with it's counterpart ERPNext **Sales Ord
 | line_items  | **Item**                                      | Checks if a linked **Item** exists, else a new Item is created                                                                   |
 | id          | **Sales Order** > *Customer's Purchase Order* |                                                                                                                                  |
 |             | **Sales Order** > *Woocommerce ID*            |                                                                                                                                  |
+| currency    | **Sales Order** > *Currency*                  |                                                                                                                                  |
+
 
 
 ## Troubleshooting
