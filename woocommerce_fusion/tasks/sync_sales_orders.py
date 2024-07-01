@@ -532,6 +532,7 @@ class SynchroniseSalesOrders(SynchroniseWooCommerce):
 		delivery_after = wc_server.delivery_after_days or 7
 		new_sales_order.delivery_date = frappe.utils.add_days(created_date[0], delivery_after)
 		new_sales_order.company = wc_server.company
+		new_sales_order.currency = wc_order.currency
 		self.set_items_in_sales_order(new_sales_order, wc_order_data)
 		new_sales_order.flags.ignore_mandatory = True
 		try:

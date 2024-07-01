@@ -82,6 +82,38 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
 
+	def test_sync_create_new_sales_order_in_usd_when_synchronising_with_woocommerce(
+		self, mock_log_error
+	):
+		"""
+		Test that the Sales Order Synchronisation method creates a new Sales order in the correct currency
+		when currency is different from base currency
+
+		Assumes that the Wordpress Site we're testing against has:
+		- Tax enabled
+		- Sales prices include tax
+		"""
+		# Create a new order in WooCommerce
+		wc_order_id = self.post_woocommerce_order(
+			payment_method_title="Doge", item_price=10, item_qty=1, currency="USD"
+		)
+
+		# Run synchronisation
+		run_sales_orders_sync()
+
+		# Expect no errors logged
+		mock_log_error.assert_not_called()
+
+		# Expect newly created Sales Order in ERPNext
+		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
+		self.assertIsNotNone(sales_order)
+
+		# Expect correct currency in Sales Order
+		self.assertEqual(sales_order.currency, "USD")
+
+		# Delete order in WooCommerce
+		self.delete_woocommerce_order(wc_order_id=wc_order_id)
+
 	def test_sync_create_new_sales_order_with_tax_template_when_synchronising_with_woocommerce(
 		self, mock_log_error
 	):
