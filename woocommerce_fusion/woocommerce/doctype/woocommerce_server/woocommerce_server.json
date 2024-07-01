@@ -62,15 +62,6 @@
  ],
  "fields": [
   {
-   "description": "e.g. https://mysite.woocommerce.com",
-   "fieldname": "woocommerce_server_url",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "WooCommerce Server URL",
-   "reqd": 1,
-   "set_only_once": 1
-  },
-  {
    "fieldname": "warning_html",
    "fieldtype": "HTML",
    "label": "Warning HTML",
@@ -282,11 +273,6 @@
    "options": "Price List"
   },
   {
-   "fieldname": "view_webhook_config",
-   "fieldtype": "Button",
-   "label": "View WooCommerce Webhook Configuration"
-  },
-  {
    "default": "0",
    "description": "Some WooCommerce payment gateways do not always set the \"Date Paid\" field, which cause Payment Entries to not be created",
    "fieldname": "ignore_date_paid",
@@ -399,7 +385,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-06-20 14:47:21.836197",
+ "modified": "2024-07-01 09:17:46.113981",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
@@ -416,6 +402,51 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "role": "Sales User",
+   "select": 1,
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "role": "Stock User",
+   "select": 1,
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "role": "Item Manager",
+   "select": 1,
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "select": 1,
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "select": 1,
+   "share": 1
   }
  ],
  "sort_field": "modified",
