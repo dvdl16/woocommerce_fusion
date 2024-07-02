@@ -26,6 +26,7 @@ class WooCommerceProduct(WooCommerceResource):
 
 	# use "args" despite frappe-semgrep-rules.rules.overusing-args, following convention in ERPNext
 	# nosemgrep
+	@staticmethod
 	def get_list(args):
 		products = WooCommerceProduct.get_list_of_records(args)
 

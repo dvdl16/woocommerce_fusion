@@ -119,6 +119,9 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 					if self.item_price_doc and self.item_price_doc.price_list == self.wc_server.price_list
 					else item_price.price_list_rate
 				)
+				# Handle blank string for regular_price
+				if not wc_product.regular_price:
+					wc_product.regular_price = 0
 				# When the price is set, the WooCommerce API returns a string value, when the price is not set, it returns a float value of 0.0
 				wc_product_regular_price = (
 					float(wc_product.regular_price)
