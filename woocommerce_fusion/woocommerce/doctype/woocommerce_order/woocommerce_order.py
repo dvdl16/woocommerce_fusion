@@ -108,7 +108,7 @@ class WooCommerceOrder(WooCommerceResource):
 	def after_db_update(self):
 		self.update_shipment_tracking()
 
-	def get_additional_order_attributes(self, order):
+	def get_additional_order_attributes(self, order: Dict):
 		"""
 		Make API calls to WC to get additional order attributes, such as Tracking Data
 		managed by an additional WooCommerce plugin
@@ -127,7 +127,11 @@ class WooCommerceOrder(WooCommerceResource):
 					# Attempt to fix broken date in date_shipped field from /shipment-trackings endpoint
 					if "meta_data" in order:
 						shipment_trackings_meta_data = next(
-							(entry for entry in order["meta_data"] if entry["key"] == "_wc_shipment_tracking_items"),
+							(
+								entry
+								for entry in json.loads(order["meta_data"])
+								if entry["key"] == "_wc_shipment_tracking_items"
+							),
 							None,
 						)
 						if shipment_trackings_meta_data:
@@ -143,6 +147,8 @@ class WooCommerceOrder(WooCommerceResource):
 								if shipment_tracking_meta_data:
 									date_shipped = datetime.fromtimestamp(int(shipment_tracking_meta_data["date_shipped"]))
 									shipment_tracking["date_shipped"] = date_shipped.strftime("%Y-%m-%d")
+
+					order["shipment_trackings"] = json.dumps(order["shipment_trackings"])
 
 				except Exception as err:
 					log_and_raise_error(err)
