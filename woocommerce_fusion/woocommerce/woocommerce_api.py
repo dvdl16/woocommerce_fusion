@@ -106,7 +106,7 @@ class WooCommerceResource(Document):
 		return record
 
 	@classmethod
-	def get_list_of_records(cls, args):
+	def get_list_of_records(cls, args) -> list["WooCommerceResource"]:
 		"""
 		Returns List of WooCommerce Records (List view and Report view).
 
