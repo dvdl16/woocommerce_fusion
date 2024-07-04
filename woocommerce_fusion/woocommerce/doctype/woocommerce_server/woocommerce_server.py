@@ -54,16 +54,9 @@ class WooCommerceServer(Document):
 
 
 @frappe.whitelist()
-def get_woocommerce_shipment_providers(woocommerce_server_domain):
+def get_woocommerce_shipment_providers(woocommerce_server):
 	"""
 	Return the Shipment Providers for a given WooCommerce Server domain
 	"""
-	wc_servers = frappe.get_all("WooCommerce Server", fields=["name", "woocommerce_server_url"])
-	return next(
-		(
-			wc_server.wc_ast_shipment_providers
-			for wc_server in wc_servers
-			if woocommerce_server_domain in wc_server.woocommerce_server_url
-		),
-		[],
-	)
+	wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_server)
+	return wc_server.wc_ast_shipment_providers

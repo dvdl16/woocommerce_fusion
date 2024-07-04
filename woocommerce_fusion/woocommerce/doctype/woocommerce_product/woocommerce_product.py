@@ -31,9 +31,7 @@ class WooCommerceProduct(WooCommerceResource):
 		products = WooCommerceProduct.get_list_of_records(args)
 
 		# Extend the list with product variants
-		product_ids_with_variants = [
-			product["id"] for product in products if product["type"] == "variable"
-		]
+		product_ids_with_variants = [product.id for product in products if product.type == "variable"]
 		for id in product_ids_with_variants:
 			args["endpoint"] = f"products/{id}/variations"
 			variants = WooCommerceProduct.get_list_of_records(args)

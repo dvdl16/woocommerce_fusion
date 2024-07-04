@@ -101,7 +101,7 @@ frappe.ui.form.on('Sales Order', {
 				"woocommerce_fusion.woocommerce.doctype.woocommerce_server"+
 				".woocommerce_server.get_woocommerce_shipment_providers",
 			args: {
-				woocommerce_server_domain: frm.doc.woocommerce_server
+				woocommerce_server: frm.doc.woocommerce_server
 			},
 			callback: function(r) {
 				const trackingProviders = r.message;
