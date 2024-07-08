@@ -171,7 +171,7 @@ class WooCommerceResource(Document):
 				# If we're still here, it means that this API has some records in the required range
 				while True:
 					if len(all_results) >= per_page:
-						return all_results
+						return [frappe.get_doc(record) for record in all_results]
 
 					# Adjust indices based on remaining offset and records to collect
 					start = max(0, offset - total_processed)

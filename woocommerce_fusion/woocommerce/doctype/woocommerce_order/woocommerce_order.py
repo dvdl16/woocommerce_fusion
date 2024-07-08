@@ -174,7 +174,7 @@ class WooCommerceOrder(WooCommerceResource):
 			(api for api in self.wc_api_list if wc_server_domain in api.woocommerce_server_url), None
 		)
 
-		if self.current_wc_api.wc_plugin_advanced_shipment_tracking:
+		if self.current_wc_api.wc_plugin_advanced_shipment_tracking and self.shipment_trackings:
 
 			# Verify if the 'shipment_trackings' field changed
 			if self.shipment_trackings != self._doc_before_save.shipment_trackings:
