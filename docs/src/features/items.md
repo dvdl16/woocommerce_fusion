@@ -35,7 +35,12 @@ When comparing a **WooCommerce Item** with it's counterpart ERPNext **Item**, th
 |              |              | `variant` ≡ **Item** Variant (*Variant Of* is set)                                            |
 | `attributes` | *Attributes* | Missing **Item Attributes* will automatically be created in both systems                      |
 
-Please raise an [Issue on Github](https://github.com/dvdl16/woocommerce_fusion/issues) to request additional fields to be mapped.
+## Custom Fields Mapping
+It is possible to map fields that you want to be synchronised. For example, to synchronise a **WooCommerce Product**'s `short_description` field to an ERPNext **Item**'s `description` field, add the following *Field Mapping*:
+
+![Item Fields Mapping](../images/item-fields-mapping.png)
+
+**Note that this is recommended for advanced users only. This is a very basic functionality - there are no field type conversions possible as of yet.
 
 ## Troubleshooting
 - You can look at the list of **WooCommerce Products** from within ERPNext by opening the **WooCommerce Product** doctype. This is a [Virtual DocType](https://frappeframework.com/docs/v15/user/en/basics/doctypes/virtual-doctype) that interacts directly with your WooCommerce site's API interface
