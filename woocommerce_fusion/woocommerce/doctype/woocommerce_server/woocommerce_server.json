@@ -49,6 +49,9 @@
   "item_stock_section",
   "enable_stock_level_synchronisation",
   "warehouses",
+  "item_fields_section",
+  "item_fields_warning_html",
+  "item_field_map",
   "tab_price_list",
   "section_break_hnji",
   "enable_price_list_sync",
@@ -381,11 +384,27 @@
    "fieldtype": "Table MultiSelect",
    "label": "Warehouses",
    "options": "WooCommerce Server Warehouse"
+  },
+  {
+   "fieldname": "item_fields_section",
+   "fieldtype": "Section Break",
+   "label": "Item Fields"
+  },
+  {
+   "fieldname": "item_field_map",
+   "fieldtype": "Table",
+   "label": "Fields Mapping",
+   "options": "WooCommerce Server Item Field"
+  },
+  {
+   "fieldname": "item_fields_warning_html",
+   "fieldtype": "HTML",
+   "options": "<div class=\"alert alert-warning\">\nMapping item fields is recommended for advanced users only. Make sure to monitor Error Logs after adding field mappings.\n</div>"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-01 09:17:46.113981",
+ "modified": "2024-07-08 15:04:39.014474",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",

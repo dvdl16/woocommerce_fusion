@@ -44,6 +44,9 @@ class TestIntegrationWooCommerceItemsSync(TestIntegrationWooCommerce):
 		self.assertEqual(item.item_code, str(wc_product_id))
 		self.assertEqual(item.item_name, "SOME_ITEM")
 
+		# Expect correct custom mapped field values
+		self.assertEqual(item.description, "<p>SOME_ITEM</p>\n")
+
 	def test_sync_create_new_template_item_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
 		Test that the Item Synchronisation method creates new Template Item from a WooCommerce Product with Variations
@@ -139,6 +142,9 @@ class TestIntegrationWooCommerceItemsSync(TestIntegrationWooCommerce):
 
 		# Expect correct item name in item
 		self.assertEqual(wc_product["name"], item.item_name)
+
+		# Expect correct custom mapped field values
+		self.assertEqual(wc_product["short_description"], "<p>ITEM101</p>\n")
 
 	def test_sync_create_new_variable_wc_product_when_synchronising_with_woocommerce(
 		self, mock_log_error

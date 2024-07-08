@@ -68,6 +68,10 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		row = wc_server.append("warehouses")
 		row.warehouse = "Stores - SC"
 
+		row = wc_server.append("item_field_map")
+		row.erpnext_field_name = "description | Description"
+		row.woocommerce_field_name = "short_description"
+
 		wc_server.save()
 		self.wc_server = wc_server
 
@@ -179,7 +183,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 			"name": product_name,
 			"regular_price": str(regular_price),
 			"description": "This is a new product",
-			"short_description": "New Product",
+			"short_description": product_name,
 			"manage_stock": True,  # Enable stock management
 			"stock_quantity": opening_stock,  # Set initial stock level
 		}

@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils.caching import redis_cache
 from woocommerce import API
 
 from woocommerce_fusion.woocommerce.woocommerce_api import parse_domain_from_url
@@ -51,6 +52,34 @@ class WooCommerceServer(Document):
 		if all_providers:
 			provider_names = [provider for country in all_providers for provider in all_providers[country]]
 			self.wc_ast_shipment_providers = "\n".join(provider_names)
+
+	@frappe.whitelist()
+	@redis_cache(ttl=600)
+	def get_item_docfields(self):
+		"""
+		Get a list of DocFields for the Item Doctype
+		"""
+		invalid_field_types = [
+			"Column Break",
+			"Fold",
+			"Heading",
+			"Read Only",
+			"Section Break",
+			"Tab Break",
+			"Table",
+			"Table MultiSelect",
+		]
+		docfields = frappe.get_all(
+			"DocField",
+			fields=["label", "name", "fieldname"],
+			filters=[["fieldtype", "not in", invalid_field_types], ["parent", "=", "Item"]],
+		)
+		custom_fields = frappe.get_all(
+			"Custom Field",
+			fields=["label", "name", "fieldname"],
+			filters=[["fieldtype", "not in", invalid_field_types], ["dt", "=", "Item"]],
+		)
+		return docfields + custom_fields
 
 
 @frappe.whitelist()

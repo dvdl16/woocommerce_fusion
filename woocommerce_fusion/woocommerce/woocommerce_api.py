@@ -325,6 +325,7 @@ class WooCommerceResource(Document):
 		if response.status_code != 200:
 			log_and_raise_error(error_text="db_update failed", response=response)
 
+		self.woocommerce_date_modified = response.json()["date_modified"]
 		self.after_db_update()
 
 	@classmethod
@@ -343,6 +344,12 @@ class WooCommerceResource(Document):
 
 		# Map Frappe metadata to WooCommerce
 		record["modified"] = record["date_modified"]
+
+		# Set WooCommerce fields
+		record["woocommerce_date_created"] = record["date_created"]
+		record["woocommerce_date_created_gmt"] = record["date_created_gmt"]
+		record["woocommerce_date_modified"] = record["date_modified"]
+		record["woocommerce_date_modified_gmt"] = record["date_modified_gmt"]
 
 		# Define woocommerce_server_url
 		server_domain = parse_domain_from_url(woocommerce_server_url)

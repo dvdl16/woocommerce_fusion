@@ -37,7 +37,10 @@ class WooCommerceProduct(WooCommerceResource):
 			variants = WooCommerceProduct.get_list_of_records(args)
 			products.extend(variants)
 
-		return [product.as_dict() for product in products]
+		if args.get("initialised"):
+			return products
+		else:
+			return [product.as_dict() for product in products]
 
 	def after_load_from_db(self, product: Dict):
 		product.pop("name")

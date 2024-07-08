@@ -210,7 +210,16 @@ class TestWooCommerceOrder(FrappeTestCase):
 					# Check that all order fields are valid
 					for key, value in mocked_super_call.call_args.args[0].items():
 						# Test that Lists and Dicts are in JSON format, except for meta fieds
-						meta_data_fields = ["modified", "woocommerce_server", "name", "doctype"]
+						meta_data_fields = [
+							"modified",
+							"woocommerce_server",
+							"name",
+							"doctype",
+							"woocommerce_date_created",
+							"woocommerce_date_created_gmt",
+							"woocommerce_date_modified",
+							"woocommerce_date_modified_gmt",
+						]
 						if key not in meta_data_fields:
 							if isinstance(dummy_wc_order.get(key), dict) or isinstance(dummy_wc_order.get(key), list):
 								self.assertEqual(json.loads(value), dummy_wc_order.get(key))
@@ -337,6 +346,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Define the mock response from the put method
 		mock_put_response = Mock()
 		mock_put_response.status_code = 200
+		mock_put_response.json.return_value = {"date_modified": "2024-01-01"}
 
 		# Set the mock response to be returned when PUT is called on the mock API
 		mock_api_list[0].api.put.return_value = mock_put_response

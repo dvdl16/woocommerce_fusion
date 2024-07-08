@@ -27,8 +27,8 @@ def run_item_sync_from_hook(doc, method):
 	"""
 	Intended to be triggered by a Document Controller hook from Item
 	"""
-	if doc == "Item":
-		run_item_sync(item_code=doc.name, enqueue=True)
+	if doc.doctype == "Item":
+		frappe.enqueue(clear_sync_hash_and_run_item_sync, item_code=doc.name)
 
 
 @frappe.whitelist()
@@ -237,8 +237,9 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		"""
 		Update the ERPNext Item with fields from it's corresponding WooCommerce Product
 		"""
-		# Update these fields if necessary
-		pass
+		if item.item.item_name != woocommerce_product.woocommerce_name:
+			item.item.item_name = woocommerce_product.woocommerce_name
+		self.set_item_fields()
 
 		self.set_sync_hash()
 
@@ -255,9 +256,13 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			wc_product.woocommerce_name = item.item.item_name
 			wc_product_dirty = True
 
+		if self.set_product_fields(wc_product, item):
+			wc_product_dirty = True
+
 		if wc_product_dirty:
 			wc_product.save()
 
+		self.woocommerce_product = wc_product
 		self.set_sync_hash()
 
 	def create_woocommerce_product(self, item: ERPNextItemToSync) -> None:
@@ -317,6 +322,9 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			wc_product.woocommerce_server = item.item_woocommerce_server.woocommerce_server
 			wc_product.woocommerce_name = item.item.item_name
 			wc_product.regular_price = get_item_price_rate(item) or "0"
+
+			self.set_product_fields(wc_product, item)
+
 			wc_product.insert()
 			self.woocommerce_product = wc_product
 
@@ -383,6 +391,8 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			),
 		)
 
+		self.set_item_fields()
+
 		self.set_sync_hash()
 
 	def create_or_update_item_attributes(self, wc_product: WooCommerceProduct):
@@ -424,6 +434,51 @@ class SynchroniseItem(SynchroniseWooCommerce):
 					item_attribute.insert()
 				else:
 					item_attribute.save()
+
+	def set_item_fields(self):
+		"""
+		If there exist any Field Mappings on `WooCommerce Server`, attempt to synchronise their values from
+		WooCommerce to ERPNext
+		"""
+		if self.item and self.woocommerce_product:
+			wc_server = frappe.get_cached_doc(
+				"WooCommerce Server", self.woocommerce_product.woocommerce_server
+			)
+			if wc_server.item_field_map:
+				for map in wc_server.item_field_map:
+					erpnext_item_field_name = map.erpnext_field_name.split(" | ")
+					woocommerce_product_field_value = self.woocommerce_product.get(map.woocommerce_field_name)
+
+					frappe.db.set_value(
+						"Item",
+						self.item.item.name,
+						erpnext_item_field_name[0],
+						woocommerce_product_field_value,
+						update_modified=False,
+					)
+
+	def set_product_fields(
+		self, woocommerce_product: WooCommerceProduct, item: ERPNextItemToSync
+	) -> bool:
+		"""
+		If there exist any Field Mappings on `WooCommerce Server`, attempt to synchronise their values from
+		ERPNext to WooCommerce
+
+		Returns true if woocommerce_product was changed
+		"""
+		if item and woocommerce_product:
+			wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_product.woocommerce_server)
+			if wc_server.item_field_map:
+				wc_product_dirty = False
+				for map in wc_server.item_field_map:
+					erpnext_item_field_name = map.erpnext_field_name.split(" | ")
+					erpnext_item_field_value = getattr(item.item, erpnext_item_field_name[0])
+
+					if erpnext_item_field_value != getattr(woocommerce_product, map.woocommerce_field_name):
+						setattr(woocommerce_product, map.woocommerce_field_name, erpnext_item_field_value)
+						wc_product_dirty = True
+
+		return wc_product_dirty
 
 	def set_sync_hash(self):
 		"""
@@ -468,7 +523,13 @@ def get_list_of_wc_products(
 	while new_results:
 		woocommerce_product = frappe.get_doc({"doctype": "WooCommerce Product"})
 		new_results = woocommerce_product.get_list(
-			args={"filters": filters, "page_lenth": page_length, "start": start, "servers": servers}
+			args={
+				"filters": filters,
+				"page_lenth": page_length,
+				"start": start,
+				"servers": servers,
+				"initialised": True,
+			}
 		)
 		for wc_product in new_results:
 			wc_products.append(wc_product)
@@ -499,3 +560,27 @@ def get_item_price_rate(item: ERPNextItemToSync):
 			),
 			None,
 		)
+
+
+def clear_sync_hash_and_run_item_sync(item_code: str):
+	"""
+	Clear the last sync hash value using db.set_value, as it does not call the ORM triggers
+	and it does not update the modified timestamp (by using the update_modified parameter)
+	"""
+
+	iws = frappe.qb.DocType("Item WooCommerce Server")
+
+	iwss = (
+		frappe.qb.from_(iws).where(iws.enabled == 1).where(iws.parent == item_code).select(iws.name)
+	).run(as_dict=True)
+
+	for iws in iwss:
+		frappe.db.set_value(
+			"Item WooCommerce Server",
+			iws.name,
+			"woocommerce_last_sync_hash",
+			None,
+			update_modified=False,
+		)
+
+	run_item_sync(item_code=item_code, enqueue=True)
