@@ -337,6 +337,7 @@ class TestWooCommerceOrder(FrappeTestCase):
 		# Define the mock response from the put method
 		mock_put_response = Mock()
 		mock_put_response.status_code = 200
+		mock_put_response.json.return_value = {"date_modified": "2024-01-01"}
 
 		# Set the mock response to be returned when PUT is called on the mock API
 		mock_api_list[0].api.put.return_value = mock_put_response

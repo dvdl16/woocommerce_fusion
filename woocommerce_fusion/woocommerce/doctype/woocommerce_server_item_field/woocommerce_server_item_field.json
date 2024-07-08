@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-07-08 14:28:39.369279",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "erpnext_field_name",
+  "column_break_kddy",
+  "woocommerce_field_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "erpnext_field_name",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "ERPNext Field Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_kddy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "woocommerce_field_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "WooCommerce Field Name",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-07-08 15:01:23.170432",
+ "modified_by": "Administrator",
+ "module": "WooCommerce",
+ "name": "WooCommerce Server Item Field",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
