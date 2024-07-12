@@ -31,16 +31,15 @@ class WooCommerceProduct(WooCommerceResource):
 		products = WooCommerceProduct.get_list_of_records(args)
 
 		# Extend the list with product variants
-		product_ids_with_variants = [product.id for product in products if product.type == "variable"]
+		product_ids_with_variants = [
+			product.get("id") for product in products if product.get("type") == "variable"
+		]
 		for id in product_ids_with_variants:
 			args["endpoint"] = f"products/{id}/variations"
 			variants = WooCommerceProduct.get_list_of_records(args)
 			products.extend(variants)
 
-		if args.get("initialised"):
-			return products
-		else:
-			return [product.as_dict() for product in products]
+		return products
 
 	def after_load_from_db(self, product: Dict):
 		product.pop("name")

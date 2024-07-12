@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from time import sleep
 from typing import List, Optional, Tuple
 
 import frappe
@@ -27,20 +26,45 @@ def run_item_sync_from_hook(doc, method):
 	"""
 	Intended to be triggered by a Document Controller hook from Item
 	"""
-	if doc.doctype == "Item":
+	if (
+		doc.doctype == "Item"
+		and not doc.flags.get("created_by_sync", None)
+		and len(doc.woocommerce_servers) > 0
+	):
+		frappe.msgprint(
+			_("Background sync to WooCommerce triggered for {}").format(frappe.bold(doc.name)),
+			indicator="blue",
+			alert=True,
+		)
 		frappe.enqueue(clear_sync_hash_and_run_item_sync, item_code=doc.name)
 
 
 @frappe.whitelist()
 def run_item_sync(
-	item_code: Optional[str] = None, woocommerce_product_name: Optional[str] = None, enqueue=False
+	item_code: Optional[str] = None,
+	item: Optional[Item] = None,
+	woocommerce_product_name: Optional[str] = None,
+	woocommerce_product: Optional[WooCommerceProduct] = None,
+	enqueue=False,
 ) -> Tuple[Item, WooCommerceProduct]:
-	# Get ERPNext Item and WooCommerce product if they exist
-	if woocommerce_product_name:
-		woocommerce_product = frappe.get_doc(
-			{"doctype": "WooCommerce Product", "name": woocommerce_product_name}
+	"""
+	Helper funtion that prepares arguments for item sync
+	"""
+	# Validate inputs, at least one of the parameters should be provided
+	if not any([item_code, item, woocommerce_product_name, woocommerce_product]):
+		raise ValueError(
+			(
+				"At least one of item_code, item, woocommerce_product_name, woocommerce_product parameters required"
+			)
 		)
-		woocommerce_product.load_from_db()
+
+	# Get ERPNext Item and WooCommerce product if they exist
+	if woocommerce_product or woocommerce_product_name:
+		if not woocommerce_product:
+			woocommerce_product = frappe.get_doc(
+				{"doctype": "WooCommerce Product", "name": woocommerce_product_name}
+			)
+			woocommerce_product.load_from_db()
 
 		# Trigger sync
 		sync = SynchroniseItem(woocommerce_product=woocommerce_product)
@@ -49,8 +73,9 @@ def run_item_sync(
 		else:
 			sync.run()
 
-	elif item_code:
-		item = frappe.get_doc("Item", item_code)
+	elif item or item_code:
+		if not item:
+			item = frappe.get_doc("Item", item_code)
 		if not item.woocommerce_servers:
 			frappe.throw(_("No WooCommerce Servers defined for Item {0}").format(item_code))
 		for wc_server in item.woocommerce_servers:
@@ -92,8 +117,7 @@ def sync_woocommerce_products_modified_since(date_time_from=None):
 	wc_products = get_list_of_wc_products(date_time_from=date_time_from)
 	for wc_product in wc_products:
 		try:
-			run_item_sync(woocommerce_product_name=wc_product["name"])
-			sleep(1)
+			run_item_sync(woocommerce_product=wc_product, enqueue=True)
 		# Skip items with errors, as these exceptions will be logged
 		except Exception:
 			pass
@@ -136,12 +160,9 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		"""
 		Run synchronisation
 		"""
-		# If a WooCommerce ID or Item Code is supplied, find the item and synchronise it
 		try:
 			self.get_corresponding_item_or_product()
 			self.sync_wc_product_with_erpnext_item()
-		except SyncDisabledError:
-			pass
 		except Exception as err:
 			woocommerce_product_dict = (
 				self.woocommerce_product.as_dict()
@@ -150,6 +171,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			)
 			error_message = f"{frappe.get_traceback()}\n\nItem Data: \n{str(self.item) if self.item else ''}\n\nWC Product Data \n{str(woocommerce_product_dict) if self.woocommerce_product else ''})"
 			frappe.log_error("WooCommerce Error", error_message)
+			raise err
 
 	def get_corresponding_item_or_product(self):
 		"""
@@ -164,9 +186,13 @@ class SynchroniseItem(SynchroniseWooCommerce):
 				"WooCommerce Server", self.item.item_woocommerce_server.woocommerce_server
 			)
 			if not wc_server.enable_sync:
-				raise SyncDisabledError
+				raise SyncDisabledError(wc_server)
 
 			wc_products = get_list_of_wc_products(item=self.item)
+			if len(wc_products) == 0:
+				raise ValueError(
+					f"No WooCommerce Product found with ID {self.item.item_woocommerce_server.woocommerce_id} on {self.item.item_woocommerce_server.woocommerce_server}"
+				)
 			self.woocommerce_product = wc_products[0]
 
 		if self.woocommerce_product and not self.item:
@@ -179,7 +205,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		if not all(
 			[self.woocommerce_product.woocommerce_server, self.woocommerce_product.woocommerce_id]
 		):
-			raise ValueError()
+			raise ValueError("Both woocommerce_server and woocommerce_id required")
 
 		iws = frappe.qb.DocType("Item WooCommerce Server")
 		itm = frappe.qb.DocType("Item")
@@ -239,6 +265,8 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		"""
 		if item.item.item_name != woocommerce_product.woocommerce_name:
 			item.item.item_name = woocommerce_product.woocommerce_name
+			item.item.flags.created_by_sync = True
+			item.item.save()
 		self.set_item_fields()
 
 		self.set_sync_hash()
@@ -331,6 +359,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 			# Reload ERPNext Item
 			item.item.reload()
 			item.item_woocommerce_server.woocommerce_id = wc_product.woocommerce_id
+			item.item.flags.created_by_sync = True
 			item.item.save()
 
 			self.set_sync_hash()
@@ -380,6 +409,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		row.woocommerce_id = wc_product.woocommerce_id
 		row.woocommerce_server = wc_server.name
 		item.flags.ignore_mandatory = True
+		item.flags.created_by_sync = True
 		item.insert()
 
 		self.item = ERPNextItemToSync(
@@ -498,7 +528,7 @@ def get_list_of_wc_products(
 	item: Optional[ERPNextItemToSync] = None, date_time_from: Optional[datetime] = None
 ) -> List[WooCommerceProduct]:
 	"""
-	Fetches a list of WooCommerce Products within a specified date range or linked with Items, using pagination.
+	Fetches a list of WooCommerce Products within a specified date range or linked with an Item, using pagination.
 
 	At least one of date_time_from, item parameters are required
 	"""
@@ -528,12 +558,14 @@ def get_list_of_wc_products(
 				"page_lenth": page_length,
 				"start": start,
 				"servers": servers,
-				"initialised": True,
+				"as_doc": True,
 			}
 		)
 		for wc_product in new_results:
 			wc_products.append(wc_product)
 		start += page_length
+		if len(new_results) < page_length:
+			new_results = []
 
 	return wc_products
 
@@ -583,4 +615,5 @@ def clear_sync_hash_and_run_item_sync(item_code: str):
 			update_modified=False,
 		)
 
-	run_item_sync(item_code=item_code, enqueue=True)
+	if len(iwss) > 0:
+		run_item_sync(item_code=item_code, enqueue=True)

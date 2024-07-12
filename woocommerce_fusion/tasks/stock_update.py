@@ -112,7 +112,7 @@ def update_stock_levels_on_woocommerce_site(item_code):
 			except Exception as err:
 				error_message = f"{frappe.get_traceback()}\n\nData in PUT request: \n{str(data_to_post)}"
 				frappe.log_error("WooCommerce Error", error_message)
-				return False
+				raise err
 			if response.status_code != 200:
 				error_message = f"Status Code not 200\n\nData in PUT request: \n{str(data_to_post)}"
 				error_message += (
@@ -121,6 +121,6 @@ def update_stock_levels_on_woocommerce_site(item_code):
 					else ""
 				)
 				frappe.log_error("WooCommerce Error", error_message)
-				return False
+				raise ValueError(error_message)
 
 		return True

@@ -28,7 +28,7 @@ def update_item_price_for_woocommerce_item_from_hook(doc, method):
 
 @frappe.whitelist()
 def run_item_price_sync_in_background():
-	frappe.enqueue(run_item_price_sync, queue="long")
+	frappe.enqueue(run_item_price_sync, queue="long", timeout=3600)
 
 
 @frappe.whitelist()
@@ -73,6 +73,7 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 		"""
 		Get list of ERPNext Item Prices to synchronise,
 		"""
+		self.item_price_list = []
 		if (
 			self.wc_server.enable_sync
 			and self.wc_server.enable_price_list_sync

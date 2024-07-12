@@ -1,11 +1,13 @@
 import json
 import os
-from typing import List
+from typing import List, Tuple
 
 import frappe
 from erpnext import get_default_company
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_to_date, now
+
+from woocommerce_fusion.woocommerce.woocommerce_api import WC_RESOURCE_DELIMITER
 
 default_company = get_default_company()
 default_bank = "Test Bank"
@@ -89,7 +91,7 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		item_price: float = 10,
 		item_qty: int = 1,
 		currency: str = None,
-	) -> int:
+	) -> Tuple[str, str]:
 		"""
 		Create a dummy order on a WooCommerce testing site
 		"""
@@ -145,7 +147,8 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 		# Making the API call
 		response = oauth.post(url, headers=headers, data=payload)
 
-		return response.json()["id"]
+		id = response.json()["id"]
+		return id, self.wc_server.name + WC_RESOURCE_DELIMITER + str(response.json()["id"])
 
 	def post_woocommerce_product(
 		self,
@@ -224,6 +227,22 @@ class TestIntegrationWooCommerce(FrappeTestCase):
 
 		# API Endpoint
 		url = f"{self.wc_url}/wp-json/wc/v3/orders/{wc_order_id}"
+		headers = {"Content-Type": "application/json"}
+
+		# Making the API call
+		oauth.delete(url, headers=headers)
+
+	def delete_woocommerce_product(self, wc_product_id: int) -> None:
+		"""
+		Delete a product on a WooCommerce testing site
+		"""
+		from requests_oauthlib import OAuth1Session
+
+		# Initialize OAuth1 session
+		oauth = OAuth1Session(self.wc_consumer_key, client_secret=self.wc_consumer_secret)
+
+		# API Endpoint
+		url = f"{self.wc_url}/wp-json/wc/v3/products/{wc_product_id}?force=true"
 		headers = {"Content-Type": "application/json"}
 
 		# Making the API call
