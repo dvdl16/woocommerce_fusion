@@ -13,6 +13,9 @@ If *Price List Sync* is enabled, every day, a background task runs that performs
 If *Price List Sync* is enabled, a product update API request will be made when the following documents are updated:
 - Item Price
 
+## Manual Trigger
+Price List Synchronisation can also be triggered from an **Item**, by clicking on *Actions* > *Sync this Item's Price to WooCommerce*
+
 ## Troubleshooting
 - You can look at the list of **WooCommerce Products** from within ERPNext by opening the **WooCommerce Product** doctype. This is a [Virtual DocType](https://frappeframework.com/docs/v15/user/en/basics/doctypes/virtual-doctype) that interacts directly with your WooCommerce site's API interface
 - Any errors during this process can be found under **Error Log**.

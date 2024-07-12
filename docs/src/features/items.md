@@ -11,8 +11,12 @@ To link your ERPNext Item to a WooCommerce Product:
 ## Hooks
 
 - Every time an Item is updated or created, a synchronisation will take place for the item if:
-  -  A row exists in the **Item's** *WooCommerce Servers* child table with a blank/empty *WooCommerce ID* and *Enable Sync* is ticked: A linked WooCommerce Product will be created.
+  -  A row exists in the **Item's** *WooCommerce Servers* child table with a blank/empty *WooCommerce ID* and *Enable Sync* is ticked: A linked WooCommerce Product will be created, **OR**
   -  A row exists in the **Item's** *WooCommerce Servers* child table with a value set in *WooCommerce ID* and *Enable Sync* is ticked: The existing WooCommerce Product will be updated
+
+## Manual Trigger
+- Item Synchronisation can also be triggered from an **Item**, by clicking on *Actions* > *Sync this Item with WooCommerce*
+- Item Synchronisation can also be triggered from a **WooCommerce Item**, by clicking on *Actions* > *Sync this Product with ERPNext*
 
 ## Background Job
 
