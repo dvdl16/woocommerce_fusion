@@ -21,7 +21,7 @@
   "secret",
   "view_webhook_config",
   "tab_sales_orders",
-  "minimum_creation_date",
+  "column_break_tefw",
   "column_break_utsi",
   "sync_so_items_to_wc",
   "section_so_defaults",
@@ -75,12 +75,6 @@
    "fieldname": "submit_sales_orders",
    "fieldtype": "Check",
    "label": "Submit Sales Orders during Synchronisation"
-  },
-  {
-   "description": "WooCommerce Orders with a creation date earlier than this date will be ignored",
-   "fieldname": "minimum_creation_date",
-   "fieldtype": "Datetime",
-   "label": "Minimum Creation Date"
   },
   {
    "fieldname": "section_break_accounting",
@@ -400,11 +394,15 @@
    "fieldname": "item_fields_warning_html",
    "fieldtype": "HTML",
    "options": "<div class=\"alert alert-warning\">\nMapping item fields is recommended for advanced users only. Make sure to monitor Error Logs after adding field mappings.\n</div>"
+  },
+  {
+   "fieldname": "column_break_tefw",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-08 15:04:39.014474",
+ "modified": "2024-07-14 20:31:08.640651",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
