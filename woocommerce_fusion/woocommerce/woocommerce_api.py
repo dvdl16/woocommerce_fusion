@@ -7,6 +7,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from woocommerce_fusion.exceptions import SyncDisabledError
 from woocommerce_fusion.tasks.utils import APIWithRequestLogging
 
 WC_RESOURCE_DELIMITER = "~"
@@ -53,6 +54,9 @@ class WooCommerceResource(Document):
 			for server in wc_servers
 			if server.enable_sync == 1
 		]
+
+		if len(wc_api_list) == 0:
+			frappe.throw(_("At least one WooCommerce Server should be Enabled"), SyncDisabledError)
 
 		return wc_api_list
 
