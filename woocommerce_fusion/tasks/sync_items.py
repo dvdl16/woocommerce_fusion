@@ -496,10 +496,10 @@ class SynchroniseItem(SynchroniseWooCommerce):
 
 		Returns true if woocommerce_product was changed
 		"""
+		wc_product_dirty = False
 		if item and woocommerce_product:
 			wc_server = frappe.get_cached_doc("WooCommerce Server", woocommerce_product.woocommerce_server)
 			if wc_server.item_field_map:
-				wc_product_dirty = False
 				for map in wc_server.item_field_map:
 					erpnext_item_field_name = map.erpnext_field_name.split(" | ")
 					erpnext_item_field_value = getattr(item.item, erpnext_item_field_name[0])
