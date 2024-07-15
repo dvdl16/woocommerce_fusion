@@ -7,7 +7,7 @@ import frappe
 from erpnext.selling.doctype.sales_order.sales_order import SalesOrder
 from frappe import _
 from frappe.utils import get_datetime
-from frappe.utils.data import cstr
+from frappe.utils.data import cstr, now
 
 from woocommerce_fusion.exceptions import SyncDisabledError
 from woocommerce_fusion.tasks.sync import SynchroniseWooCommerce
@@ -88,7 +88,7 @@ def sync_woocommerce_orders_modified_since(date_time_from=None):
 	wc_settings = frappe.get_doc("WooCommerce Integration Settings")
 
 	if not date_time_from:
-		date_time_from = wc_settings.wc_last_sync_date_items
+		date_time_from = wc_settings.wc_last_sync_date
 
 	# Validate
 	if not date_time_from:
@@ -109,6 +109,11 @@ def sync_woocommerce_orders_modified_since(date_time_from=None):
 		# Skip orders with errors, as these exceptions will be logged
 		except Exception:
 			pass
+
+	wc_settings.reload()
+	wc_settings.wc_last_sync_date = now()
+	wc_settings.flags.ignore_mandatory = True
+	wc_settings.save()
 
 
 class SynchroniseSalesOrder(SynchroniseWooCommerce):
@@ -571,6 +576,13 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 			"Shipping Total",
 			wc_server.f_n_f_account,
 		)
+
+		# Handle scenario where Woo Order has no items, then manually set the total
+		if len(new_sales_order.items) == 0:
+			new_sales_order.base_grand_total = float(wc_order.total)
+			new_sales_order.grand_total = float(wc_order.total)
+			new_sales_order.base_rounded_total = float(wc_order.total)
+			new_sales_order.rounded_total = float(wc_order.total)
 
 
 def get_list_of_wc_orders(
