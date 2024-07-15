@@ -1,11 +1,11 @@
 import json
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import frappe
 from erpnext import get_default_company
 from frappe.tests.utils import FrappeTestCase
 
-from woocommerce_fusion.tasks.sync_sales_orders import SynchroniseSalesOrders
+from woocommerce_fusion.tasks.sync_sales_orders import SynchroniseSalesOrder
 from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
 )
@@ -15,21 +15,22 @@ default_bank = "Test Bank"
 default_bank_account = "Checking Account"
 
 
+@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe.get_cached_doc")
 class TestWooCommerceSync(FrappeTestCase):
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()  # important to call super() methods when extending TestCase.
 
-	@patch.object(SynchroniseSalesOrders, "update_sales_order")
-	def test_sync_sales_orders_while_passing_sales_order_should_update_sales_order_if_so_is_older(
-		self, mock_update_sales_order
+	@patch.object(SynchroniseSalesOrder, "update_sales_order")
+	def test_sync_sales_order_should_update_sales_order_if_so_is_older(
+		self, mock_update_sales_order, mock_get_wc_servers
 	):
 		"""
 		Test that the 'sync_sales_orders' function should update the sales order
 		if the sales order is older than the corresponding WooCommerce order
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders(servers=Mock())
+		sync = SynchroniseSalesOrder()
 
 		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
@@ -40,7 +41,7 @@ class TestWooCommerceSync(FrappeTestCase):
 		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-01-01"
-		sync.sales_orders_list = [sales_order]
+		sync.sales_order = sales_order
 
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
@@ -49,41 +50,40 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		wc_order.date_modified = "2023-12-31"
-		sync.wc_orders_dict = {wc_order.name: wc_order}
+		wc_order.woocommerce_date_modified = "2023-12-31"
+		sync.woocommerce_order = wc_order
 
 		# Call the method under test
-		sync.sync_wc_orders_with_erpnext_sales_orders()
+		sync.sync_wc_order_with_erpnext_order()
 
 		# Assert that the sales order need to be updated
-		mock_update_sales_order.assert_called_once_with(wc_order, "SO-0001")
+		mock_update_sales_order.assert_called_once_with(wc_order, sales_order)
 
-	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
-	@patch.object(SynchroniseSalesOrders, "update_woocommerce_order")
-	def test_sync_sales_orders_while_passing_sales_order_should_update_wc_order_if_so_is_newer(
-		self, mock_update_woocommerce_order, mock_frappe
+	@patch.object(SynchroniseSalesOrder, "create_and_link_payment_entry")
+	@patch.object(SynchroniseSalesOrder, "update_woocommerce_order")
+	def test_sync_sales_order_should_update_wc_order_if_so_is_newer(
+		self, mock_update_woocommerce_order, mock_create_and_link_payment_entry, mock_get_wc_servers
 	):
 		"""
-		Test that the 'sync_sales_orders' function should update the WooCommerce order
+		Test that the 'sync_sales_order' function should update the WooCommerce order
 		if the sales order is newer than the corresponding WooCommerce order
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders(servers=Mock())
-
-		mock_frappe.get_doc.return_value = Mock()
-		mock_frappe.get_single.return_value = Mock()
+		sync = SynchroniseSalesOrder()
 
 		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
 
 		# Create dummy Sales Order
-		sales_order = frappe.get_doc({"doctype": "Sales Order"})
+		sales_order = frappe._dict()
 		sales_order.name = "SO-0001"
 		sales_order.woocommerce_server = woocommerce_server
 		sales_order.woocommerce_id = woocommerce_id
 		sales_order.modified = "2023-12-25"
 		sales_order.docstatus = 1
-		sync.sales_orders_list = [sales_order]
+		sales_order.reload = Mock()
+		sales_order.save = Mock()
+		sync.sales_order = sales_order
 
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
@@ -92,40 +92,29 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		wc_order.date_modified = "2023-01-01"
-		sync.wc_orders_dict = {wc_order.name: wc_order}
+		wc_order.woocommerce_date_modified = "2023-01-01"
+		sync.woocommerce_order = wc_order
 
 		# Call the method under test
-		sync.sync_wc_orders_with_erpnext_sales_orders()
+		sync.sync_wc_order_with_erpnext_order()
 
 		# Assert that the sales order need to be updated
-		mock_update_woocommerce_order.assert_called_once_with(wc_order, "SO-0001")
+		mock_update_woocommerce_order.assert_called_once_with(wc_order, sales_order)
 
-	@patch("woocommerce_fusion.tasks.sync.frappe")
-	@patch.object(SynchroniseSalesOrders, "create_sales_order")
-	def test_sync_sales_orders_while_passing_sales_order_should_create_so_if_no_so(
-		self, mock_create_sales_order, mock_frappe
+	@patch.object(SynchroniseSalesOrder, "create_sales_order")
+	def test_sync_sales_order_should_create_so_if_no_so(
+		self, mock_create_sales_order, mock_get_wc_servers
 	):
 		"""
-		Test that the 'sync_sales_orders' function should create a Sales Order if
+		Test that the 'sync_sales_order' function should create a Sales Order if
 		there are no corresponding Sales orders
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders(sales_order_name="SO-0001")
-
-		mock_frappe.get_doc.return_value = Mock()
-		mock_frappe.get_single.return_value = Mock()
+		sync = SynchroniseSalesOrder()
 
 		woocommerce_server = "site1.example.com"
 		woocommerce_id = 1
 
-		# Create dummy Sales Order
-		sales_order = frappe.get_doc({"doctype": "Sales Order"})
-		sales_order.name = "SO-0001"
-		sales_order.woocommerce_server = woocommerce_server
-		sales_order.woocommerce_id = 2
-		sync.sales_orders_list = [sales_order]
-
 		# Create dummy WooCommerce Order
 		wc_order = frappe.get_doc({"doctype": "WooCommerce Order"})
 		wc_order.woocommerce_server = woocommerce_server
@@ -133,19 +122,19 @@ class TestWooCommerceSync(FrappeTestCase):
 		wc_order.name = generate_woocommerce_record_name_from_domain_and_id(
 			woocommerce_server, woocommerce_id
 		)
-		sync.wc_orders_dict = {wc_order.name: wc_order}
+		sync.woocommerce_order = wc_order
 
 		# Call the method under test
-		sync.sync_wc_orders_with_erpnext_sales_orders()
+		sync.sync_wc_order_with_erpnext_order()
 
 		# Assert that the sales order need to be created
 		mock_create_sales_order.assert_called_once()
 		self.assertEqual(mock_create_sales_order.call_args.args[0], wc_order)
 
-	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
-	def test_successful_payment_entry_creation(self, mock_frappe):
+	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe.new_doc")
+	def test_successful_payment_entry_creation(self, mock_frappe_new_doc, mock_get_wc_servers):
 		# Initialise class
-		sync = SynchroniseSalesOrders()
+		sync = SynchroniseSalesOrder()
 
 		# Arrange
 		wc_order = frappe._dict(
@@ -157,39 +146,37 @@ class TestWooCommerceSync(FrappeTestCase):
 				"total": 100,
 			}
 		)
-		sales_order_name = "SO-0001"
 
-		mock_sales_order = MagicMock()
-		mock_sales_order.woocommerce_server = "example.com"
-		mock_sales_order.woocommerce_payment_entry = None
-		mock_sales_order.customer = "customer_1"
-		mock_sales_order.grand_total = 100
-		mock_sales_order.name = "SO-0001"
-		mock_sales_order.docstatus = 1
-		mock_sales_order.per_billed = 0
+		mock_sales_order = frappe._dict(
+			woocommerce_server="example.com",
+			woocommerce_payment_entry=None,
+			customer="customer_1",
+			grand_total=100,
+			name="SO-0001",
+			docstatus=1,
+			per_billed=0,
+		)
 
-		mock_frappe.get_cached_doc.return_value = frappe._dict(
+		mock_get_wc_servers.return_value = frappe._dict(
 			enable_payments_sync=1,
 			woocommerce_server_url="http://example.com",
 			payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
 			payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
 		)
 
-		mock_frappe.get_doc.return_value = mock_sales_order
-		mock_frappe.get_value.return_value = "Test Company"
-		mock_frappe.new_doc.return_value = MagicMock()
-
 		# Act
-		sync.create_and_link_payment_entry(wc_order, sales_order_name)
+		sync.create_and_link_payment_entry(wc_order, mock_sales_order)
 
 		# Assert
 		self.assertIsNotNone(mock_sales_order.woocommerce_payment_entry)
-		mock_frappe.new_doc.assert_called_once_with("Payment Entry")
+		mock_frappe_new_doc.assert_called_once_with("Payment Entry")
 
-	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
-	def test_that_no_payment_entry_is_created_when_mapping_is_null(self, mock_frappe):
+	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe.new_doc")
+	def test_that_no_payment_entry_is_created_when_mapping_is_null(
+		self, mock_frappe_new_doc, mock_get_wc_servers
+	):
 		# Arrange
-		sync = SynchroniseSalesOrders()
+		sync = SynchroniseSalesOrder()
 		wc_order = frappe._dict(
 			{
 				"payment_method": "EFT",
@@ -198,41 +185,42 @@ class TestWooCommerceSync(FrappeTestCase):
 				"payment_method_title": "EFT",
 			}
 		)
-		sales_order_name = "SO-0001"
 
-		mock_sales_order = MagicMock()
-		mock_sales_order.woocommerce_server = "example.com"
-		mock_sales_order.woocommerce_payment_entry = None
-		mock_sales_order.customer = "customer_1"
-		mock_sales_order.grand_total = 100
-		mock_sales_order.name = "SO-0001"
+		mock_sales_order = frappe._dict(
+			woocommerce_server="example.com",
+			woocommerce_payment_entry=None,
+			customer="customer_1",
+			grand_total=100,
+			name="SO-0001",
+			docstatus=1,
+			per_billed=0,
+		)
 
-		mock_frappe.get_cached_doc.return_value = frappe._dict(
+		mock_get_wc_servers.return_value = frappe._dict(
 			enable_payments_sync=1,
 			woocommerce_server_url="http://example.com",
 			payment_method_bank_account_mapping=json.dumps({"EFT": None}),
 			payment_method_gl_account_mapping=json.dumps({"EFT": None}),
 		)
 
-		mock_frappe.get_doc.return_value = mock_sales_order
-		mock_frappe.get_value.return_value = "Test Company"
-		mock_frappe.new_doc.return_value = MagicMock()
-
 		# Act
-		sync.create_and_link_payment_entry(wc_order, sales_order_name)
+		sync.create_and_link_payment_entry(wc_order, mock_sales_order)
 
 		# Assert
 		self.assertIsNone(mock_sales_order.woocommerce_payment_entry)
-		mock_frappe.new_doc.assert_not_called()
+		mock_frappe_new_doc.assert_not_called()
 
-	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe")
-	def test_payment_entry_created_with_sales_invoice_as_reference(self, mock_frappe):
+	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe.new_doc")
+	@patch("woocommerce_fusion.tasks.sync_sales_orders.frappe.get_all")
+	def test_payment_entry_created_with_sales_invoice_as_reference(
+		self, mock_frappe_get_all, mock_frappe_new_doc, mock_get_wc_servers
+	):
 		"""
 		Test that the created Payment Entry's reference is set to the linked Sales Invoice when
 		a Sales Invoice is already created for the Sales Order
 		"""
 		# Initialise class
-		sync = SynchroniseSalesOrders()
+		sync = SynchroniseSalesOrder()
 
 		# Arrange
 		wc_order = frappe._dict(
@@ -244,38 +232,43 @@ class TestWooCommerceSync(FrappeTestCase):
 				"total": 100,
 			}
 		)
-		sales_order_name = "SO-0001"
 
-		mock_sales_order = MagicMock()
-		mock_sales_order.woocommerce_server = "example.com"
-		mock_sales_order.woocommerce_payment_entry = None
-		mock_sales_order.customer = "customer_1"
-		mock_sales_order.grand_total = 100
-		mock_sales_order.name = "SO-0001"
-		mock_sales_order.docstatus = 1
-		mock_sales_order.per_billed = 1
+		mock_sales_order = frappe._dict(
+			woocommerce_server="example.com",
+			woocommerce_payment_entry=None,
+			customer="customer_1",
+			grand_total=100,
+			name="SO-0001",
+			docstatus=1,
+			per_billed=1,
+		)
 
-		mock_sales_invoice_item = MagicMock()
-		mock_sales_invoice_item.parent = "INVOICE-12345"
+		mock_sales_invoice_item = frappe._dict(parent="INVOICE-12345")
 
-		mock_frappe.get_cached_doc.return_value = frappe._dict(
+		mock_get_wc_servers.return_value = frappe._dict(
 			enable_payments_sync=1,
 			woocommerce_server_url="http://example.com",
 			payment_method_bank_account_mapping=json.dumps({"PayPal": "Bank Account"}),
 			payment_method_gl_account_mapping=json.dumps({"PayPal": "GL Account"}),
 		)
+		mock_frappe_get_all.return_value = [mock_sales_invoice_item]
 
-		mock_frappe.get_doc.return_value = mock_sales_order
-		mock_frappe.get_all.return_value = [mock_sales_invoice_item]
-		mock_frappe.get_value.return_value = "Test Company"
-		mock_frappe.new_doc.return_value = MagicMock()
+		mock_payment_entry = frappe._dict(name="PE-000001")
+
+		mock_payment_entry.update = Mock()
+		mock_row = frappe._dict()
+		mock_payment_entry.append = Mock()
+		mock_payment_entry.append.return_value = mock_row
+		mock_payment_entry.save = Mock()
+		mock_frappe_new_doc.return_value = mock_payment_entry
 
 		# Act
-		sync.create_and_link_payment_entry(wc_order, sales_order_name)
+		sync.create_and_link_payment_entry(wc_order, mock_sales_order)
 
 		# Assert
-		self.assertIsNotNone(mock_sales_order.woocommerce_payment_entry)
-		mock_frappe.new_doc.assert_called_once_with("Payment Entry")
+		self.assertEqual(mock_sales_order.woocommerce_payment_entry, "PE-000001")
+		mock_frappe_new_doc.assert_called_once_with("Payment Entry")
+		self.assertEqual(mock_row.reference_name, "INVOICE-12345")
 
 
 def create_bank_account(

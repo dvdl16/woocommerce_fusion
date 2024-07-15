@@ -26,13 +26,26 @@ frappe.ui.form.on('Sales Order', {
 
 	sync_sales_order: function(frm) {
 		// Sync this Sales Order
+		frappe.dom.freeze(__("Sync Order with WooCommerce..."));
 		frappe.call({
-			method: "woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync",
+			method: "woocommerce_fusion.tasks.sync_sales_orders.run_sales_order_sync",
 			args: {
 				sales_order_name: frm.doc.name
 			},
 			callback: function(r) {
+				frappe.dom.unfreeze();
+				frappe.show_alert({
+					message:__('Sync completed successfully'),
+					indicator:'green'
+				}, 5);
 				frm.reload_doc();
+			},
+			error: (r) => {
+				frappe.dom.unfreeze();
+				frappe.show_alert({
+					message: __('There was an error processing the request. See Error Log.'),
+					indicator: 'red'
+				}, 5);
 			}
 		});
 	},
@@ -41,17 +54,49 @@ frappe.ui.form.on('Sales Order', {
 		// Triggered when woocommerce_status is changed
 		frappe.confirm(
 			'Changing the status will update the order status on WooCommerce. Do you want to continue?',
+			// If Yes is clicked
 			function(){
-				frm.save('Update', function(){
-					// Sync
-					frappe.call({
-						method: "woocommerce_fusion.tasks.sync_sales_orders.run_sales_orders_sync",
-						args: {
-							sales_order_name: frm.doc.name
+				frm.save(
+					'Update',
+					function(){
+						console.log("frm.doc", frm.doc);
+						// The callback on frm.save() is always called, even if there are errors in saving
+						// so first check if the form is unsaved
+						if (!frm.doc.__unsaved){
+							frappe.dom.freeze(__("Updating Order status on WooCommerce..."));
+							frappe.call({
+								method: 'woocommerce_fusion.tasks.sync_sales_orders.run_sales_order_sync',
+								args: {
+									sales_order_name: frm.doc.name
+								},
+								// disable the button until the request is completed
+								btn: $('.primary-action'),
+								callback: (r) => {
+									frappe.dom.unfreeze();
+									frappe.show_alert({
+										message:__('Updated WooCommerce Order successfully'),
+										indicator:'green'
+									}, 5);
+								},
+								error: (r) => {
+									frappe.dom.unfreeze();
+									frappe.show_alert({
+										message: __('There was an error processing the request. See Error Log.'),
+										indicator: 'red'
+									}, 5);
+									console.error(r); // Log the error for debugging
+								}
+							})
 						}
-					});
-				})
+					},
+					on_error=function(error){
+						// If the .save() fails
+						console.error(error.exception); // Log the error for debugging
+						frm.reload_doc();
+					}
+				)
 			},
+			// If No is clicked
 			function(){
 				frm.reload_doc();
 			}

@@ -17,6 +17,9 @@ If *Stock Level Sync* is enabled, a stock level API post will be made when the f
 - Sales Invoice
 - Delivery Note
 
+## Manual Trigger
+Stock Level Synchronisation can also be triggered from an **Item**, by clicking on *Actions* > *Sync this Item's Stock Levels to WooCommerce*
+
 ## Troubleshooting
 - You can look at the list of **WooCommerce Products** from within ERPNext by opening the **WooCommerce Product** doctype. This is a [Virtual DocType](https://frappeframework.com/docs/v15/user/en/basics/doctypes/virtual-doctype) that interacts directly with your WooCommerce site's API interface
 - Any errors during this process can be found under **Error Log**.

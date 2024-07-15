@@ -6,7 +6,7 @@ from erpnext.stock.doctype.item.test_item import create_item
 
 from woocommerce_fusion.tasks.sync_sales_orders import (
 	get_tax_inc_price_for_woocommerce_line_item,
-	run_sales_orders_sync,
+	run_sales_order_sync,
 )
 from woocommerce_fusion.tasks.test_integration_helpers import (
 	TestIntegrationWooCommerce,
@@ -45,18 +45,20 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 
 	def test_sync_create_new_sales_order_when_synchronising_with_woocommerce(self, mock_log_error):
 		"""
-		Test that the Sales Order Synchronisation method creates new Sales orders when there are new
-		WooCommerce orders.
+		Test that the Sales Order Synchronisation method creates a new Sales order when there is a new
+		WooCommerce order.
 
 		Assumes that the Wordpress Site we're testing against has:
 		- Tax enabled
 		- Sales prices include tax
 		"""
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=1)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(
+			payment_method_title="Doge", item_price=10, item_qty=1
+		)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 
 		# Expect no errors logged
 		mock_log_error.assert_not_called()
@@ -94,12 +96,12 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		- Sales prices include tax
 		"""
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(
+		wc_order_id, wc_order_name = self.post_woocommerce_order(
 			payment_method_title="Doge", item_price=10, item_qty=1, currency="USD"
 		)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 
 		# Expect no errors logged
 		mock_log_error.assert_not_called()
@@ -118,8 +120,8 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchronisation method creates new Sales orders with a Tax Template
-		when there are new WooCommerce orders and a Sales Taxes and Charges template has been set in settings.
+		Test that the Sales Order Synchronisation method creates a new Sales order with a Tax Template
+		for a new WooCommerce order and a Sales Taxes and Charges template has been set in settings.
 
 		Assumes that the Wordpress Site we're testing against has:
 		- Tax enabled
@@ -136,10 +138,12 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_server.save()
 
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=2)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(
+			payment_method_title="Doge", item_price=10, item_qty=2
+		)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 
 		# Expect no errors logged
 		mock_log_error.assert_not_called()
@@ -169,14 +173,14 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchronisation method creates new Sales orders and a Payment Entry
-		when there are new fully paid WooCommerce orders.
+		Test that the Sales Order Synchronisation method creates a new Sales orders and a Payment Entry
+		when there is a new fully paid WooCommerce orders.
 		"""
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(set_paid=True)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(set_paid=True)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 		mock_log_error.assert_not_called()
 
 		# Expect newly created Sales Order in ERPNext
@@ -195,7 +199,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchronisation method creates new Draft Sales orders without errors
+		Test that the Sales Order Synchronisation method creates a new Draft Sales order without errors
 		when the submit_sales_orders setting is set to 0
 		"""
 		# Setup
@@ -206,10 +210,10 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_server.save()
 
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(set_paid=True)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(set_paid=True)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 		mock_log_error.assert_not_called()
 
 		# Expect newly created Sales Order in ERPNext
@@ -239,10 +243,10 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_server.save()
 
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(set_paid=True)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(set_paid=True)
 
 		# Run synchronisation
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 		mock_log_error.assert_not_called()
 
 		# Expect no linked Payment Entry
@@ -254,7 +258,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		sales_order.submit()
 
 		# Run synchronisation again
-		run_sales_orders_sync(sales_order_name=sales_order.name)
+		run_sales_order_sync(sales_order_name=sales_order.name)
 		mock_log_error.assert_not_called()
 
 		# Expect linked Payment Entry this time
@@ -279,7 +283,9 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		wc_server.save()
 
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order(payment_method_title="Doge", item_price=10, item_qty=3)
+		wc_order_id, wc_order_name = self.post_woocommerce_order(
+			payment_method_title="Doge", item_price=10, item_qty=3
+		)
 
 		# Create an additional item in WooCommerce and in ERPNext, and link them
 		wc_product_id = self.post_woocommerce_product(product_name="ADDITIONAL_ITEM", regular_price=20)
@@ -293,7 +299,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		item.save()
 
 		# Run synchronisation for the ERPNext Sales Order to be created
-		run_sales_orders_sync()
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 
 		# Expect no errors logged
 		mock_log_error.assert_not_called()
@@ -318,7 +324,7 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		sales_order.submit()
 
 		# Run synchronisation again, to sync the Sales Order changes
-		run_sales_orders_sync(sales_order_name=sales_order.name)
+		run_sales_order_sync(sales_order_name=sales_order.name)
 		mock_log_error.assert_not_called()
 
 		# Expect WooCommerce Order to have updated items
@@ -332,25 +338,44 @@ class TestIntegrationWooCommerceSync(TestIntegrationWooCommerce):
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)
 
-	def test_sync_creates_woocommerce_order_with_woo_id_when_synchronising_with_woocommerce(
+	def test_sync_uses_dummy_item_for_deleted_item_when_synchronising_with_woocommerce(
 		self, mock_log_error
 	):
 		"""
-		Test that the Sales Order Synchronisation method creates a WooCommerce Order
-		when only a WooCommerce Order ID is passed
+		Test that the Sales Order Synchronisation method uses a placeholder item when
+		synchronising with a WooCommerce Order that has a deleted item
 		"""
+		# Setup
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 0
+		wc_server.enable_payments_sync = 0
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
+
 		# Create a new order in WooCommerce
-		wc_order_id = self.post_woocommerce_order()
+		wc_order_id, wc_order_name = self.post_woocommerce_order(set_paid=True)
 
-		# Run synchronisation for the ERPNext Sales Order to be created
-		run_sales_orders_sync(woocommerce_order_id=str(wc_order_id))
+		# Get the WooCommerce Product ID and delete the Product
+		wc_order = self.get_woocommerce_order(wc_order_id)
+		wc_product_id = wc_order["line_items"][0]["product_id"]
+		self.delete_woocommerce_product(wc_product_id)
 
-		# Expect no errors logged
+		# Run synchronisation
+		run_sales_order_sync(woocommerce_order_name=wc_order_name)
 		mock_log_error.assert_not_called()
 
 		# Expect newly created Sales Order in ERPNext
 		sales_order = frappe.get_doc("Sales Order", {"woocommerce_id": wc_order_id})
 		self.assertIsNotNone(sales_order)
+
+		# Expect placeholder item
+		self.assertEqual(sales_order.items[0].item_code, "DELETED_WOOCOMMERCE_PRODUCT")
+
+		# Teardown
+		wc_server = frappe.get_doc("WooCommerce Server", self.wc_server.name)
+		wc_server.submit_sales_orders = 1
+		wc_server.flags.ignore_mandatory = True
+		wc_server.save()
 
 		# Delete order in WooCommerce
 		self.delete_woocommerce_order(wc_order_id=wc_order_id)

@@ -1,12 +1,13 @@
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from woocommerce_fusion.exceptions import SyncDisabledError
 from woocommerce_fusion.tasks.utils import APIWithRequestLogging
 
 WC_RESOURCE_DELIMITER = "~"
@@ -53,6 +54,9 @@ class WooCommerceResource(Document):
 			for server in wc_servers
 			if server.enable_sync == 1
 		]
+
+		if len(wc_api_list) == 0:
+			frappe.throw(_("At least one WooCommerce Server should be Enabled"), SyncDisabledError)
 
 		return wc_api_list
 
@@ -106,7 +110,7 @@ class WooCommerceResource(Document):
 		return record
 
 	@classmethod
-	def get_list_of_records(cls, args) -> list["WooCommerceResource"]:
+	def get_list_of_records(cls, args) -> list[Union[Dict, "WooCommerceResource"]]:
 		"""
 		Returns List of WooCommerce Records (List view and Report view).
 
@@ -171,7 +175,10 @@ class WooCommerceResource(Document):
 				# If we're still here, it means that this API has some records in the required range
 				while True:
 					if len(all_results) >= per_page:
-						return [frappe.get_doc(record) for record in all_results]
+						if args.get("as_doc", None):
+							return [frappe.get_doc(record) for record in all_results]
+						else:
+							return all_results
 
 					# Adjust indices based on remaining offset and records to collect
 					start = max(0, offset - total_processed)
@@ -202,7 +209,10 @@ class WooCommerceResource(Document):
 						log_and_raise_error(error_text="get_list failed", response=response)
 					results = response.json()
 
-			return [frappe.get_doc(record) for record in all_results]
+			if args.get("as_doc", None):
+				return [frappe.get_doc(record) for record in all_results]
+			else:
+				return all_results
 
 	@classmethod
 	def during_get_list_of_records(cls, record: Document):

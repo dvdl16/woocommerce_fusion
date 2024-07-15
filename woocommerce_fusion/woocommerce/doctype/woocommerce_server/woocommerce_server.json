@@ -21,7 +21,7 @@
   "secret",
   "view_webhook_config",
   "tab_sales_orders",
-  "minimum_creation_date",
+  "column_break_tefw",
   "column_break_utsi",
   "sync_so_items_to_wc",
   "section_so_defaults",
@@ -41,6 +41,7 @@
   "f_n_f_account",
   "section_payments_sync",
   "enable_payments_sync",
+  "ignore_date_paid",
   "payment_method_bank_account_mapping",
   "payment_method_gl_account_mapping",
   "tab_items",
@@ -56,7 +57,6 @@
   "section_break_hnji",
   "enable_price_list_sync",
   "price_list",
-  "ignore_date_paid",
   "price_list_delay_per_item",
   "tab_plugins",
   "advanced_shipment_tracking_section",
@@ -75,12 +75,6 @@
    "fieldname": "submit_sales_orders",
    "fieldtype": "Check",
    "label": "Submit Sales Orders during Synchronisation"
-  },
-  {
-   "description": "WooCommerce Orders with a creation date earlier than this date will be ignored",
-   "fieldname": "minimum_creation_date",
-   "fieldtype": "Datetime",
-   "label": "Minimum Creation Date"
   },
   {
    "fieldname": "section_break_accounting",
@@ -224,7 +218,7 @@
    "default": "0",
    "fieldname": "wc_plugin_advanced_shipment_tracking",
    "fieldtype": "Check",
-   "label": "Enable integration with \"Advanced Shipment Tracking\" WooCommerce Plugin"
+   "label": "Enable integration with 'Advanced Shipment Tracking' WooCommerce Plugin"
   },
   {
    "fieldname": "wc_ast_shipment_providers",
@@ -277,7 +271,7 @@
   },
   {
    "default": "0",
-   "description": "Some WooCommerce payment gateways do not always set the \"Date Paid\" field, which cause Payment Entries to not be created",
+   "description": "Some WooCommerce payment gateways do not always set the 'Date Paid' field, which cause Payment Entries to not be created",
    "fieldname": "ignore_date_paid",
    "fieldtype": "Check",
    "label": "Ignore empty 'Date Paid' field on WooCommerce Orders"
@@ -400,11 +394,15 @@
    "fieldname": "item_fields_warning_html",
    "fieldtype": "HTML",
    "options": "<div class=\"alert alert-warning\">\nMapping item fields is recommended for advanced users only. Make sure to monitor Error Logs after adding field mappings.\n</div>"
+  },
+  {
+   "fieldname": "column_break_tefw",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-08 15:04:39.014474",
+ "modified": "2024-07-14 21:06:02.562277",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
