@@ -139,7 +139,7 @@
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "\nsimple\ngrouped\nexternal\nvariable\nvariation",
+   "options": "\nsimple\ngrouped\nexternal\nvariable\nvariation\npw-gift-card",
    "reqd": 1
   },
   {
@@ -493,7 +493,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2024-06-05 14:21:48.330989",
+ "modified": "2024-08-06 09:53:31.029346",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Product",
