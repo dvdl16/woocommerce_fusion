@@ -22,6 +22,7 @@
   "view_webhook_config",
   "tab_sales_orders",
   "column_break_tefw",
+  "sync_sales_orders",
   "column_break_utsi",
   "sync_so_items_to_wc",
   "section_so_defaults",
@@ -303,6 +304,7 @@
    "label": "Defaults"
   },
   {
+   "depends_on": "eval: doc.enable_sync",
    "fieldname": "tab_sales_orders",
    "fieldtype": "Tab Break",
    "label": "Sales Orders"
@@ -317,11 +319,13 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval: doc.enable_sync",
    "fieldname": "tab_items",
    "fieldtype": "Tab Break",
    "label": "Items"
   },
   {
+   "depends_on": "eval: doc.enable_sync",
    "fieldname": "tab_plugins",
    "fieldtype": "Tab Break",
    "label": "WooCommerce Plugins"
@@ -332,6 +336,7 @@
    "label": "Advanced Shipment Tracking"
   },
   {
+   "depends_on": "eval: doc.enable_sync",
    "fieldname": "tab_price_list",
    "fieldtype": "Tab Break",
    "label": "Price List"
@@ -398,11 +403,16 @@
   {
    "fieldname": "column_break_tefw",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sync_sales_orders",
+   "fieldtype": "HTML",
+   "options": "\n\t\t\t<div class=\"checkbox\">\n\t\t\t\t<label>\n\t\t\t\t\t<span class=\"input-area\" style=\"display: none;\"></span>\n\t\t\t\t\t<span class=\"disp-area\"><input type=\"checkbox\" disabled class=\"disabled-selected\"></span>\n\t\t\t\t\t<span class=\"label-area\">Synchronise Sales Orders</span>\n\t\t\t\t\t<span class=\"ml-1 help\"></span>\n\t\t\t\t</label>\n\t\t\t\t<p class=\"help-box small text-muted\">Create new ERPNext Sales Orders for existing and new WooCommerce Sales Orders. This can not be turned off.</p>\n\t\t\t</div>\n\t\t<span class=\"tooltip-content\">enable_so_sync</span>"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-14 21:06:02.562277",
+ "modified": "2024-09-01 16:00:23.735298",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Server",
