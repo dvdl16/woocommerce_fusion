@@ -147,7 +147,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "draft\npending\nprivate\npublish",
+   "options": "draft\npending\nprivate\npublish\ntrash",
    "read_only": 1
   },
   {
@@ -493,7 +493,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2024-09-01 18:02:23.930181",
+ "modified": "2024-09-01 18:09:12.980102",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Product",
