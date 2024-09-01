@@ -7,17 +7,24 @@ WooCommerce connector for ERPNext v15
 
 This app allows you to synchronise your ERPNext site with **multiple** WooCommerce websites
 
+### Features
 
-#### User documentation
+- [Sales Order Synchronisation](https://woocommerce-fusion-docs.finfoot.tech/features/sales-order)
+- [Item Synchronisation](https://woocommerce-fusion-docs.finfoot.tech/features/items)
+- [Sync Item Stock Levels](https://woocommerce-fusion-docs.finfoot.tech/features/item-stock-levels)
+- [Sync Item Prices](https://woocommerce-fusion-docs.finfoot.tech/features/item-prices)
+- [Integration with WooCommerce Plugins](https://woocommerce-fusion-docs.finfoot.tech/features/woocommerce-plugins)
+
+### User documentation
 
 User documentation is hosted at [woocommerce-fusion-docs.finfoot.tech](https://woocommerce-fusion-docs.finfoot.tech)
 
 
-#### License
+### License
 
 Dirk van der Laarse
 
-#### Manual Installation
+### Manual Installation
 
 1. [Install bench](https://github.com/frappe/bench).
 2. [Install ERPNext](https://github.com/frappe/erpnext#installation).
@@ -32,7 +39,7 @@ Dirk van der Laarse
 	```
 
 
-#### Tests
+### Tests
 
 To run unit and integration tests:
 
@@ -40,12 +47,12 @@ To run unit and integration tests:
 bench --site test_site run-tests --app woocommerce_fusion --coverage
 ```
 
-##### InstaWP Requirement
+#### InstaWP Requirement
 For integration tests, we use InstaWP to spin up temporary Wordpress websites.
 
 *TBD - steps to create a new site and template*
 
-#### Development
+### Development
 
 We use [pre-commit](https://pre-commit.com/) for linting. First time setup may be required:
 ```shell
