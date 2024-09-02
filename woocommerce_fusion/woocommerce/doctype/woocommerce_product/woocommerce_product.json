@@ -106,7 +106,7 @@
   },
   {
    "fieldname": "permalink",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "label": "Permalink",
    "read_only": 1
   },
@@ -147,7 +147,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "draft\npending\nprivate\npublish",
+   "options": "draft\npending\nprivate\npublish\ntrash",
    "read_only": 1
   },
   {
@@ -493,7 +493,7 @@
  "index_web_pages_for_search": 1,
  "is_virtual": 1,
  "links": [],
- "modified": "2024-08-06 09:53:31.029346",
+ "modified": "2024-09-01 18:09:12.980102",
  "modified_by": "Administrator",
  "module": "WooCommerce",
  "name": "WooCommerce Product",

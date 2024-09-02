@@ -21,8 +21,17 @@ Click on the "Sales Orders" tab and complete the mandatory fields
 **Settings**:
 - Synchronise Sales Order Line changes back
 
-When set, adding/removing/changing Sales Order Lines will be synchronised back to the WooCommerce Order.
+When set, adding/removing/changing Sales Order **Lines** will be synchronised back to the WooCommerce Order (Note: Sales Orders will always be synchronised, this setting is for sync'ing changed Sales Order **Lines** *back* to WooCommerce)
 
+- Enable Payments Sync
+
+Let the app create Payment Entries for paid Sales Orders. A mapping of Payment Method to Bank Account is required:
+```json
+{
+   "bacs": "1000-000 Bank Account",
+   "cheque": "1000-100 Other Bank Account"
+}
+```
 ---
 
 Click on the "Items" tab if you want to turn on Stock Level Synchronisation

@@ -1,1 +1,1 @@
-License: GNU GPLv3
+License: Dirk van der Laarse
