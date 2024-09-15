@@ -14,6 +14,10 @@ Every hour, a background task runs that performs the following steps:
 - Every time a Sales Order is submitted, a synchronisation will take place for the Sales Order if:
   -  A valid *WooCommerce Server* and *WooCommerce ID* is specified on **Sales Order**
 
+In order to make this work you need to configure the webhook in both, ERPNext and WooCommerce:
+1. From ERPNext you need to get the access keys from the Woocommerce server configuration, in the WooCommerce Webhook Settings.
+2. Create the webhook inside WooCommerce using the "Order created" topic and the rest of the data obtained on step 1.
+
 ## Manual Trigger
 - Sales Order Synchronisation can also be triggered from an **Sales Order**, by changing the field *WooCommerce Status*
 - Sales Order Synchronisation can also be triggered from an **Sales Order**, by clicking on *Actions* > *Sync this Item with WooCommerce*
