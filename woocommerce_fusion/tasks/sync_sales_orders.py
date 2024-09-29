@@ -413,9 +413,15 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		"""
 		raw_billing_data = json.loads(wc_order.billing)
 		raw_shipping_data = json.loads(wc_order.shipping)
-		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
+		first_name = raw_billing_data.get('first_name', '').strip()
+		last_name = raw_billing_data.get('last_name', '').strip()
+		email = raw_billing_data.get('email', '').strip()
+		# company
+		company_name = raw_billing_data.get('company', '').strip()
+		individual_name = f"{first_name} {last_name}".strip() or email
+
 		customer_docname = self.create_or_link_customer_and_address(
-			raw_billing_data, raw_shipping_data, customer_name
+			raw_billing_data, raw_shipping_data, individual_name, company_name
 		)
 		self.create_missing_items(wc_order, json.loads(wc_order.line_items), wc_order.woocommerce_server)
 
@@ -447,18 +453,21 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 	@staticmethod
 	def create_or_link_customer_and_address(
-		raw_billing_data: Dict, raw_shipping_data: Dict, customer_name: str
+		raw_billing_data: Dict, raw_shipping_data: Dict, individual_name: str, company_name: str
 	) -> None:
 		"""
 		Create or update Customer and Address records
 		"""
 		customer_woo_com_email = raw_billing_data.get("email")
+		# set customer_name to individual_name if company_name is not provided
+		customer_name = company_name if company_name else individual_name
 		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
 		if not customer_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
 			customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
 			customer.name = customer_docname
+			customer.customer_type = "Company" if company_name else "Individual"
 		else:
 			# Edit Customer
 			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
