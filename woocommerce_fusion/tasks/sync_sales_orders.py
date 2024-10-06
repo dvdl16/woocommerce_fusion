@@ -494,6 +494,14 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		customer.customer_name = company_name if company_name else individual_name
 		customer.woocommerce_email = customer_woo_com_email
 		customer.woocommerce_identifier = customer_identifier
+
+		# Check if vat_id exists in raw_billing_data and is a valid string
+		vat_id = raw_billing_data.get("vat_id")
+
+		if isinstance(vat_id, str) and vat_id.strip():
+			customer.tax_id = vat_id
+
+
 		customer.flags.ignore_mandatory = True
 
 		try:
