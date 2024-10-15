@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from random import randrange
 from typing import Dict, Optional
 
 import frappe
@@ -413,9 +412,21 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		"""
 		raw_billing_data = json.loads(wc_order.billing)
 		raw_shipping_data = json.loads(wc_order.shipping)
-		customer_name = f"{raw_billing_data.get('first_name')} {raw_billing_data.get('last_name')}"
+		first_name = raw_billing_data.get("first_name", "").strip()
+		last_name = raw_billing_data.get("last_name", "").strip()
+		email = raw_billing_data.get("email", "").strip()
+		# company
+		company_name = raw_billing_data.get("company", "").strip()
+		individual_name = f"{first_name} {last_name}".strip() or email
+
+		# Determine if the order is from a guest user
+		is_guest = wc_order.customer_id is None or wc_order.customer_id == 0
+
+		# Use the WooCommerce order ID as the identifier for guest orders
+		order_id = wc_order.id
+
 		customer_docname = self.create_or_link_customer_and_address(
-			raw_billing_data, raw_shipping_data, customer_name
+			raw_billing_data, raw_shipping_data, individual_name, company_name, is_guest, order_id
 		)
 		self.create_missing_items(wc_order, json.loads(wc_order.line_items), wc_order.woocommerce_server)
 
@@ -447,25 +458,56 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 	@staticmethod
 	def create_or_link_customer_and_address(
-		raw_billing_data: Dict, raw_shipping_data: Dict, customer_name: str
+		raw_billing_data: Dict,
+		raw_shipping_data: Dict,
+		individual_name: str,
+		company_name: str,
+		is_guest: bool,
+		order_id: str,
 	) -> None:
 		"""
-		Create or update Customer and Address records
+		Create or update Customer and Address records, with special handling for guest orders using order ID.
 		"""
 		customer_woo_com_email = raw_billing_data.get("email")
-		customer_exists = frappe.get_value("Customer", {"woocommerce_email": customer_woo_com_email})
+		if not customer_woo_com_email and not is_guest:
+			# Log raw_billing_data
+			frappe.log_error(
+				"WooCommerce Error",
+				f"Email is required to create or link a customer. \n\nCustomer Data: {raw_billing_data}",
+			)
+			return None
+
+		# Use order ID for guest users, otherwise use email and name for uniqueness
+		if is_guest:
+			customer_identifier = f"Guest-{order_id}"
+		else:
+			customer_identifier = f"{customer_woo_com_email}-{individual_name or company_name}"
+
+		# Check if customer exists using the identifier
+		customer_exists = frappe.get_value("Customer", {"woocommerce_identifier": customer_identifier})
+
 		if not customer_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
-			customer_docname = customer_name[:3].upper() + f"{randrange(1, 10**3):03}"
+			customer_docname = customer_identifier[:3].upper() + f"{order_id}"
 			customer.name = customer_docname
+			customer.customer_type = "Company" if company_name else "Individual"
+			customer.woocommerce_is_guest = is_guest
 		else:
 			# Edit Customer
-			customer = frappe.get_doc("Customer", {"woocommerce_email": customer_woo_com_email})
+			customer = frappe.get_doc("Customer", {"woocommerce_identifier": customer_identifier})
 			old_name = customer.customer_name
 
-		customer.customer_name = customer_name
+		customer.customer_name = company_name if company_name else individual_name
 		customer.woocommerce_email = customer_woo_com_email
+		customer.woocommerce_identifier = customer_identifier
+
+		# Check if vat_id exists in raw_billing_data and is a valid string
+		vat_id = raw_billing_data.get("vat_id")
+
+		if isinstance(vat_id, str) and vat_id.strip():
+			customer.tax_id = vat_id
+
 		customer.flags.ignore_mandatory = True
 
 		try:
@@ -481,7 +523,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 			):
 				try:
 					address = frappe.get_doc(
-						"Address", {"woocommerce_email": customer_woo_com_email, "address_type": address_type}
+						"Address", {"woocommerce_identifier": customer_identifier, "address_type": address_type}
 					)
 					rename_address(address, customer)
 				except (
@@ -648,6 +690,7 @@ def create_address(raw_data, customer, address_type):
 	address.address_line2 = raw_data.get("address_2", "Not Provided")
 	address.city = raw_data.get("city", "Not Provided")
 	address.woocommerce_email = customer.woocommerce_email
+	address.woocommerce_identifier = customer.woocommerce_identifier
 	address.address_type = address_type
 	address.country = frappe.get_value("Country", {"code": raw_data.get("country", "IN").lower()})
 	address.state = raw_data.get("state")
