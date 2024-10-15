@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from random import randrange
 from typing import Dict, Optional
 
 import frappe
@@ -413,11 +412,11 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		"""
 		raw_billing_data = json.loads(wc_order.billing)
 		raw_shipping_data = json.loads(wc_order.shipping)
-		first_name = raw_billing_data.get('first_name', '').strip()
-		last_name = raw_billing_data.get('last_name', '').strip()
-		email = raw_billing_data.get('email', '').strip()
+		first_name = raw_billing_data.get("first_name", "").strip()
+		last_name = raw_billing_data.get("last_name", "").strip()
+		email = raw_billing_data.get("email", "").strip()
 		# company
-		company_name = raw_billing_data.get('company', '').strip()
+		company_name = raw_billing_data.get("company", "").strip()
 		individual_name = f"{first_name} {last_name}".strip() or email
 
 		# Determine if the order is from a guest user
@@ -459,7 +458,12 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 	@staticmethod
 	def create_or_link_customer_and_address(
-		raw_billing_data: Dict, raw_shipping_data: Dict, individual_name: str, company_name: str, is_guest: bool, order_id: str
+		raw_billing_data: Dict,
+		raw_shipping_data: Dict,
+		individual_name: str,
+		company_name: str,
+		is_guest: bool,
+		order_id: str,
 	) -> None:
 		"""
 		Create or update Customer and Address records, with special handling for guest orders using order ID.
@@ -467,7 +471,10 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 		customer_woo_com_email = raw_billing_data.get("email")
 		if not customer_woo_com_email and not is_guest:
 			# Log raw_billing_data
-			frappe.log_error("WooCommerce Error", f"Email is required to create or link a customer. \n\nCustomer Data: {raw_billing_data}")
+			frappe.log_error(
+				"WooCommerce Error",
+				f"Email is required to create or link a customer. \n\nCustomer Data: {raw_billing_data}",
+			)
 			return None
 
 		# Use order ID for guest users, otherwise use email and name for uniqueness
@@ -475,10 +482,10 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 			customer_identifier = f"Guest-{order_id}"
 		else:
 			customer_identifier = f"{customer_woo_com_email}-{individual_name or company_name}"
-		
+
 		# Check if customer exists using the identifier
 		customer_exists = frappe.get_value("Customer", {"woocommerce_identifier": customer_identifier})
-		
+
 		if not customer_exists:
 			# Create Customer
 			customer = frappe.new_doc("Customer")
@@ -500,7 +507,6 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		if isinstance(vat_id, str) and vat_id.strip():
 			customer.tax_id = vat_id
-
 
 		customer.flags.ignore_mandatory = True
 
