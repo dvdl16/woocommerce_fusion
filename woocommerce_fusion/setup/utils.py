@@ -32,7 +32,26 @@ def before_tests():
 	_enable_all_roles_for_admin()
 
 	set_defaults_for_tests()
+	create_curr_exchange_record()
 
 	# following same practice as in erpnext app to commit manually inside before_tests
 	# nosemgrep
 	frappe.db.commit()
+
+
+def create_curr_exchange_record():
+	"""
+	Create Currency Exchange records for the currencies used in tests
+	"""
+	currencies = ["USD", "ZAR"]
+
+	for currency in currencies:
+		cur_exchange = frappe.new_doc("Currency Exchange")
+		cur_exchange.date = "2016-01-01"
+		cur_exchange.from_currency = currency
+		cur_exchange.to_currency = "INR"
+		cur_exchange.for_buying = 1
+		cur_exchange.for_selling = 1
+		cur_exchange.exchange_rate = 2.0
+
+		cur_exchange.insert(ignore_if_duplicate=True)
